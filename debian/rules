@@ -31,7 +31,6 @@ cleanremovals= bin \
 	       CPackSourceConfig.cmake \
 	       Makefile \
 	       cmake_install.cmake \
-	       old/Makefile.bak \
 	       src/Makefile \
 	       src/cmake_config.h \
 	       src/cmake_install.cmake \
@@ -41,8 +40,11 @@ cleanremovals= bin \
 	       minetest.svg \
 	       minetest.png
 
+override_dh_clean:
+	dh_clean --exclude old/Makefile.old
+	
 override_dh_auto_clean:
-	dh_clean
+	dh_clean --exclude old/Makefile.old
 	sed -e s/jthread\:\:JMutex/JMutex/g -e s/jthread\:\:JThread/JThread/g \
 	    -i ${sources} ${headers}
 	rm -rf ${cleanremovals}
