@@ -1,4 +1,3 @@
 version=3
-opts="dversionmangle=s/\+dfsg//g" \
-  http://c55.me/minetest/download.php \
-  https://github.com/celeron55/minetest/tarball/(\d.*)
+opts=dversionmangle=s/\+(dfsg|ds|deb)\d*$// \
+https://github.com/minetest/minetest/tags .*/(\d[\d\.]+)\.tar\.gz
