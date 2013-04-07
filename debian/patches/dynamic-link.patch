@@ -1,0 +1,32 @@
+Description: Changes the static linking of external libraries to dynamic link
+Author: Matthew Bekkema <mat8913ftw@gmail.com>
+
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -175,8 +175,11 @@
+ 
+ # Do not use system-wide installation of Lua, because it'll likely be a
+ # different version and/or has different build options.
+-set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
+-set(LUA_LIBRARY "lua")
++set(LUA_INCLUDE_DIR "/usr/include/lua5.1/")
++set(LUA_LIBRARY "lua5.1")
++
++set(JSON_INCLUDE_DIR "/usr/include/jsoncpp/")
++set(JSON_LIBRARY "jsoncpp")
+ 
+ configure_file(
+ 	"${PROJECT_SOURCE_DIR}/cmake_config.h.in"
+@@ -579,12 +579,10 @@
+ 
+ if (LUA_FOUND)
+ else (LUA_FOUND)
+-	add_subdirectory(lua)
+ endif (LUA_FOUND)
+ 
+ if (JSON_FOUND)
+ else (JSON_FOUND)
+-	add_subdirectory(json)
+ endif (JSON_FOUND)
+ 
+ #end
