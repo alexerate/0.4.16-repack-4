@@ -4,9 +4,15 @@ Author: "P. J. McDermott" <pjm@nac.net>
 Bug-Debian: http://bugs.debian.org/667280
 Last-Update: 2012-04-19
 
+---
+ src/filesys.cpp |    1 +
+ 1 file changed, 1 insertion(+)
+
+Index: b/src/filesys.cpp
+===================================================================
 --- a/src/filesys.cpp
 +++ b/src/filesys.cpp
-@@ -166,6 +166,7 @@
+@@ -209,6 +209,7 @@
  
  #else // POSIX
  

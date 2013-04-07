@@ -1,9 +1,13 @@
 Description: install binaries to /usr/games and don't install changelog twice
 Author: Michael Gilbert <michael.s.gilbert@gmail.com>
-Index: minetest/cmake/Modules/FindIrrlicht.cmake
+---
+ cmake/Modules/FindIrrlicht.cmake |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+Index: b/cmake/Modules/FindIrrlicht.cmake
 ===================================================================
---- minetest.orig/cmake/Modules/FindIrrlicht.cmake	2012-04-21 15:46:36.000000000 -0400
-+++ minetest/cmake/Modules/FindIrrlicht.cmake	2012-04-21 15:47:03.000000000 -0400
+--- a/cmake/Modules/FindIrrlicht.cmake
++++ b/cmake/Modules/FindIrrlicht.cmake
 @@ -50,7 +50,7 @@
  		/usr/include/irrlicht
  	)

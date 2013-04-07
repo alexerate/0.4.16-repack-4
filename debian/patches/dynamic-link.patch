@@ -1,9 +1,15 @@
 Description: Changes the static linking of external libraries to dynamic link
 Author: Matthew Bekkema <mat8913ftw@gmail.com>
 
+---
+ src/CMakeLists.txt |    9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+Index: b/src/CMakeLists.txt
+===================================================================
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -175,8 +175,11 @@
+@@ -182,8 +182,11 @@
  
  # Do not use system-wide installation of Lua, because it'll likely be a
  # different version and/or has different build options.
@@ -17,7 +23,7 @@ Author: Matthew Bekkema <mat8913ftw@gmail.com>
  
  configure_file(
  	"${PROJECT_SOURCE_DIR}/cmake_config.h.in"
-@@ -579,12 +579,10 @@
+@@ -601,12 +604,10 @@
  
  if (LUA_FOUND)
  else (LUA_FOUND)
