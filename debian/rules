@@ -14,7 +14,7 @@ export DEB_BUILD_MAINT_OPTIONS="hardening=+all"
 # file names
 sources=$(shell find . -name *.cpp)
 headers=$(shell find . -name *.h)
-dfsgremovals=.gitignore \
+dfsgremovals=Makefile.bak \
 	     .gitattributes \
 	     .hg_archival \
 	     .hg_archival.txt \
@@ -67,9 +67,9 @@ override_dh_strip:
 	dh_strip --dbg-package=minetest-dbg
 
 get-orig-source:
-	uscan --force-download && mv ../${version} ${tmpdir} || true
+	uscan --verbose --force-download && mv ../${version}.tar.gz ${tmpdir} || true
 	cd ${tmpdir} && \
-	    tar xf ${version} && rm -f ${version} && \
+	    tar xf ${version}.tar.gz && rm -f ${version}.tar.gz && \
 	    for file in ${dfsgremovals}; do \
 	        find . -name $$file -execdir rm -rf {} \; 2>/dev/null || true; \
 		done && \
