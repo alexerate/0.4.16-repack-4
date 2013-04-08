@@ -1,1 +1,6 @@
-usr/share/*
+usr/share/doc/minetest/mapformat.txt usr/share/doc/minetest-common
+usr/share/doc/minetest/lua_api.txt usr/share/doc/minetest-common
+usr/share/doc/minetest/README.txt usr/share/doc/minetest-common
+usr/share/doc/minetest/minetest.conf.example usr/share/doc/minetest-common
+usr/share/minetest/builtin/* usr/share/minetest/builtin
+usr/share/minetest/textures/* usr/share/minetest/textures 
