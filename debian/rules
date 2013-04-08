@@ -53,7 +53,7 @@ override_dh_auto_configure:
 	CFLAGS="${CFLAGS}" \
 	    LDFLAGS="${LDFLAGS}" \
 	    CXXFLAGS="${CXXFLAGS} ${CPPFLAGS}" \
-	    cmake -DCMAKE_INCLUDE_PATH=/usr/include/jthread -DCMAKE_INSTALL_PREFIX=/usr .
+	    cmake -DENABLE_GETTEXT=1 -DENABLE_FREETYPE=1 -DCMAKE_INCLUDE_PATH=/usr/include/jthread -DCMAKE_INSTALL_PREFIX=/usr .
 
 override_dh_auto_build:
 	sed -e s/JMutex/jthread\:\:JMutex/g -e s/JThread/jthread\:\:JThread/g \
