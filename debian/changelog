@@ -2,11 +2,12 @@ minetest (0.4.6+dfsg-1) UNRELEASED; urgency=low
 
   * Team upload.
   * New upstream release
-    - d/rules: update the way to get new tarballs
-    - d/rules: copy the icons from the right location
   
   [Matthew Bekkema]
   * Update existing patches.
+  * d/rules: various fixes:
+    - update the way to get new tarballs
+    - copy the icons from the right location
   * d/p/event.patch: new patch to make it compile despite upstream
     editing their included jmutex.h while we use the system-wide one.
   * Be more picky about what should get installed in minetest-common
@@ -15,6 +16,9 @@ minetest (0.4.6+dfsg-1) UNRELEASED; urgency=low
     - fix a lintian warning about a dupplicated entry
     - upstream switched to LGPL v2 for most files
     - add some missing files
+  * d/p/useless-depends.patch: drop useless dependencies reported
+    during build by dpkg-shlibdeps
+  * d/control: adapt build-deps to drop these dependencies
 
  -- Martin Quinson <mquinson@debian.org>  Sun, 07 Apr 2013 21:48:58 +0200
 
