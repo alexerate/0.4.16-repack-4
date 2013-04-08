@@ -5,6 +5,7 @@ minetest (0.4.6+dfsg-1) UNRELEASED; urgency=low
   
   [Matthew Bekkema]
   * Update existing patches.
+  * Use upstream manpages and drop Debian ones.
   * d/rules: various fixes:
     - update the way to get new tarballs
     - copy the icons from the right location
