@@ -27,7 +27,7 @@ Architecture: any
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
- minetest-common (= ${source:Version}),
+ minetest-data (= ${source:Version}),
 Description: InfiniMiner/Minecraft-inspired open game world
  minetest-c55 is a minecraft-inspired game written from scratch and licensed
  under the GPL (version 2 or later). It supports both survival and creative
@@ -54,7 +54,7 @@ Architecture: any
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
- minetest-common (= ${source:Version}),
+ minetest-data (= ${source:Version}),
 Description: InfiniMiner/Minecraft-inspired open game world server
  minetest-c55 is a minecraft-inspired game written from scratch and licensed
  under the GPL (version 2 or later). It supports both survival and creative
@@ -63,7 +63,7 @@ Description: InfiniMiner/Minecraft-inspired open game world server
  .
  This is the minetest server package.
 
-Package: minetest-common
+Package: minetest-data
 Architecture: all
 Depends:
  ${misc:Depends},
