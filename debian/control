@@ -69,6 +69,7 @@ Depends:
  ${misc:Depends},
 Breaks:
  minetest (<< 0.3.1+dfsg-3),
+ minetest-common (<<0.4.6+dfsg-1),
 Description: InfiniMiner/Minecraft-inspired open game world common files
  minetest-c55 is a minecraft-inspired game written from scratch and licensed
  under the GPL (version 2 or later). It supports both survival and creative
