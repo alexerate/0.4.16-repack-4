@@ -2,6 +2,8 @@ minetest (0.4.6+dfsg-1) UNRELEASED; urgency=low
 
   * Team upload.
   * New upstream release
+    - d/rules: update the way to get new tarballs
+    - d/rules: copy the icons from the right location
   
   [Matthew Bekkema]
   * Update existing patches.

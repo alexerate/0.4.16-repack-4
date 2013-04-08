@@ -59,8 +59,8 @@ override_dh_auto_build:
 	sed -e s/JMutex/jthread\:\:JMutex/g -e s/JThread/jthread\:\:JThread/g \
 	    -i ${sources} ${headers}
 	make VERBOSE=1 ${parallel}
-	cp minetest-icon-24x24.png minetest.png
-	cp minetest-icon.svg minetest.svg
+	cp misc/minetest-icon-24x24.png minetest.png
+	cp misc/minetest-icon.svg minetest.svg
 	convert minetest.png minetest.xpm
 
 override_dh_strip:
