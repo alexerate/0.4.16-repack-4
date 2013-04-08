@@ -11,6 +11,10 @@ minetest (0.4.6+dfsg-1) UNRELEASED; urgency=low
     editing their included jmutex.h while we use the system-wide one.
   * Be more picky about what should get installed in minetest-common
     to avoid conflicts with minetest.
+  * d/copyright: various fixes
+    - fix a lintian warning about a dupplicated entry
+    - upstream switched to LGPL v2 for most files
+    - add some missing files
 
  -- Martin Quinson <mquinson@debian.org>  Sun, 07 Apr 2013 21:48:58 +0200
 
