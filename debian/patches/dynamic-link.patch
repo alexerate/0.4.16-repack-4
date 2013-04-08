@@ -2,19 +2,23 @@ Description: Changes the static linking of external libraries to dynamic link
 Author: Matthew Bekkema <mat8913ftw@gmail.com>
 
 ---
- src/CMakeLists.txt |    9 +++++----
- 1 file changed, 5 insertions(+), 4 deletions(-)
+ src/CMakeLists.txt |   13 +++++++------
+ 1 file changed, 7 insertions(+), 6 deletions(-)
 
 Index: b/src/CMakeLists.txt
 ===================================================================
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -176,8 +176,11 @@
+@@ -174,10 +174,13 @@
+ 	set(CGUITTFONT_LIBRARY cguittfont)
+ endif(USE_FREETYPE)
  
- # Do not use system-wide installation of Lua, because it'll likely be a
- # different version and/or has different build options.
+-# Do not use system-wide installation of Lua, because it'll likely be a
+-# different version and/or has different build options.
 -set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
 -set(LUA_LIBRARY "lua")
++# DEBIAN CHANGE: Upstream use their included lua and json to play safe, but we
++# naturally use the system-wide installations. That's why distros are made.
 +set(LUA_INCLUDE_DIR "/usr/include/lua5.1/")
 +set(LUA_LIBRARY "lua5.1")
 +
