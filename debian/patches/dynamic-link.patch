@@ -9,7 +9,7 @@ Index: b/src/CMakeLists.txt
 ===================================================================
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -182,8 +182,11 @@
+@@ -176,8 +176,11 @@
  
  # Do not use system-wide installation of Lua, because it'll likely be a
  # different version and/or has different build options.
@@ -23,7 +23,7 @@ Index: b/src/CMakeLists.txt
  
  configure_file(
  	"${PROJECT_SOURCE_DIR}/cmake_config.h.in"
-@@ -601,12 +604,10 @@
+@@ -595,12 +598,10 @@
  
  if (LUA_FOUND)
  else (LUA_FOUND)
