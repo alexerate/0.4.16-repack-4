@@ -1,7 +1,9 @@
 minetest (0.4.6+dfsg-1) UNRELEASED; urgency=low
 
   * Team upload.
-  * New upstream release
+  * New upstream release (Closes: #677517)
+    - Player cannot spawn within the rock now (Closes: #693264)
+    - Builds with irrlicht 1.8 (Closes: #693277)
   
   [Matthew Bekkema]
   * Update existing patches.
