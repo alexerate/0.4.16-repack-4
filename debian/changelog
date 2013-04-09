@@ -29,6 +29,7 @@ minetest (0.4.6+dfsg-1) UNRELEASED; urgency=low
     external source package should/will provide minetest.
   * build with cURL, gettext and freetype
   * d/p/i18n: search for translations in the default path
+  * Use system-wide fonts, to avoid a warning about not found fonts
 
  -- Martin Quinson <mquinson@debian.org>  Sun, 07 Apr 2013 21:48:58 +0200
 
