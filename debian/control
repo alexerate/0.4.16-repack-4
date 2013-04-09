@@ -9,6 +9,7 @@ Build-Depends:
  debhelper (>= 9),
  cmake,
  imagemagick,
+ libfreetype6-dev,
  libjthread-dev,
  libirrlicht-dev (>= 1.7.0),
  liblua5.1-dev,
