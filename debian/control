@@ -29,7 +29,7 @@ Depends:
  ${misc:Depends},
  minetest-data (= ${source:Version}),
 Description: InfiniMiner/Minecraft-inspired open game world
- minetest-c55 is a minecraft-inspired game written from scratch and licensed
+ Minetest is a minecraft-inspired game written from scratch and licensed
  under the GPL (version 2 or later). It supports both survival and creative
  modes along with multiplayer support, dynamic lighting, and an "infinite" map
  generator.
@@ -42,7 +42,7 @@ Depends:
  minetest (= ${binary:Version}),
  minetest-server (= ${binary:Version}),
 Description: InfiniMiner/Minecraft-inspired open game world debugging symbols
- minetest-c55 is a minecraft-inspired game written from scratch and licensed
+ Minetest is a minecraft-inspired game written from scratch and licensed
  under the GPL (version 2 or later). It supports both survival and creative
  modes along with multiplayer support, dynamic lighting, and an "infinite" map
  generator.
@@ -56,7 +56,7 @@ Depends:
  ${misc:Depends},
  minetest-data (= ${source:Version}),
 Description: InfiniMiner/Minecraft-inspired open game world server
- minetest-c55 is a minecraft-inspired game written from scratch and licensed
+ Minetest is a minecraft-inspired game written from scratch and licensed
  under the GPL (version 2 or later). It supports both survival and creative
  modes along with multiplayer support, dynamic lighting, and an "infinite" map
  generator.
@@ -71,7 +71,7 @@ Breaks:
  minetest (<< 0.3.1+dfsg-3),
  minetest-common (<<0.4.6+dfsg-1),
 Description: InfiniMiner/Minecraft-inspired open game world common files
- minetest-c55 is a minecraft-inspired game written from scratch and licensed
+ Minetest is a minecraft-inspired game written from scratch and licensed
  under the GPL (version 2 or later). It supports both survival and creative
  modes along with multiplayer support, dynamic lighting, and an "infinite" map
  generator.
