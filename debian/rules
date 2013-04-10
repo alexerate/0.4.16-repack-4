@@ -78,15 +78,23 @@ override_dh_strip:
 	dh_strip --dbg-package=minetest-dbg
 
 get-orig-source:
+	rm -f ${wrkdir}/../minetest_${version}+repack.orig.tar.gz
 	uscan --verbose --force-download && mv ../${version}.tar.gz ${tmpdir} || true
-	cd ${tmpdir} && \
+	set +x; cd ${tmpdir} && \
 	    tar xf ${version}.tar.gz && rm -f ${version}.tar.gz && \
 	    for file in ${dfsgremovals}; do \
 	        find . -name $$file -execdir rm -rf {} \; 2>/dev/null || true; \
 		done && \
-	    tar czf ${wrkdir}/../minetest_${version}+dfsg.orig.tar.gz *
+	    cd minetest-${version}/games && \
+	    for game in minetest_game common build survival ; do \
+	       wget --no-verbose https://github.com/minetest/$${game}/archive/${version}.tar.gz -O - | tar xfz - ; \
+	       mv $${game}-${version} $${game} ; \
+	       done && \
+	    cd .. ; \
+	    tar cf ${wrkdir}/../minetest_${version}+repack.orig.tar * ; \
+	    gzip --best ${wrkdir}/../minetest_${version}+repack.orig.tar
 	rm -rf ${tmpdir}
-	@echo "successfully created new tarball: ../minetest_${version}+dfsg.orig.tar.gz"
+	@echo "successfully created new tarball: ${wrkdir}/../minetest_${version}+repack.orig.tar.gz"
 
 %:
 	dh ${@} 
