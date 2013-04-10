@@ -2,8 +2,10 @@ usr/share/doc/minetest/mapformat.txt usr/share/doc/minetest-data
 usr/share/doc/minetest/lua_api.txt   usr/share/doc/minetest-data
 usr/share/doc/minetest/README.txt    usr/share/doc/minetest-data
 usr/share/doc/minetest/minetest.conf.example usr/share/doc/minetest-data
-usr/share/minetest/builtin/*  usr/share/minetest/builtin
-usr/share/minetest/textures/* usr/share/minetest/textures 
-usr/share/minetest/games/*    usr/share/minetest/games
-usr/share/minetest/fonts/*    usr/share/minetest/fonts
-usr/share/locale/*            usr/share/locale
+
+usr/share/games/minetest/builtin/*   usr/share/games/minetest/builtin
+usr/share/games/minetest/textures/*  usr/share/games/minetest/textures 
+usr/share/games/minetest/games/*     usr/share/games/minetest/games
+usr/share/games/minetest/fonts/*     usr/share/games/minetest/fonts
+
+usr/share/locale/*                   usr/share/locale

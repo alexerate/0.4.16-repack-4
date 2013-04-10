@@ -58,6 +58,7 @@ override_dh_auto_configure:
 		  -DENABLE_FREETYPE=1 \
 		  -DCMAKE_INCLUDE_PATH=/usr/include/jthread \
 		  -DCUSTOM_LOCALEDIR=/usr/share/locale \
+		  -DCUSTOM_SHAREDIR=/usr/share/games/minetest \
 		  -DCMAKE_INSTALL_PREFIX=/usr .
 
 override_dh_auto_build:
