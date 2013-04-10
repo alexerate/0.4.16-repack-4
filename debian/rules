@@ -82,15 +82,15 @@ get-orig-source:
 	uscan --verbose --force-download && mv ../${version}.tar.gz ${tmpdir} || true
 	set +x; cd ${tmpdir} && \
 	    tar xf ${version}.tar.gz && rm -f ${version}.tar.gz && \
-	    for file in ${dfsgremovals}; do \
-	        find . -name $$file -execdir rm -rf {} \; 2>/dev/null || true; \
-		done && \
 	    cd minetest-${version}/games && \
 	    for game in minetest_game common build survival ; do \
 	       wget --no-verbose https://github.com/minetest/$${game}/archive/${version}.tar.gz -O - | tar xfz - ; \
 	       mv $${game}-${version} $${game} ; \
 	       done && \
 	    cd .. ; \
+	    for file in ${dfsgremovals}; do \
+	        find . -name $$file -execdir rm -rf {} \; 2>/dev/null || true; \
+		done && \
 	    tar cf ${wrkdir}/../minetest_${version}+repack.orig.tar * ; \
 	    gzip --best ${wrkdir}/../minetest_${version}+repack.orig.tar
 	rm -rf ${tmpdir}
