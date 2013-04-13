@@ -77,6 +77,9 @@ override_dh_auto_build:
 	ln -s /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf \
 	      debian/minetest-data/usr/share/minetest/fonts/liberationsans.ttf 
 	convert minetest.png minetest.xpm
+	
+override_dh_install:
+	dh_install --list-missing -X.gitignore
 
 override_dh_strip:
 	dh_strip --dbg-package=minetest-dbg
