@@ -38,7 +38,11 @@ cleanremovals= bin \
 	       install_manifest.txt \
 	       minetest.xpm \
 	       minetest.svg \
-	       minetest.png
+	       minetest.png \
+	       src/cguittfont/CMakeFiles/ \
+	       src/cguittfont/Makefile \
+	       src/cguittfont/cmake_install.cmake \
+	       src/cguittfont/libcguittfont.a
 
 override_dh_clean:
 	dh_clean --exclude old/Makefile.old
