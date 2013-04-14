@@ -87,7 +87,7 @@ override_dh_strip:
 get-orig-source:
 	rm -f ${wrkdir}/../minetest_${version}+repack.orig.tar.gz
 	uscan --verbose --force-download && mv ../${version}.tar.gz ${tmpdir} || true
-	set +x; cd ${tmpdir} && \
+	set +ex; cd ${tmpdir} && \
 	    tar xf ${version}.tar.gz && rm -f ${version}.tar.gz && \
 	    cd minetest-${version}/games && \
 	    for game in minetest_game common build survival ; do \
