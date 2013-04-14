@@ -4,7 +4,9 @@ minetest (0.4.6+repack-1) UNRELEASED; urgency=low
   * New upstream release (Closes: #677517)
     - Player cannot spawn within the rock now (Closes: #693264)
     - Builds with irrlicht 1.8 (Closes: #693277)
-  
+  * Repack upstream tarball to re-include the elements that were
+    separated "to keep the git repository reasonably sized"
+
   [Matthew Bekkema]
   * Update existing patches.
   * Use upstream manpages and drop Debian ones.
@@ -16,7 +18,7 @@ minetest (0.4.6+repack-1) UNRELEASED; urgency=low
   * Be more picky about what should get installed in minetest-common
     to avoid conflicts with minetest.
   * d/copyright: various fixes
-    - fix a lintian warning about a dupplicated entry
+    - fix a lintian warning about a duplicated entry
     - upstream switched to LGPL v2 for most files
     - add some missing files
   * d/p/useless-depends.patch: drop useless dependencies reported
