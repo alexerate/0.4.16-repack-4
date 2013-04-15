@@ -68,6 +68,10 @@ override_dh_auto_configure:
 override_dh_auto_build:
 	sed -e s/JMutex/jthread\:\:JMutex/g -e s/JThread/jthread\:\:JThread/g \
 	    -i ${sources} ${headers}
+	for bpkg in minetest minetest-data minetest-dbg minetest-server ; do \
+	  mkdir -p debian/$${bpkg}/usr/share/doc ; \
+	  cp debian/changelog.upstream debian/$${bpkg}/usr/share/doc/changelog ; \
+	done
 	make VERBOSE=1 ${parallel}
 	cp misc/minetest-icon-24x24.png minetest.png
 	cp misc/minetest-icon.svg minetest.svg
@@ -75,7 +79,7 @@ override_dh_auto_build:
 	ln -s /usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf \
 	      debian/minetest-data/usr/share/minetest/fonts/liberationmono.ttf
 	ln -s /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf \
-	      debian/minetest-data/usr/share/minetest/fonts/liberationsans.ttf 
+	      debian/minetest-data/usr/share/minetest/fonts/liberationsans.ttf
 	convert minetest.png minetest.xpm
 	
 override_dh_install:

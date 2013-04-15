@@ -1,3 +1,9 @@
+minetest (0.4.6+repack-2) UNRELEASED; urgency=low
+
+  * Add an upstream changelog found online
+
+ -- Martin Quinson <mquinson@debian.org>  Mon, 15 Apr 2013 22:10:19 +0200
+
 minetest (0.4.6+repack-1) unstable; urgency=low
 
   * Team upload.

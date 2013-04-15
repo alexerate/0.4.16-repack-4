@@ -1,0 +1,285 @@
+minetest (version 0.4.6 -- April 03, 2013)
+==========================================
+
+ New Features:
+ 
+ * Big gameplay changes:
+   - Added lavacooling near water; lava source turns into obsidian, 
+     flowing lava turns into stone [PilzAdam]
+   - Added junglewood (with stairs and slabs), jungleleaves and
+     junglesaplings [PilzAdam]
+   - Added obsidian, obsidian shards and obsidian glass [PilzAdam &
+     jojoa1997]
+   - Added grass (5 different heights) [PilzAdam]
+   - Added growing for papyrus (on dirt and grass near water) and
+     cactus (on sand) [PilzAdam]
+   - Added stonebricks crafted from 4 stones [PilzAdam]
+   - Added gold [PilzAdam]
+   - Added diamonds and diamond tools, wich are slightly faster and
+     wear out slower than mese tools [PilzAdam]
+   - Added mese axe, shovel and sword; mese pick is not the ultimate
+     tool anymore [PilzAdam]
+   - Added copper, bronze and bronze tools; bronze can be crafted with 
+     copper ingot and steel ingot; bronze tools have same digging
+     times but more uses than steel tools [PilzAdam]
+
+ * Smaller gameplay tweaks:
+   - 3 nodes now give 6 slabs instead of 3 [PilzAdam]
+   - Wooden stairs and slabs are now flammable [PilzAdam]
+   - Lava is not renewable anymore [PilzAdam]
+   - It is not possible anymore to place non-fuel items in the fuel slot
+     or any item in the output slots of the furnace [PilzAdam]
+   - Falling nodes now destroy solid buildable_to nodes [Splizard]
+   - Added ability for buckets to pick up flowing water when
+     liquid_finite is enabled [ShadowNinja]
+   - Use right click to place liquids with buckets; added description for
+     buckets [PilzAdam & ShadowNinja]
+   - Fixed furnace infotext saying "Furnace out of fuel" when placing a
+     fuel but no item to cook into it [PilzAdam]
+   - Made Mese ores a bit more rare; made Mese blocks very rare
+     [PilzAdam]
+
+ * Map generation changes:
+   - Readded dungeons (disabled by default, enable with "dungeons" flag
+     in "mg_flags" setting) [kwolekr]
+   - Speed up lighting a lot [kwolekr]
+   - Readded jungles (disabled by default, enable with "jungles" flag in
+     "mg_flags" setting) [kwolekr]
+   - Generate apple trees [kwolekr]
+   - Moved ore generation back to core; improved ore generation speed
+     [kwolekr]
+   - Added singlenode mapgen [celeron55]
+   - Added a new map generator called indev (float islands at 500+,
+     rare HUGE caves, near edges: higher mountains, larger biomes) 
+     [proller]
+
+ * Visual changes:
+   - Changed textures of cobblestone and mossy cobblestone [PilzAdam]
+
+ * Logistic changes:
+   - Split scriptapi.cpp into more files [sapier]
+   - Migrate to STL containers/algorithms [xyz]
+   - Added the pseudo game ''common'' with ''bucket'', ''default'',
+     ''stairs'', ''doors'' and ''fire'' mods included; deleted those
+     mods from minetest_game [celeron55 & PilzAdam]
+   - Added a checkbox for finite liquids to settings menu [proller]
+
+ * Other things:
+   - Use moving clouds as background for the main menu [Krisi &
+     ShadowNinja]
+   - minetest.env:find_nodes_near() optimized to be 11.65x faster,
+     ServerEnvironment step CPU consumption cut in half [kwolekr]
+
+ Bug Fixes:
+ 
+   - Fixed build with ogles2 driver [proller]
+   - Fixed new_style_water (shaders are not used for this anymore)
+     [PilzAdam]
+   - Fixed backface_culling in tiledef; both sides of flowing liquids
+     are now visible [doserj]
+   - Hopefully fix node replacement bug (where the node that is pointed
+     at is replaced) [0gb.us]
+
+ Modding-related Changes:
+ 
+   - Added minetest.get_all_craft_recipes(output) [RealBadAngel]
+   - Allow any character in formspec strings with escape characters
+     [kwolekr]
+   - Added ability to pass multiple parameters to minetest.after()
+     [Jeija]
+   - Added player:set_look_yaw() and player:set_look_pitch() [RealBadAngel]
+   - Added ability to load mods from the pseudo game ''common'' via
+     common_mods in game.conf [celeron55]
+   - Added support for a minetest.conf file in games, wich override the 
+     default values [celeron55]
+   - Added 6d facedir to rotate nodes with ''facedir'' drawtype [RealBadAngel]
+   - Added minetest.add_particle(), minetest.add_particlespawner() and
+     minetest.delete_particlespawner() [Jeija]
+   - Added minetest.register_ore() to let the engine generate the
+     ores; default.generate_ore() is now deprecated  [kwolekr]
+   - New damage system added [PilzAdam & celeron55]
+   - Added place field to sound table of tools [PilzAdam]
+
+minetest (version 0.4.5 -- March 04, 2013)
+==========================================
+ 
+ New Features:
+
+ * Big gameplay changes:
+ 
+   - Added Mese crystals and Mese crystal fragments (crafted from 1 Mese
+     crystal); Mese blocks can be crafted with 9 Mese crystals; Mese
+     pickaxes are now crafted using Mese crystals; old Mese equals the
+     new Mese block and is still generated at altitudes -1024 and below
+     [VanessaE & PilzAdam]
+   - Doors must now be right clicked to be opened [PilzAdam]
+   - Flying through walls now requires the "noclip" privilege and noclip
+     mode must be enabled by pressing H [PilzAdam]
+   - Added a list of servers to the "Multiplayer" tab of the main menu
+     [Jeija]
+   - Added a mod selection menu [doserj]
+   - Jungle grass now spawns naturally again [PilzAdam]
+   - Added finite liquid support, experimental and disabled by default
+     [proller]
+
+ * Smaller gameplay tweaks:
+ 
+   - Locked chest contents are now only shown to their owner [PilzAdam]
+   - Added ability to write several lines on a sign [PilzAdam]
+   - When sneaking, the current node/item will always be used when right
+     clicking even if pointing a chest or a furnace [Jeija]
+   - In creative mode, hand now breaks everything nearly instantly and
+     nodes/items are infinite [PilzAdam]
+   - Player physics are now tweakable by server admin [Taoki]
+   - Fast mode can now be used in liquids and in climbable nodes
+     [kwolekr]
+   - Fire is now "buildable to" [Casimir]
+   - To fly at "fast" speed, the "use" key must now be held if using
+     shift to descend [PilzAdam]
+   - Added upside down stairs and slabs [PilzAdam]
+   - Added ability to switch to fly_mode when double-tapping space bar,
+     disabled by default; can be enabled in the key change menu [PilzAdam]
+   - Tweaked damage and punch times of weapons, tools and hand [Calinou]
+   - Added repeated right clicking when holding the right mouse button,
+     see "repeat_rightclick_time" setting in minetest.conf [Jeija]
+
+ * Map generation changes:
+ 
+   - Added L-system tree generation [RealBadAngel & dannydark]
+   - Map generation is now slightly faster and can be tweaked in
+     minetest.conf [kwolekr]
+   - Added optional flat map generation, with and without trees [kwolekr]
+
+ * Visual changes:
+ 
+   - Mese pickaxe now has a new texture, which is more yellow [Jordach]
+   - Tweaked dirt texture so that it tiles better; improved lump and
+     ingot textures; added fake shading to the default player texture
+     [Iqualfragile & GloopMaster & Jordach]
+   - Added particles when digging blocks [Jeija & PilzAdam]
+   - The selection box of stairs now fits the stairs [PilzAdam]
+   - If damage is disabled, damage screen is disabled and health is not
+     shown on the HUD [PilzAdam]
+   - Damage screen is now red fade instead of constant red; camera now
+     tilts when receiving damage [Jeija & PilzAdam]
+   - Added "selectionbox_color", "crosshair_color" and "crosshair_alpha"
+     minetest.conf settings for changing selection outline color,
+     crosshair color and crosshair opacity respectively [Exio4]
+
+ * Logistic changes:
+   - Minetest-c55 is now named Minetest
+   - Less stuff is now put in debug.txt by default, change with
+     debug_log_level, default is 2
+   - Texture atlas is now disabled by default [kwolekr]
+   - Added and updated language translations; French, German, Portuguese,
+     Polish and Spanish translations are 100% complete [Calinou, kaeza,
+     PilzAdam, sfan5, xyz, kotolegokot, pandaro, Mito551, Shen Zheyu,
+     sub reptice, elagin, KikaRz and socramazibi]
+   - Added support for downloading media from a server using cURL which
+     is faster, disabled by default [Ilya Zhuravlev]
+
+ Bug Fixes:
+ 
+   - Walking on stairs, slabs and glass now makes sounds [PilzAdam & dannydark]
+   - Fixed and cleaned EmergeThread around a bit [kwolekr]
+   - Punching entities and players with shovels and pickaxes now deals
+     damage [Calinou]
+   - Fixed some caves having too many dead ends [unknown]
+   - Fixed the looks of some plantlike nodes by using two long planes
+     instead of four shorter planes [doserj]
+   - Grass no longer turns into dirt below unloaded blocks [PilzAdam]
+   - Fixed a crash when clicking "Configure" when no world is selected in
+     Singleplayer menu [doserj]
+   - Fixed dropped item collision with nodeboxes [jordan4ibanez]
+   - Fixed a glitch where the player gets liquids in his inventory when a
+     server lags [PilzAdam]
+
+ Modding-related changes:
+ 
+   - Added ability to change the itemstack in placenode callbacks [PilzAdam]
+   - Added ability to create multi-line textfields in formspecs [Jeija]
+   - Add on_rightclick(pos, node, clicker) callback for nodes [PilzAdam]
+   - Added minetest.show_fromspec(playername, formspec) to show formspecs
+     via Lua [sapier]
+
+minetest (version 0.4.4 -- December 06, 2012)
+=============================================
+
+ New Features:
+ 
+   - Added animated 3D player and a new default skin, the default
+     model also supports Minecraft skins [Taoki, skin by Jordach]
+   - Added shaders support (can be disabled in Settings menu), makes
+     water a bit smaller than a full block, makes lighting look
+     prettier [kahrl and celeron55]
+   - New default doors mod: doors have a 3D look, ability to create
+     "double doors" added, added locked steel doors (only the owner of
+     the door can open/close it) [PilzAdam]
+   - Improve map generation speed a lot [hmmmm]
+   - Day-night transitions are now smoother [celeron55]
+   - Water textures are now animated [RealBadAngel (textures) and PilzAdam]
+   - Added on-demand item previews (reduces load time/RAM usage),
+     disabled by default [celeron55]
+   - Added 3D anaglyph support (red-cyan glasses) [xyz]
+   - Fire is now animated and causes damage to players [PilzAdam,
+     Muadtralk (textures)]
+   - Tweaked some textures: apple, nyan cat, bricks, papyrus, steel sword
+     [Calinou, VanessaE]
+   - Tweaked digging animation (no more mining with the tip of your
+     pickaxe!) [jordan4ibanez]
+   - Changed apple, sapling and papyrus selection box size to be smaller
+     [VanessaE]
+   - Players who do not move no longer send their positions to save
+     bandwidth [Taoki]
+   - Make steel block and brick drop themselves when dug and make them
+     craftable back into their materials [PilzAdam]
+   - Glass now makes a sound when broken [PilzAdam]
+   - Dead players are now visible [Taoki]
+   - Changed default server tick to 0.1 second, decreasing server CPU
+     usage [celeron55]
+   - Clients now send their position every 0.1 second too, making other
+     player movement look smoother [celeron55]
+   - Use of /grant and /revoke commands is now logged [dannydark]
+   - Added ability for server to tweak amount of bandwidth used to upload
+     mods to clients [celeron55]
+
+ Bug Fixes:
+
+   - Fixed falling sand and gravel sometimes incorrectly landing [PilzAdam]
+   - Fixed empty bucket being named "emtpy bucket" [khonkhortisan and PilzAdam)
+   - Fixed slab to full block transformation [PilzAdam]
+   - Fixed smooth lighting between MapBlocks [celeron55]
+   - Prevent some blocks (leaves, falling sand and gravel) from giving
+     air when dug when they disappear as you mine them [PilzAdam]
+   - Fixed papyruses and cacti growing inside trees [PilzAdam]
+   - Fixed flowing liquid animation direction calculation [celeron55]
+   - Fixed wielditem entity drawtype brightness control [celeron55]
+   - Fixed ObjectRef:punch() [celeron55]
+   - Fixed a rare bug in leaf decay [PilzAdam]
+   - Fixed trees growing into any type of node [xyz]
+   - Fixed server crashing when "/clearpassword" is typed without an
+     argument [Uberi]
+   - Head no longer shifts downwards when you are inside transparent
+     blocks such as glass or nodeboxes [Calinou]
+   - Directories beginning with a "." are now ignored when searching for
+     mods on Windows [matttpt]
+   - Fixed the automagic render distance tuner [celeron55]
+
+ Modding-related Changes:
+ 
+   - Added 3D model support for entities [Taoki]
+   - Added attachment support (so that entities can "ride" other
+     entities) [Taoki]
+   - Backgrounds and images can now be used in formspecs [RealBadAngel]
+   - Liquids can now be made non-renewable [xyz]
+   - Added nodedef.on_blast() to lua_api.txt in order to support chained
+     explosions of any explosives [celeron55]
+   - Allow transparent image buttons [khonkhortisan]
+   - Added shutdown hook interface to Lua API [matttpt]
+   - Added "attached_node" group to make nodes which are not attached to
+     any other walkable node drop [PilzAdam]
+
+
+
+This changelog was retrieved from http://dev.minetest.net/Changelog
+and manually edited on April 15, 2013.
