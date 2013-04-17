@@ -73,7 +73,11 @@ Depends:
  fonts-liberation,
 Breaks:
  minetest (<< 0.3.1+dfsg-3),
- minetest-common (<<0.4.6+dfsg-1),
+ minetest-common
+Conflicts:
+ minetest-common
+Replaces:
+ minetest-common
 Description: Multiplayer infinite-world block sandbox (data files)
  Minetest is a minecraft-inspired game written from scratch and licensed
  under the GPL (version 2 or later). It supports both survival and creative
