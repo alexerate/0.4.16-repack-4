@@ -22,7 +22,9 @@ dfsgremovals=Makefile.bak \
 	     .hgtags \
 	     fontlucida.png \
 	     jthread \
-	     sqlite
+	     sqlite \
+	     json \
+	     lua
 cleanremovals= bin \
 	       CMakeFiles \
 	       src/CMakeFiles \
