@@ -6,7 +6,7 @@ tmpdir:=$(shell mktemp -d)
 wrkdir:=$(shell pwd)
 
 # parallel building
-parallel=$(shell echo $$DEB_BUILD_OPTIONS | grep parallel > /dev/null && echo -j$$(test -f /proc/cpuinfo && cat /proc/cpuinfo | grep ^processor | wc -l || echo 1))
+parallel=$(shell echo $$DEB_BUILD_OPTIONS | grep parallel > /dev/null && echo -j$$(test -f /proc/cpuinfo && cat /proc/cpuinfo | (grep ^processor || echo 1) | wc -l))
 
 # build-hardening flags
 export DEB_BUILD_MAINT_OPTIONS="hardening=+all"
