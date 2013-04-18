@@ -6,6 +6,9 @@ minetest (0.4.6+repack-3) UNRELEASED; urgency=low
   * Fix build on kfreebsd, and hopefully on sparc
   * Further source repacking to remove unused embeedded libraries from
     tarball.
+    
+  [Martin Quinson]
+  * d/control: update upstream's URL
 
  -- Martin Quinson <mquinson@debian.org>  Thu, 18 Apr 2013 08:13:35 +0200
 

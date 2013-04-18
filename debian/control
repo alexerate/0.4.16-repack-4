@@ -22,7 +22,7 @@ Build-Depends:
  libopenal-dev,
  libjsoncpp-dev,
 Standards-Version: 3.9.3
-Homepage: http://c55.me/minetest
+Homepage: http://minetest.net/
 Vcs-Git: git://git.debian.org/git/pkg-games/minetest-v04x.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-games/minetest-v04x.git
 
