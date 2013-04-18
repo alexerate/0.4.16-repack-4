@@ -1,4 +1,4 @@
-minetest (0.4.6+repack-3) UNRELEASED; urgency=low
+minetest (0.4.6+repack-3) unstable; urgency=low
 
   * Team upload.
 
@@ -10,7 +10,7 @@ minetest (0.4.6+repack-3) UNRELEASED; urgency=low
   [Martin Quinson]
   * d/control: update upstream's URL
 
- -- Martin Quinson <mquinson@debian.org>  Thu, 18 Apr 2013 08:13:35 +0200
+ -- Martin Quinson <mquinson@debian.org>  Thu, 18 Apr 2013 09:41:54 +0200
 
 minetest (0.4.6+repack-2) unstable; urgency=low
 
