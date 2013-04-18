@@ -8,6 +8,7 @@ Uploaders:
 Build-Depends:
  debhelper (>= 9),
  cmake,
+ gettext,
  imagemagick,
  libcurl4-gnutls-dev,
  libfreetype6-dev,
@@ -85,4 +86,4 @@ Description: Multiplayer infinite-world block sandbox (data files)
  generator.
  .
  These are the files used by both client and server packages, such as
- the textures and other graphical files.
+ the textures and other graphical files and the standard mods.
