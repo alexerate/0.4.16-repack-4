@@ -32,6 +32,8 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends},
  minetest-data (= ${source:Version}),
+Suggests:
+ minetest-server
 Description: Multiplayer infinite-world block sandbox
  Minetest is a minecraft-inspired game written from scratch and licensed
  under the GPL (version 2 or later). It supports both survival and creative

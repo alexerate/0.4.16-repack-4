@@ -1,3 +1,15 @@
+minetest (0.4.6+repack-4) UNRELEASED; urgency=low
+
+  * Team upload.
+
+  [Matthew Bekkema]
+  * Fix build on big endian architectures.
+  
+  [Martin Quinson]
+  * minetest Suggests minetest-server (Closes: #674121)
+
+ -- Martin Quinson <mquinson@debian.org>  Fri, 19 Apr 2013 08:47:09 +0200
+
 minetest (0.4.6+repack-3) unstable; urgency=low
 
   * Team upload.
