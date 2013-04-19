@@ -7,6 +7,7 @@ minetest (0.4.6+repack-4) UNRELEASED; urgency=low
   
   [Martin Quinson]
   * minetest Suggests minetest-server (Closes: #674121)
+  * Conflicts with unofficial minetestc55 (LP: #1162551)
 
  -- Martin Quinson <mquinson@debian.org>  Fri, 19 Apr 2013 08:47:09 +0200
 
@@ -34,7 +35,7 @@ minetest (0.4.6+repack-2) unstable; urgency=low
 minetest (0.4.6+repack-1) unstable; urgency=low
 
   * Team upload.
-  * New upstream release (Closes: #677517)
+  * New upstream release (Closes: #677517) (LP: #1045322)
     - Player cannot spawn within the rock now (Closes: #693264)
     - Builds with irrlicht 1.8 (Closes: #693277)
   * Repack upstream tarball to re-include the elements that were
