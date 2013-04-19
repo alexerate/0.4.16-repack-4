@@ -1,4 +1,4 @@
-minetest (0.4.6+repack-4) UNRELEASED; urgency=low
+minetest (0.4.6+repack-4) unstable; urgency=low
 
   * Team upload.
 
@@ -9,7 +9,7 @@ minetest (0.4.6+repack-4) UNRELEASED; urgency=low
   * minetest Suggests minetest-server (Closes: #674121)
   * Conflicts with unofficial minetestc55 (LP: #1162551)
 
- -- Martin Quinson <mquinson@debian.org>  Fri, 19 Apr 2013 08:47:09 +0200
+ -- Martin Quinson <mquinson@debian.org>  Fri, 19 Apr 2013 10:06:45 +0200
 
 minetest (0.4.6+repack-3) unstable; urgency=low
 
