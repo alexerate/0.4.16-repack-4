@@ -76,6 +76,7 @@ Architecture: all
 Depends:
  ${misc:Depends},
  fonts-liberation,
+ python, python-imaging,
 Breaks:
  minetest (<< 0.3.1+dfsg-3),
  minetest-common

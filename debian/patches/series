@@ -6,3 +6,4 @@ useless-depends.patch
 dynamic-link.patch
 debianization.patch
 gcc47.patch
+mapper.patch

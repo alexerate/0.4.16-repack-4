@@ -1,3 +1,9 @@
+minetest (0.4.6+repack-5) UNRELEASED; urgency=low
+
+  * include minetest-mapper into the minetest-data package
+
+ -- Martin Quinson <mquinson@debian.org>  Wed, 01 May 2013 09:25:40 +0200
+
 minetest (0.4.6+repack-4) unstable; urgency=low
 
   * Team upload.
