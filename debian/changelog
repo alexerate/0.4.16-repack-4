@@ -1,3 +1,11 @@
+minetest (0.4.6+repack-6) unstable; urgency=low
+
+  * Reupload to unstable so that it gets rebuilt against irrlicht 1.8. 
+    We could have asked a binNMU to the release team for the transition, 
+    but minetest is the only package build-depending on irrlicht.
+
+ -- Martin Quinson <mquinson@debian.org>  Mon, 06 May 2013 11:36:12 +0200
+
 minetest (0.4.6+repack-5) unstable; urgency=low
 
   * include minetest-mapper into the minetest-data package
