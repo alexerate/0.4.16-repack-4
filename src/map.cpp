@@ -288,10 +288,10 @@ void Map::unspreadLight(enum LightBank bank,
 			continue;
 
 		// Calculate relative position in block
-		v3s16 relpos = pos - blockpos_last * MAP_BLOCKSIZE;
+		//v3s16 relpos = pos - blockpos_last * MAP_BLOCKSIZE;
 
 		// Get node straight from the block
-		MapNode n = block->getNode(relpos);
+		//MapNode n = block->getNode(relpos);
 
 		u8 oldlight = j->second;
 
@@ -937,7 +937,7 @@ void Map::addNodeAndUpdate(v3s16 p, MapNode n,
 	*/
 
 	v3s16 toppos = p + v3s16(0,1,0);
-	v3s16 bottompos = p + v3s16(0,-1,0);
+	//v3s16 bottompos = p + v3s16(0,-1,0);
 
 	bool node_under_sunlight = true;
 	std::set<v3s16> light_sources;
@@ -1246,7 +1246,7 @@ void Map::removeNodeAndUpdate(v3s16 p,
 		// Get the brightest neighbour node and propagate light from it
 		v3s16 n2p = getBrightestNeighbour(bank, p);
 		try{
-			MapNode n2 = getNode(n2p);
+			//MapNode n2 = getNode(n2p);
 			lightNeighbors(bank, n2p, modified_blocks);
 		}
 		catch(InvalidPositionException &e)
@@ -1510,6 +1510,11 @@ void Map::timerUpdate(float dtime, float unload_timeout,
 	}
 }
 
+void Map::unloadUnreferencedBlocks(std::list<v3s16> *unloaded_blocks)
+{
+	timerUpdate(0.0, -1.0, unloaded_blocks);
+}
+
 void Map::deleteSectors(std::list<v2s16> &list)
 {
 	for(std::list<v2s16>::iterator j = list.begin();
@@ -1755,12 +1760,17 @@ void Map::transformLiquidsFinite(std::map<v3s16, MapBlock*> & modified_blocks)
 		}
 
 		//relax up
-		if (relax && p0.Y <= water_level && liquid_levels[D_TOP] == 0 &&
+		if (relax && ((p0.Y == water_level) || (fast_flood && p0.Y <= water_level)) && liquid_levels[D_TOP] == 0 &&
 			liquid_levels[D_BOTTOM] == LIQUID_LEVEL_SOURCE &&
 			total_level >= LIQUID_LEVEL_SOURCE * can_liquid_same_level-
 			(can_liquid_same_level - relax) &&
 			can_liquid_same_level >= relax + 1) { 
 			total_level = LIQUID_LEVEL_SOURCE * can_liquid_same_level; 
+		}
+
+		// prevent lakes in air above unloaded blocks
+		if (liquid_levels[D_TOP] == 0 && (p0.Y > water_level || !fast_flood) && neighbors[D_BOTTOM].n.getContent() == CONTENT_IGNORE) {
+			--total_level;
 		}
 
 		// calculate self level 5 blocks
@@ -1807,8 +1817,8 @@ void Map::transformLiquidsFinite(std::map<v3s16, MapBlock*> & modified_blocks)
 		}
 
 		for (u16 ii = 0; ii < 7; ii++) // infinity and cave flood optimization
-			if (liquid_levels_want[ii] >= 0 &&
-				(neighbors[ii].i ||
+			if (    neighbors[ii].i ||
+				(liquid_levels_want[ii] >= 0 &&
 				 (fast_flood && p0.Y < water_level &&
 				  (initial_size >= 1000
 				   && ii != D_TOP
@@ -1916,8 +1926,7 @@ void Map::transformLiquidsFinite(std::map<v3s16, MapBlock*> & modified_blocks)
 
 			if(!suspect.empty()){
 				// Blame suspect
-				RollbackScopeActor rollback_scope(m_gamedef->rollback(),
-													suspect, true);
+				RollbackScopeActor rollback_scope(m_gamedef->rollback(), suspect, true);
 				// Get old node for rollback
 				RollbackNode rollback_oldnode(this, p0, m_gamedef);
 				// Set node
@@ -2490,6 +2499,8 @@ ServerMap::~ServerMap()
 		delete chunk;
 	}
 #endif
+
+	delete m_mgparams;
 }
 
 bool ServerMap::initBlockMake(BlockMakeData *data, v3s16 blockpos)
@@ -2825,7 +2836,7 @@ ServerMapSector * ServerMap::createSector(v2s16 p2d)
 	sector = new ServerMapSector(this, p2d, m_gamedef);
 
 	// Sector position on map in nodes
-	v2s16 nodepos2d = p2d * MAP_BLOCKSIZE;
+	//v2s16 nodepos2d = p2d * MAP_BLOCKSIZE;
 
 	/*
 		Insert to container
@@ -3403,6 +3414,26 @@ void ServerMap::listAllLoadableBlocks(std::list<v3s16> &dst)
 	}
 }
 
+void ServerMap::listAllLoadedBlocks(std::list<v3s16> &dst)
+{
+	for(std::map<v2s16, MapSector*>::iterator si = m_sectors.begin();
+		si != m_sectors.end(); ++si)
+	{
+		MapSector *sector = si->second;
+
+		std::list<MapBlock*> blocks;
+		sector->getBlocks(blocks);
+
+		for(std::list<MapBlock*>::iterator i = blocks.begin();
+				i != blocks.end(); ++i)
+		{
+			MapBlock *block = (*i);
+			v3s16 p = block->getPos();
+			dst.push_back(p);
+		}
+	}
+}
+
 void ServerMap::saveMapMeta()
 {
 	DSTACK(__FUNCTION_NAME);
@@ -3462,8 +3493,16 @@ void ServerMap::loadMapMeta()
 			break;
 		params.parseConfigLine(line);
 	}
-
-	MapgenParams *mgparams = m_emerge->getParamsFromSettings(&params);
+	
+	MapgenParams *mgparams;
+	try {
+		mgparams = m_emerge->getParamsFromSettings(&params);
+	} catch (SettingNotFoundException &e) {
+		infostream << "Couldn't get a setting from map_meta.txt: "
+				   << e.what() << std::endl;
+		mgparams = NULL;
+	}
+	
 	if (mgparams) {
 		if (m_mgparams)
 			delete m_mgparams;

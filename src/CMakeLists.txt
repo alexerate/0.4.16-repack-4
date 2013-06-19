@@ -180,15 +180,34 @@ if(USE_FREETYPE)
 	set(CGUITTFONT_LIBRARY cguittfont)
 endif(USE_FREETYPE)
 
-# Do not use system-wide installation of Lua, because it'll likely be a
-# different version and/or has different build options.
-set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
-set(LUA_LIBRARY "lua")
+
+find_library(LUA_LIBRARY luajit
+		NAMES luajit-5.1)
+find_path(LUA_INCLUDE_DIR luajit.h
+	NAMES luajit.h
+	PATH_SUFFIXES luajit-2.0)
+message (STATUS "LuaJIT library: ${LUA_LIBRARY}")
+message (STATUS "LuaJIT headers: ${LUA_INCLUDE_DIR}")
+
+if(LUA_LIBRARY AND LUA_INCLUDE_DIR) 
+	message (STATUS "LuaJIT found.")
+else(LUA_LIBRARY AND LUA_INCLUDE_DIR)
+	message (STATUS "LuaJIT not found, using bundled Lua.")
+	set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
+	set(LUA_LIBRARY "lua")
+	add_subdirectory(lua)
+endif(LUA_LIBRARY AND LUA_INCLUDE_DIR)
+
+mark_as_advanced(LUA_LIBRARY)
+mark_as_advanced(LUA_INCLUDE_DIR)
 
 configure_file(
 	"${PROJECT_SOURCE_DIR}/cmake_config.h.in"
 	"${PROJECT_BINARY_DIR}/cmake_config.h"
 )
+
+add_subdirectory(script)
+add_subdirectory(util)
 
 set(common_SRCS
 	rollback_interface.cpp
@@ -206,31 +225,17 @@ set(common_SRCS
 	itemdef.cpp
 	nodedef.cpp
 	object_properties.cpp
-	scriptapi_types.cpp
-	scriptapi_common.cpp
-	scriptapi_content.cpp
-	scriptapi_craft.cpp
-	scriptapi_node.cpp
-	scriptapi_item.cpp
-	scriptapi_env.cpp
-	scriptapi_nodetimer.cpp
-	scriptapi_noise.cpp
-	scriptapi_entity.cpp
-	scriptapi_object.cpp
-	scriptapi_nodemeta.cpp
-	scriptapi_inventory.cpp
-	scriptapi_particles.cpp
-	scriptapi.cpp
-	script.cpp
 	log.cpp
 	content_sao.cpp
 	emerge.cpp
 	mapgen.cpp
 	mapgen_v6.cpp
+	mapgen_v7.cpp
 	mapgen_indev.cpp
 	mapgen_singlenode.cpp
 	treegen.cpp
 	dungeongen.cpp
+	cavegen.cpp
 	content_nodemeta.cpp
 	content_mapnode.cpp
 	collision.cpp
@@ -264,12 +269,9 @@ set(common_SRCS
 	clientserver.cpp
 	staticobject.cpp
 	serverlist.cpp
-	util/serialize.cpp
-	util/directiontables.cpp
-	util/numeric.cpp
-	util/pointedthing.cpp
-	util/string.cpp
-	util/timetaker.cpp
+	pathfinder.cpp
+	${SCRIPT_SRCS}
+	${UTIL_SRCS}
 )
 
 # This gives us the icon
@@ -309,6 +311,7 @@ set(minetest_SRCS
 	particles.cpp
 	clientobject.cpp
 	chat.cpp
+	hud.cpp
 	guiMainMenu.cpp
 	guiKeyChangeMenu.cpp
 	guiMessageMenu.cpp
@@ -345,6 +348,7 @@ set(minetestserver_SRCS
 
 include_directories(
 	${PROJECT_BINARY_DIR}
+	${PROJECT_SOURCE_DIR}
 	${IRRLICHT_INCLUDE_DIR}
 	${ZLIB_INCLUDE_DIR}
 	${CMAKE_BUILD_TYPE}
@@ -355,6 +359,7 @@ include_directories(
 	${SQLITE3_INCLUDE_DIR}
 	${LUA_INCLUDE_DIR}
 	${JSON_INCLUDE_DIR}
+	${PROJECT_SOURCE_DIR}/script
 )
 
 if(USE_FREETYPE)
@@ -598,11 +603,6 @@ endif (SQLITE3_FOUND)
 if (BUILD_CLIENT AND USE_FREETYPE)
 	add_subdirectory(cguittfont)
 endif (BUILD_CLIENT AND USE_FREETYPE)
-
-if (LUA_FOUND)
-else (LUA_FOUND)
-	add_subdirectory(lua)
-endif (LUA_FOUND)
 
 if (JSON_FOUND)
 else (JSON_FOUND)

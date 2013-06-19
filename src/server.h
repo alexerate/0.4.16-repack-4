@@ -28,6 +28,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "map.h"
 #include "inventory.h"
 #include "ban.h"
+#include "hud.h"
 #include "gamedef.h"
 #include "serialization.h" // For SER_FMT_VER_INVALID
 #include "mods.h"
@@ -42,8 +43,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #define PP(x) "("<<(x).X<<","<<(x).Y<<","<<(x).Z<<")"
 
-struct LuaState;
-typedef struct lua_State lua_State;
 class IWritableItemDefManager;
 class IWritableNodeDefManager;
 class IWritableCraftDefManager;
@@ -51,6 +50,9 @@ class EventManager;
 class PlayerSAO;
 class IRollbackManager;
 class EmergeManager;
+//struct HudElement; ?????????
+class ScriptApi;
+
 
 class ServerError : public std::exception
 {
@@ -382,7 +384,7 @@ public:
 	void Receive();
 	void ProcessData(u8 *data, u32 datasize, u16 peer_id);
 
-	std::list<PlayerInfo> getPlayerInfo();
+	//std::list<PlayerInfo> getPlayerInfo();
 
 	// Environment must be locked when called
 	void setTimeOfDay(u32 time)
@@ -454,7 +456,7 @@ public:
 	}
 
 	// Envlock and conlock should be locked when calling this
-	void notifyPlayer(const char *name, const std::wstring msg);
+	void notifyPlayer(const char *name, const std::wstring msg, const bool prepend);
 	void notifyPlayers(const std::wstring msg);
 	void spawnParticle(const char *playername,
 		v3f pos, v3f velocity, v3f acceleration,
@@ -485,22 +487,19 @@ public:
 	void deleteParticleSpawner(const char *playername, u32 id);
 	void deleteParticleSpawnerAll(u32 id);
 
-
 	void queueBlockEmerge(v3s16 blockpos, bool allow_generate);
 
 	// Creates or resets inventory
 	Inventory* createDetachedInventory(const std::string &name);
 
-	// Envlock and conlock should be locked when using Lua
-	lua_State *getLua(){ return m_lua; }
+	// Envlock and conlock should be locked when using scriptapi
+	ScriptApi *getScriptIface(){ return m_script; }
 
 	// Envlock should be locked when using the rollback manager
 	IRollbackManager *getRollbackManager(){ return m_rollback; }
 
-	//TODO:  determine what should be locked when accessing the emerge manager
+	//TODO: determine what (if anything) should be locked to access EmergeManager
 	EmergeManager *getEmergeManager(){ return m_emerge; }
-
-	BiomeDefManager *getBiomeDef(){ return m_biomedef; }
 
 	// actions: time-reversed list
 	// Return value: success/failure
@@ -537,6 +536,13 @@ public:
 	}
 
 	bool showFormspec(const char *name, const std::string &formspec, const std::string &formname);
+	
+	u32 hudAdd(Player *player, HudElement *element);
+	bool hudRemove(Player *player, u32 id);
+	bool hudChange(Player *player, u32 id, HudElementStat stat, void *value);
+	bool hudSetFlags(Player *player, u32 flags, u32 mask);
+	bool hudSetHotbarItemcount(Player *player, s32 hotbar_itemcount);
+	
 private:
 
 	// con::PeerHandler implementation.
@@ -576,6 +582,12 @@ private:
 	void SendPlayerPrivileges(u16 peer_id);
 	void SendPlayerInventoryFormspec(u16 peer_id);
 	void SendShowFormspecMessage(u16 peer_id, const std::string formspec, const std::string formname);
+	void SendHUDAdd(u16 peer_id, u32 id, HudElement *form);
+	void SendHUDRemove(u16 peer_id, u32 id);
+	void SendHUDChange(u16 peer_id, u32 id, HudElementStat stat, void *value);
+	void SendHUDSetFlags(u16 peer_id, u32 flags, u32 mask);
+	void SendHUDSetParam(u16 peer_id, u16 param, const std::string &value);
+	
 	/*
 		Send a node removal/addition event to all clients except ignore_id.
 		Additionally, if far_players!=NULL, players further away than
@@ -734,12 +746,9 @@ private:
 	// Emerge manager
 	EmergeManager *m_emerge;
 
-	// Biome Definition Manager
-	BiomeDefManager *m_biomedef;
-
 	// Scripting
 	// Envlock and conlock should be locked when using Lua
-	lua_State *m_lua;
+	ScriptApi *m_script;
 
 	// Item definition manager
 	IWritableItemDefManager *m_itemdef;

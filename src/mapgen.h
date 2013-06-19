@@ -74,7 +74,8 @@ struct MapgenParams {
 	}
 	
 	virtual bool readParams(Settings *settings) = 0;
-	virtual void writeParams(Settings *settings) {};
+	virtual void writeParams(Settings *settings) = 0;
+	virtual ~MapgenParams() {}
 };
 
 class Mapgen {
@@ -85,6 +86,8 @@ public:
 	int id;
 	ManualMapVoxelManipulator *vm;
 	INodeDefManager *ndef;
+
+	virtual ~Mapgen() {}
 
 	void updateLiquid(UniqueQueue<v3s16> *trans_liquid, v3s16 nmin, v3s16 nmax);
 	void setLighting(v3s16 nmin, v3s16 nmax, u8 light);
@@ -105,6 +108,7 @@ struct MapgenFactory {
 	virtual Mapgen *createMapgen(int mgid, MapgenParams *params,
 								 EmergeManager *emerge) = 0;
 	virtual MapgenParams *createMapgenParams() = 0;
+	virtual ~MapgenFactory() {}
 };
 
 enum OreType {
@@ -120,7 +124,6 @@ class Ore {
 public:
 	std::string ore_name;
 	std::string wherein_name;
-
 	content_t ore;
 	content_t wherein;  // the node to be replaced
 	u32 clust_scarcity; // ore cluster has a 1-in-clust_scarcity chance of appearing at a node
@@ -128,6 +131,7 @@ public:
 	s16 clust_size;     // how large (in nodes) a chunk of ore is
 	s16 height_min;
 	s16 height_max;
+	u8 ore_param2;		// to set node-specific attributes
 	u32 flags;          // attributes for this ore
 	float nthresh;      // threshhold for noise at which an ore is placed 
 	NoiseParams *np;    // noise for distribution of clusters (NULL for uniform scattering)
@@ -140,16 +144,24 @@ public:
 		noise   = NULL;
 	}
 	
+	virtual ~Ore();
+	
 	void resolveNodeNames(INodeDefManager *ndef);
-	virtual void generate(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax) = 0;
+	void placeOre(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax);
+	virtual void generate(ManualMapVoxelManipulator *vm, int seed,
+						u32 blockseed, v3s16 nmin, v3s16 nmax) = 0;
 };
 
 class OreScatter : public Ore {
-	 void generate(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax);
+	~OreScatter() {}
+	virtual void generate(ManualMapVoxelManipulator *vm, int seed,
+						u32 blockseed, v3s16 nmin, v3s16 nmax);
 };
 
 class OreSheet : public Ore {
-	void generate(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax);
+	~OreSheet() {}
+	virtual void generate(ManualMapVoxelManipulator *vm, int seed,
+						u32 blockseed, v3s16 nmin, v3s16 nmax);
 };
 
 Ore *createOre(OreType type);

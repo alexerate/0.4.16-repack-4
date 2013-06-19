@@ -116,38 +116,18 @@ GUIConfigureWorld::GUIConfigureWorld(gui::IGUIEnvironment* env,
 		// mod_names
 		if(!mod.is_modpack &&
 		   mod_names.count(modname) == 0)
-			m_new_mod_names.insert(modname);
+			m_settings.setBool("load_mod_"+modname, false);
 	}
-	if(!m_new_mod_names.empty())
-	{
-		GUIMessageMenu *menu = 
-			new GUIMessageMenu(Environment, Parent, -1, m_menumgr, 
-							   wgettext("Warning: Some mods are not configured yet.\n" 
-										"They will be enabled by default when you save the configuration.  ")); 
-		menu->drop();
-	}
-	
-
 	// find missing mods (mentioned in world.mt, but not installed)
-	std::set<std::string> missing_mods;
 	for(std::set<std::string>::iterator it = mod_names.begin();
 		it != mod_names.end(); ++it)
 	{
 		std::string modname = *it;
 		if(m_addonmods.count(modname) == 0)
-			missing_mods.insert(modname);
+			m_settings.remove("load_mod_"+modname);
 	}
-	if(!missing_mods.empty())
-	{
-		GUIMessageMenu *menu = 
-			new GUIMessageMenu(Environment, Parent, -1, m_menumgr, 
-							   wgettext("Warning: Some configured mods are missing.\n"
-										"Their setting will be removed when you save the configuration.  ")); 
-		for(std::set<std::string>::iterator it = missing_mods.begin();
-			it != missing_mods.end(); ++it)
-			m_settings.remove("load_mod_"+(*it));
-		menu->drop();
-	}	
+	std::string worldmtfile = m_wspec.path+DIR_DELIM+"world.mt";
+	m_settings.updateConfigFile(worldmtfile.c_str());
 }
 
 void GUIConfigureWorld::drawMenu()
@@ -185,8 +165,6 @@ void GUIConfigureWorld::regenerateGui(v2u32 screensize)
 	DesiredRect = rect;
 	recalculateAbsolutePosition(false);
 
-	v2s32 size = rect.getSize();
-
 	v2s32 topleft = v2s32(10, 10);
 
 	/*
@@ -203,30 +181,36 @@ void GUIConfigureWorld::regenerateGui(v2u32 screensize)
 	{
 		core::rect<s32> rect(0, 0, 200, 20);
 		rect += v2s32(0, 25) + topleft;
+		wchar_t* text = wgettext("enabled");
 		m_enabled_checkbox = 
 			Environment->addCheckBox(false, rect, this, GUI_ID_ENABLED_CHECKBOX, 
-									 wgettext("enabled"));
+									 text);
+		delete[] text;
 		m_enabled_checkbox->setVisible(false);
 	}
 	{
 		core::rect<s32> rect(0, 0, 85, 30);
 		rect = rect + v2s32(0, 25) + topleft;
+		wchar_t* text = wgettext("Enable All");
 		m_enableall = Environment->addButton(rect, this, GUI_ID_ENABLEALL,
-											 wgettext("Enable All"));
+											 text);
+		delete[] text;
 		m_enableall->setVisible(false);
 	}
 	{
 		core::rect<s32> rect(0, 0, 85, 30);
 		rect = rect + v2s32(115, 25) + topleft;
-		m_disableall = Environment->addButton(rect, this, GUI_ID_DISABLEALL,
-											  wgettext("Disable All"));
+		wchar_t* text = wgettext("Disable All");
+		m_disableall = Environment->addButton(rect, this, GUI_ID_DISABLEALL, text );
+		delete[] text;
 		m_disableall->setVisible(false);
 	}
 	{
 		core::rect<s32> rect(0, 0, 200, 20);
 		rect += v2s32(0, 60) + topleft;
-		Environment->addStaticText(wgettext("depends on:"),
-			rect, false, false, this, -1);
+		wchar_t* text = wgettext("depends on:");
+		Environment->addStaticText(text, rect, false, false, this, -1);
+		delete[] text;
 	}
 	{
 		core::rect<s32> rect(0, 0, 200, 85);
@@ -237,8 +221,9 @@ void GUIConfigureWorld::regenerateGui(v2u32 screensize)
 	{
 		core::rect<s32> rect(0, 0, 200, 20);
 		rect += v2s32(0, 175) + topleft;
-		Environment->addStaticText(wgettext("is required by:"),
-					rect, false, false, this, -1);
+		wchar_t* text = wgettext("is required by:");
+		Environment->addStaticText( text, rect, false, false, this, -1);
+		delete[] text;
 	}
 	{
 		core::rect<s32> rect(0, 0, 200, 85);
@@ -258,14 +243,16 @@ void GUIConfigureWorld::regenerateGui(v2u32 screensize)
 	{
 		core::rect<s32> rect(0, 0, 120, 30);
 		rect = rect + v2s32(330, 270) - topleft;
-		Environment->addButton(rect, this, GUI_ID_CANCEL,
-			wgettext("Cancel"));
+		wchar_t* text = wgettext("Cancel");
+		Environment->addButton(rect, this, GUI_ID_CANCEL, text);
+		delete[] text;
 	}
 	{
 		core::rect<s32> rect(0, 0, 120, 30);
 		rect = rect + v2s32(460, 270) - topleft;
-		Environment->addButton(rect, this, GUI_ID_SAVE,
-			wgettext("Save"));
+		wchar_t* text = wgettext("Save");
+		Environment->addButton(rect, this, GUI_ID_SAVE, text);
+		delete[] text;
 	}
 	changeCtype("C");
 
@@ -377,11 +364,6 @@ bool GUIConfigureWorld::OnEvent(const SEvent& event)
 				return true;
 			}
 			case GUI_ID_SAVE: {
-				for(std::set<std::string>::iterator it = m_new_mod_names.begin();
-					it!= m_new_mod_names.end(); ++it)
-				{
-					m_settings.setBool("load_mod_"+(*it),true);
-				}
 				std::string worldmtfile = m_wspec.path+DIR_DELIM+"world.mt";
 				m_settings.updateConfigFile(worldmtfile.c_str());
 
@@ -389,17 +371,33 @@ bool GUIConfigureWorld::OnEvent(const SEvent& event)
 				// bug in the text-size calculation. if the trailing
 				// spaces are removed from the message text, the
 				// message gets wrapped and parts of it are cut off:
+				wchar_t* text = wgettext("Configuration saved.  ");
 				GUIMessageMenu *menu = 
 					new GUIMessageMenu(Environment, Parent, -1, m_menumgr, 
-									   wgettext("Configuration saved.  "));
+									 text );
+				delete[] text;
 				menu->drop();
 
-				ModConfiguration modconf(m_wspec.path);
-				if(!modconf.isConsistent())
+				try
 				{
-					GUIMessageMenu *menu = 
+					ModConfiguration modconf(m_wspec.path);
+					if(!modconf.isConsistent())
+					{
+						wchar_t* text = wgettext("Warning: Configuration not consistent.  ");
+						GUIMessageMenu *menu =
+							new GUIMessageMenu(Environment, Parent, -1, m_menumgr, 
+										 text );
+						delete[] text;
+						menu->drop();
+					}
+				}
+				catch(ModError &err)
+				{
+					errorstream<<err.what()<<std::endl;
+					std::wstring text = narrow_to_wide(err.what()) + wgettext("\nCheck debug.txt for details.");
+					GUIMessageMenu *menu =
 						new GUIMessageMenu(Environment, Parent, -1, m_menumgr, 
-										   wgettext("Warning: Configuration not consistent.  "));
+									 text );
 					menu->drop();
 				}
 
@@ -531,22 +529,14 @@ void GUIConfigureWorld::buildTreeView(std::map<std::string, ModSpec> mods,
 			buildTreeView(mod.modpack_content, new_node);
 		else
 		{
-			// set icon for node: ? for new mods, x for disabled mods,
-			// checkmark for enabled mods
-			if(m_new_mod_names.count(modname) > 0)
-			{
-				new_node->setIcon(QUESTIONMARK_STR);
-			}
+			// set icon for node: x for disabled mods, checkmark for enabled mods
+			bool mod_enabled = false;
+			if(m_settings.exists("load_mod_"+modname))
+				mod_enabled = m_settings.getBool("load_mod_"+modname);
+			if(mod_enabled)
+				new_node->setIcon(CHECKMARK_STR);
 			else
-			{
-				bool mod_enabled = true;
-				if(m_settings.exists("load_mod_"+modname))
-					mod_enabled = m_settings.getBool("load_mod_"+modname);
-				if(mod_enabled)
-					new_node->setIcon(CHECKMARK_STR);
-				else 
-					new_node->setIcon(CROSS_STR);
-			}
+				new_node->setIcon(CROSS_STR);
 		}
 	}
 }
@@ -663,7 +653,6 @@ void GUIConfigureWorld::enableMod(std::string modname)
 		m_nodes.find(modname);
 	if(it != m_nodes.end())
 		(*it).second->setIcon(CHECKMARK_STR);
-	m_new_mod_names.erase(modname);
 	//also enable all dependencies
 	for(std::set<std::string>::iterator it=mspec.depends.begin();
 		it != mspec.depends.end(); ++it)
@@ -688,7 +677,6 @@ void GUIConfigureWorld::disableMod(std::string modname)
 		m_nodes.find(modname);
  	if(it != m_nodes.end())
 		(*it).second->setIcon(CROSS_STR);
-	m_new_mod_names.erase(modname);
 	//also disable all mods that depend on this one
 	std::pair<std::multimap<std::string, std::string>::iterator, 
 			  std::multimap<std::string, std::string>::iterator > rdep = 

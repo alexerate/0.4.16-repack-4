@@ -34,8 +34,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "settings.h"
 #include "profiler.h"
 #include "log.h"
-#include "script.h"
-#include "scriptapi.h"
+#include "script/cpp_api/scriptapi.h"
 #include "nodedef.h"
 #include "itemdef.h"
 #include "craftdef.h"
@@ -646,8 +645,7 @@ Server::Server(
 	m_rollback_sink_enabled(true),
 	m_enable_rollback_recording(false),
 	m_emerge(NULL),
-	m_biomedef(NULL),
-	m_lua(NULL),
+	m_script(NULL),
 	m_itemdef(createItemDefManager()),
 	m_nodedef(createNodeDefManager()),
 	m_craftdef(createCraftDefManager()),
@@ -694,12 +692,9 @@ Server::Server(
 	Settings gamedefaults;
 	getGameMinetestConfig(gamespec.path, gamedefaults);
 	override_default_settings(g_settings, &gamedefaults);
-
-	// Create biome definition manager
-	m_biomedef = new BiomeDefManager(this);
 	
 	// Create emerge manager
-	m_emerge = new EmergeManager(this, m_biomedef);
+	m_emerge = new EmergeManager(this);
 	
 	// Create rollback manager
 	std::string rollback_path = m_path_world+DIR_DELIM+"rollback.txt";
@@ -711,11 +706,11 @@ Server::Server(
 
 	ModConfiguration modconf(m_path_world);
 	m_mods = modconf.getMods();
-	std::list<ModSpec> unsatisfied_mods = modconf.getUnsatisfiedMods();
+	std::vector<ModSpec> unsatisfied_mods = modconf.getUnsatisfiedMods();
 	// complain about mods with unsatisfied dependencies
 	if(!modconf.isConsistent())	
 	{
-		for(std::list<ModSpec>::iterator it = unsatisfied_mods.begin();
+		for(std::vector<ModSpec>::iterator it = unsatisfied_mods.begin();
 			it != unsatisfied_mods.end(); ++it)
 		{
 			ModSpec mod = *it;
@@ -731,25 +726,19 @@ Server::Server(
 	std::string worldmt = m_path_world + DIR_DELIM + "world.mt";
 	worldmt_settings.readConfigFile(worldmt.c_str());
 	std::vector<std::string> names = worldmt_settings.getNames();
-	std::set<std::string> exclude_mod_names;
 	std::set<std::string> load_mod_names;
 	for(std::vector<std::string>::iterator it = names.begin(); 
 		it != names.end(); ++it)
 	{	
 		std::string name = *it;  
-		if (name.compare(0,9,"load_mod_")==0)
-		{
-			if(worldmt_settings.getBool(name))
-				load_mod_names.insert(name.substr(9));
-			else			
-				exclude_mod_names.insert(name.substr(9));
-		}
+		if(name.compare(0,9,"load_mod_")==0 && worldmt_settings.getBool(name))
+			load_mod_names.insert(name.substr(9));
 	}
 	// complain about mods declared to be loaded, but not found
 	for(std::vector<ModSpec>::iterator it = m_mods.begin();
 			it != m_mods.end(); ++it)
 		load_mod_names.erase((*it).name);
-	for(std::list<ModSpec>::iterator it = unsatisfied_mods.begin();
+	for(std::vector<ModSpec>::iterator it = unsatisfied_mods.begin();
 			it != unsatisfied_mods.end(); ++it)
 		load_mod_names.erase((*it).name);
 	if(!load_mod_names.empty())
@@ -771,14 +760,14 @@ Server::Server(
 	// Initialize scripting
 
 	infostream<<"Server: Initializing Lua"<<std::endl;
-	m_lua = script_init();
-	assert(m_lua);
-	// Export API
-	scriptapi_export(m_lua, this);
+
+	m_script = new ScriptApi(this);
+
+
 	// Load and run builtin.lua
 	infostream<<"Server: Loading builtin.lua [\""
 			<<builtinpath<<"\"]"<<std::endl;
-	bool success = scriptapi_loadmod(m_lua, builtinpath, "__builtin");
+	bool success = m_script->loadMod(builtinpath, "__builtin");
 	if(!success){
 		errorstream<<"Server: Failed to load and run "
 				<<builtinpath<<std::endl;
@@ -799,7 +788,7 @@ Server::Server(
 		std::string scriptpath = mod.path + DIR_DELIM + "init.lua";
 		infostream<<"  ["<<padStringRight(mod.name, 12)<<"] [\""
 				<<scriptpath<<"\"]"<<std::endl;
-		bool success = scriptapi_loadmod(m_lua, scriptpath, mod.name);
+		bool success = m_script->loadMod(scriptpath, mod.name);
 		if(!success){
 			errorstream<<"Server: Failed to load and run "
 					<<scriptpath<<std::endl;
@@ -813,17 +802,14 @@ Server::Server(
 	// Apply item aliases in the node definition manager
 	m_nodedef->updateAliases(m_itemdef);
 
-	// Add default biomes after nodedef had its aliases added
-	m_biomedef->addDefaultBiomes();
-
 	// Initialize Environment
 	ServerMap *servermap = new ServerMap(path_world, this, m_emerge);
-	m_env = new ServerEnvironment(servermap, m_lua, this, this);
+	m_env = new ServerEnvironment(servermap, m_script, this, this);
 	
 	m_emerge->initMapgens(servermap->getMapgenParams());
 
 	// Give environment reference to scripting api
-	scriptapi_add_environment(m_lua, m_env);
+	m_script->initializeEnvironment(m_env);
 
 	// Register us to receive map edit events
 	servermap->addEventReceiver(this);
@@ -887,7 +873,7 @@ Server::~Server()
 		/*
 			Execute script shutdown hooks
 		*/
-		scriptapi_on_shutdown(m_lua);
+		m_script->on_shutdown();
 	}
 
 	{
@@ -911,6 +897,9 @@ Server::~Server()
 	*/
 	stop();
 
+	//shutdown all emerge threads first!
+	delete m_emerge;
+
 	/*
 		Delete clients
 	*/
@@ -930,7 +919,6 @@ Server::~Server()
 	// Delete things in the reverse order of creation
 	delete m_env;
 	delete m_rollback;
-	delete m_emerge;
 	delete m_event;
 	delete m_itemdef;
 	delete m_nodedef;
@@ -938,7 +926,7 @@ Server::~Server()
 
 	// Deinitialize scripting
 	infostream<<"Server: Deinitializing scripting"<<std::endl;
-	script_deinit(m_lua);
+	delete m_script;
 
 	// Delete detached inventories
 	{
@@ -1955,7 +1943,7 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 		}
 
 		std::string checkpwd; // Password hash to check against
-		bool has_auth = scriptapi_get_auth(m_lua, playername, &checkpwd, NULL);
+		bool has_auth = m_script->getAuth(playername, &checkpwd, NULL);
 
 		// If no authentication info exists for user, create it
 		if(!has_auth){
@@ -1975,10 +1963,10 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 			if (raw_default_password.length() == 0)
 				initial_password = given_password;
 
-			scriptapi_create_auth(m_lua, playername, initial_password);
+			m_script->createAuth(playername, initial_password);
 		}
 
-		has_auth = scriptapi_get_auth(m_lua, playername, &checkpwd, NULL);
+		has_auth = m_script->getAuth(playername, &checkpwd, NULL);
 
 		if(!has_auth){
 			SendAccessDenied(m_con, peer_id, L"Not allowed to login");
@@ -2480,7 +2468,7 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 		std::wstring name = narrow_to_wide(player->getName());
 
 		// Run script hook
-		bool ate = scriptapi_on_chat_message(m_lua, player->getName(),
+		bool ate = m_script->on_chat_message(player->getName(),
 				wide_to_narrow(message));
 		// If script ate the message, don't proceed
 		if(ate)
@@ -2612,7 +2600,7 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 		std::string playername = player->getName();
 
 		std::string checkpwd;
-		scriptapi_get_auth(m_lua, playername, &checkpwd, NULL);
+		m_script->getAuth(playername, &checkpwd, NULL);
 
 		if(oldpwd != checkpwd)
 		{
@@ -2622,7 +2610,7 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 			return;
 		}
 
-		bool success = scriptapi_set_password(m_lua, playername, newpwd);
+		bool success = m_script->setPassword(playername, newpwd);
 		if(success){
 			actionstream<<player->getName()<<" changes password"<<std::endl;
 			SendChatMessage(peer_id, L"Password change successful.");
@@ -2826,7 +2814,7 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 					m_emerge->enqueueBlockEmerge(peer_id, getNodeBlockPos(p_above), false);
 				}
 				if(n.getContent() != CONTENT_IGNORE)
-					scriptapi_node_on_punch(m_lua, p_under, n, playersao);
+					m_script->node_on_punch(p_under, n, playersao);
 				// Cheat prevention
 				playersao->noCheatDigStart(p_under);
 			}
@@ -2936,7 +2924,7 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 				/* Actually dig node */
 
 				if(is_valid_dig && n.getContent() != CONTENT_IGNORE)
-					scriptapi_node_on_dig(m_lua, p_under, n, playersao);
+					m_script->node_on_dig(p_under, n, playersao);
 
 				// Send unusual result (that is, node not being removed)
 				if(m_env->getMap().getNodeNoEx(p_under).getContent() != CONTENT_AIR)
@@ -2976,7 +2964,7 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 				// Do stuff
 				pointed_object->rightClick(playersao);
 			}
-			else if(scriptapi_item_on_place(m_lua,
+			else if(m_script->item_OnPlace(
 					item, playersao, pointed))
 			{
 				// Placement was handled in lua
@@ -2985,12 +2973,16 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 				playersao->setWieldedItem(item);
 			}
 
-			// If item has node placement prediction, always send the above
-			// node to make sure the client knows what exactly happened
+			// If item has node placement prediction, always send the
+			// blocks to make sure the client knows what exactly happened
 			if(item.getDefinition(m_itemdef).node_placement_prediction != ""){
 				RemoteClient *client = getClient(peer_id);
 				v3s16 blockpos = getNodeBlockPos(floatToInt(pointed_pos_above, BS));
 				client->SetBlockNotSent(blockpos);
+				v3s16 blockpos2 = getNodeBlockPos(floatToInt(pointed_pos_under, BS));
+				if(blockpos2 != blockpos){
+					client->SetBlockNotSent(blockpos2);
+				}
 			}
 		} // action == 3
 
@@ -3004,7 +2996,7 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 			actionstream<<player->getName()<<" uses "<<item.name
 					<<", pointing at "<<pointed.dump()<<std::endl;
 
-			if(scriptapi_item_on_use(m_lua,
+			if(m_script->item_OnUse(
 					item, playersao, pointed))
 			{
 				// Apply returned ItemStack
@@ -3063,8 +3055,7 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 		// Check the target node for rollback data; leave others unnoticed
 		RollbackNode rn_old(&m_env->getMap(), p, this);
 
-		scriptapi_node_on_receive_fields(m_lua, p, formname, fields,
-				playersao);
+		m_script->node_on_receive_fields(p, formname, fields,playersao);
 
 		// Report rollback data
 		RollbackNode rn_new(&m_env->getMap(), p, this);
@@ -3088,7 +3079,7 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 			fields[fieldname] = fieldvalue;
 		}
 
-		scriptapi_on_player_receive_fields(m_lua, playersao, formname, fields);
+		m_script->on_playerReceiveFields(playersao, formname, fields);
 	}
 	else
 	{
@@ -3195,46 +3186,46 @@ void Server::setInventoryModified(const InventoryLocation &loc)
 	}
 }
 
-std::list<PlayerInfo> Server::getPlayerInfo()
-{
-	DSTACK(__FUNCTION_NAME);
-	JMutexAutoLock envlock(m_env_mutex);
-	JMutexAutoLock conlock(m_con_mutex);
-
-	std::list<PlayerInfo> list;
-
-	std::list<Player*> players = m_env->getPlayers();
-
-	std::list<Player*>::iterator i;
-	for(i = players.begin();
-			i != players.end(); ++i)
-	{
-		PlayerInfo info;
-
-		Player *player = *i;
-
-		try{
-			// Copy info from connection to info struct
-			info.id = player->peer_id;
-			info.address = m_con.GetPeerAddress(player->peer_id);
-			info.avg_rtt = m_con.GetPeerAvgRTT(player->peer_id);
-		}
-		catch(con::PeerNotFoundException &e)
-		{
-			// Set dummy peer info
-			info.id = 0;
-			info.address = Address(0,0,0,0,0);
-			info.avg_rtt = 0.0;
-		}
-
-		snprintf(info.name, PLAYERNAME_SIZE, "%s", player->getName());
-		info.position = player->getPosition();
-
-		list.push_back(info);
-	}
-
-	return list;
-}
+//std::list<PlayerInfo> Server::getPlayerInfo()
+//{
+//	DSTACK(__FUNCTION_NAME);
+//	JMutexAutoLock envlock(m_env_mutex);
+//	JMutexAutoLock conlock(m_con_mutex);
+//
+//	std::list<PlayerInfo> list;
+//
+//	std::list<Player*> players = m_env->getPlayers();
+//
+//	std::list<Player*>::iterator i;
+//	for(i = players.begin();
+//			i != players.end(); ++i)
+//	{
+//		PlayerInfo info;
+//
+//		Player *player = *i;
+//
+//		try{
+//			// Copy info from connection to info struct
+//			info.id = player->peer_id;
+//			info.address = m_con.GetPeerAddress(player->peer_id);
+//			info.avg_rtt = m_con.GetPeerAvgRTT(player->peer_id);
+//		}
+//		catch(con::PeerNotFoundException &e)
+//		{
+//			// Set dummy peer info
+//			info.id = 0;
+//			info.address = Address(0,0,0,0,0);
+//			info.avg_rtt = 0.0;
+//		}
+//
+//		snprintf(info.name, PLAYERNAME_SIZE, "%s", player->getName());
+//		info.position = player->getPosition();
+//
+//		list.push_back(info);
+//	}
+//
+//	return list;
+//}
 
 
 void Server::peerAdded(con::Peer *peer)
@@ -3454,7 +3445,9 @@ void Server::SendChatMessage(u16 peer_id, const std::wstring &message)
 	// Send as reliable
 	m_con.Send(peer_id, 0, data, true);
 }
-void Server::SendShowFormspecMessage(u16 peer_id, const std::string formspec, const std::string formname)
+
+void Server::SendShowFormspecMessage(u16 peer_id, const std::string formspec,
+					const std::string formname)
 {
 	DSTACK(__FUNCTION_NAME);
 
@@ -3475,7 +3468,9 @@ void Server::SendShowFormspecMessage(u16 peer_id, const std::string formspec, co
 }
 
 // Spawns a particle on peer with peer_id
-void Server::SendSpawnParticle(u16 peer_id, v3f pos, v3f velocity, v3f acceleration, float expirationtime, float size, bool collisiondetection, std::string texture)
+void Server::SendSpawnParticle(u16 peer_id, v3f pos, v3f velocity, v3f acceleration,
+				float expirationtime, float size, bool collisiondetection,
+				std::string texture)
 {
 	DSTACK(__FUNCTION_NAME);
 
@@ -3497,7 +3492,9 @@ void Server::SendSpawnParticle(u16 peer_id, v3f pos, v3f velocity, v3f accelerat
 }
 
 // Spawns a particle on all peers
-void Server::SendSpawnParticleAll(v3f pos, v3f velocity, v3f acceleration, float expirationtime, float size, bool collisiondetection, std::string texture)
+void Server::SendSpawnParticleAll(v3f pos, v3f velocity, v3f acceleration,
+				float expirationtime, float size, bool collisiondetection,
+				std::string texture)
 {
 	for(std::map<u16, RemoteClient*>::iterator
 		i = m_clients.begin();
@@ -3600,6 +3597,112 @@ void Server::SendDeleteParticleSpawnerAll(u32 id)
 	}
 }
 
+void Server::SendHUDAdd(u16 peer_id, u32 id, HudElement *form)
+{
+	std::ostringstream os(std::ios_base::binary);
+
+	// Write command
+	writeU16(os, TOCLIENT_HUDADD);
+	writeU32(os, id);
+	writeU8(os, (u8)form->type);
+	writeV2F1000(os, form->pos);
+	os << serializeString(form->name);
+	writeV2F1000(os, form->scale);
+	os << serializeString(form->text);
+	writeU32(os, form->number);
+	writeU32(os, form->item);
+	writeU32(os, form->dir);
+	writeV2F1000(os, form->align);
+	writeV2F1000(os, form->offset);
+
+	// Make data buffer
+	std::string s = os.str();
+	SharedBuffer<u8> data((u8*)s.c_str(), s.size());
+	// Send as reliable
+	m_con.Send(peer_id, 0, data, true);
+}
+
+void Server::SendHUDRemove(u16 peer_id, u32 id)
+{
+	std::ostringstream os(std::ios_base::binary);
+
+	// Write command
+	writeU16(os, TOCLIENT_HUDRM);
+	writeU32(os, id);
+
+	// Make data buffer
+	std::string s = os.str();
+	SharedBuffer<u8> data((u8*)s.c_str(), s.size());
+	// Send as reliable
+	m_con.Send(peer_id, 0, data, true);
+}
+
+void Server::SendHUDChange(u16 peer_id, u32 id, HudElementStat stat, void *value)
+{
+	std::ostringstream os(std::ios_base::binary);
+
+	// Write command
+	writeU16(os, TOCLIENT_HUDCHANGE);
+	writeU32(os, id);
+	writeU8(os, (u8)stat);
+	switch (stat) {
+		case HUD_STAT_POS:
+		case HUD_STAT_SCALE:
+		case HUD_STAT_ALIGN:
+		case HUD_STAT_OFFSET:
+			writeV2F1000(os, *(v2f *)value);
+			break;
+		case HUD_STAT_NAME:
+		case HUD_STAT_TEXT:
+			os << serializeString(*(std::string *)value);
+			break;
+		case HUD_STAT_NUMBER:
+		case HUD_STAT_ITEM:
+		case HUD_STAT_DIR:
+		default:
+			writeU32(os, *(u32 *)value);
+			break;
+	}
+
+	// Make data buffer
+	std::string s = os.str();
+	SharedBuffer<u8> data((u8 *)s.c_str(), s.size());
+	// Send as reliable
+	m_con.Send(peer_id, 0, data, true);
+}
+
+void Server::SendHUDSetFlags(u16 peer_id, u32 flags, u32 mask)
+{
+	std::ostringstream os(std::ios_base::binary);
+
+	// Write command
+	writeU16(os, TOCLIENT_HUD_SET_FLAGS);
+	writeU32(os, flags);
+	writeU32(os, mask);
+
+	// Make data buffer
+	std::string s = os.str();
+	SharedBuffer<u8> data((u8 *)s.c_str(), s.size());
+	// Send as reliable
+	m_con.Send(peer_id, 0, data, true);
+}
+
+void Server::SendHUDSetParam(u16 peer_id, u16 param, const std::string &value)
+{
+	std::ostringstream os(std::ios_base::binary);
+
+	// Write command
+	writeU16(os, TOCLIENT_HUD_SET_PARAM);
+	writeU16(os, param);
+	os<<serializeString(value);
+
+	// Make data buffer
+	std::string s = os.str();
+	SharedBuffer<u8> data((u8 *)s.c_str(), s.size());
+	// Send as reliable
+	m_con.Send(peer_id, 0, data, true);
+}
+
 void Server::BroadcastChatMessage(const std::wstring &message)
 {
 	for(std::map<u16, RemoteClient*>::iterator
@@ -3663,7 +3766,7 @@ void Server::SendPlayerPrivileges(u16 peer_id)
 		return;
 
 	std::set<std::string> privs;
-	scriptapi_get_auth(m_lua, player->getName(), NULL, &privs);
+	m_script->getAuth(player->getName(), NULL, &privs);
 
 	std::ostringstream os(std::ios_base::binary);
 	writeU16(os, TOCLIENT_PRIVILEGES);
@@ -4383,7 +4486,7 @@ void Server::DiePlayer(u16 peer_id)
 	playersao->setHP(0);
 
 	// Trigger scripted stuff
-	scriptapi_on_dieplayer(m_lua, playersao);
+	m_script->on_dieplayer(playersao);
 
 	SendPlayerHP(peer_id);
 	SendDeathscreen(m_con, peer_id, false, v3f(0,0,0));
@@ -4402,7 +4505,7 @@ void Server::RespawnPlayer(u16 peer_id)
 
 	playersao->setHP(PLAYER_MAX_HP);
 
-	bool repositioned = scriptapi_on_respawnplayer(m_lua, playersao);
+	bool repositioned = m_script->on_respawnplayer(playersao);
 	if(!repositioned){
 		v3f pos = findSpawnPos(m_env->getServerMap());
 		playersao->setPos(pos);
@@ -4482,7 +4585,7 @@ std::wstring Server::getStatusString()
 std::set<std::string> Server::getPlayerEffectivePrivs(const std::string &name)
 {
 	std::set<std::string> privs;
-	scriptapi_get_auth(m_lua, name, NULL, &privs);
+	m_script->getAuth(name, NULL, &privs);
 	return privs;
 }
 
@@ -4531,12 +4634,15 @@ void Server::saveConfig()
 		g_settings->updateConfigFile(m_path_config.c_str());
 }
 
-void Server::notifyPlayer(const char *name, const std::wstring msg)
+void Server::notifyPlayer(const char *name, const std::wstring msg, const bool prepend = true)
 {
 	Player *player = m_env->getPlayer(name);
 	if(!player)
 		return;
-	SendChatMessage(player->peer_id, std::wstring(L"Server: -!- ")+msg);
+	if (prepend)
+		SendChatMessage(player->peer_id, std::wstring(L"Server -!- ")+msg);
+	else
+		SendChatMessage(player->peer_id, msg);
 }
 
 bool Server::showFormspec(const char *playername, const std::string &formspec, const std::string &formname)
@@ -4550,6 +4656,59 @@ bool Server::showFormspec(const char *playername, const std::string &formspec, c
 	}
 
 	SendShowFormspecMessage(player->peer_id, formspec, formname);
+	return true;
+}
+
+u32 Server::hudAdd(Player *player, HudElement *form) {
+	if (!player)
+		return -1;
+
+	u32 id = hud_get_free_id(player);
+	if (id < player->hud.size())
+		player->hud[id] = form;
+	else
+		player->hud.push_back(form);
+	
+	SendHUDAdd(player->peer_id, id, form);
+	return id;
+}
+
+bool Server::hudRemove(Player *player, u32 id) {
+	if (!player || id >= player->hud.size() || !player->hud[id])
+		return false;
+
+	delete player->hud[id];
+	player->hud[id] = NULL;
+	
+	SendHUDRemove(player->peer_id, id);
+	return true;
+}
+
+bool Server::hudChange(Player *player, u32 id, HudElementStat stat, void *data) {
+	if (!player)
+		return false;
+
+	SendHUDChange(player->peer_id, id, stat, data);
+	return true;
+}
+
+bool Server::hudSetFlags(Player *player, u32 flags, u32 mask) {
+	if (!player)
+		return false;
+
+	SendHUDSetFlags(player->peer_id, flags, mask);
+	return true;
+}
+
+bool Server::hudSetHotbarItemcount(Player *player, s32 hotbar_itemcount) {
+	if (!player)
+		return false;
+	if (hotbar_itemcount <= 0 || hotbar_itemcount > HUD_HOTBAR_ITEMCOUNT_MAX)
+		return false;
+
+	std::ostringstream os(std::ios::binary);
+	writeS32(os, hotbar_itemcount);
+	SendHUDSetParam(player->peer_id, HUD_PARAM_HOTBAR_ITEMCOUNT, os.str());
 	return true;
 }
 
@@ -4847,36 +5006,28 @@ v3f findSpawnPos(ServerMap &map)
 	{
 		s32 range = 1 + i;
 		// We're going to try to throw the player to this position
-		v2s16 nodepos2d = v2s16(-range + (myrand()%(range*2)),
-				-range + (myrand()%(range*2)));
-		//v2s16 sectorpos = getNodeSectorPos(nodepos2d);
-		// Get ground height at point (fallbacks to heightmap function)
-		s16 groundheight = map.findGroundLevel(nodepos2d);
-		// Don't go underwater
-		if(groundheight <= water_level)
-		{
-			//infostream<<"-> Underwater"<<std::endl;
-			continue;
-		}
-		// Don't go to high places
-		if(groundheight > water_level + 6)
-		{
-			//infostream<<"-> Underwater"<<std::endl;
-			continue;
-		}
+		v2s16 nodepos2d = v2s16(
+				-range + (myrand() % (range * 2)),
+				-range + (myrand() % (range * 2)));
 
-		nodepos = v3s16(nodepos2d.X, groundheight-2, nodepos2d.Y);
+		// Get ground height at point
+		s16 groundheight = map.findGroundLevel(nodepos2d);
+		if (groundheight <= water_level) // Don't go underwater
+			continue;
+		if (groundheight > water_level + 6) // Don't go to high places
+			continue;
+
+		nodepos = v3s16(nodepos2d.X, groundheight, nodepos2d.Y);
 		bool is_good = false;
 		s32 air_count = 0;
-		for(s32 i=0; i<10; i++){
+		for (s32 i = 0; i < 10; i++) {
 			v3s16 blockpos = getNodeBlockPos(nodepos);
 			map.emergeBlock(blockpos, true);
-			MapNode n = map.getNodeNoEx(nodepos);
-			if(n.getContent() == CONTENT_AIR){
+			content_t c = map.getNodeNoEx(nodepos).getContent();
+			if (c == CONTENT_AIR || c == CONTENT_IGNORE) {
 				air_count++;
-				if(air_count >= 2){
+				if (air_count >= 2){
 					is_good = true;
-					nodepos.Y -= 1;
 					break;
 				}
 			}
@@ -4946,14 +5097,17 @@ PlayerSAO* Server::emergePlayer(const char *name, u16 peer_id)
 			getPlayerEffectivePrivs(player->getName()),
 			isSingleplayer());
 
+	/* Clean up old HUD elements from previous sessions */
+	player->hud.clear();
+
 	/* Add object to environment */
 	m_env->addActiveObject(playersao);
 
 	/* Run scripts */
 	if(newplayer)
-		scriptapi_on_newplayer(m_lua, playersao);
+		m_script->on_newplayer(playersao);
 
-	scriptapi_on_joinplayer(m_lua, playersao);
+	m_script->on_joinplayer(playersao);
 
 	return playersao;
 }
@@ -5048,7 +5202,7 @@ void Server::handlePeerChange(PeerChange &c)
 				PlayerSAO *playersao = player->getPlayerSAO();
 				assert(playersao);
 
-				scriptapi_on_leaveplayer(m_lua, playersao);
+				m_script->on_leaveplayer(playersao);
 
 				playersao->disconnected();
 			}

@@ -418,9 +418,12 @@ void GUIFormSpecMenu::regenerateGui(v2u32 screensize)
 					e->setTextAlignment(gui::EGUIA_UPPERLEFT, gui::EGUIA_UPPERLEFT);
 				} else {
 					irr::SEvent evt;
-					evt.KeyInput.Key = KEY_END;
 					evt.EventType = EET_KEY_INPUT_EVENT;
+					evt.KeyInput.Key = KEY_END;
 					evt.KeyInput.PressedDown = true;
+					evt.KeyInput.Char = 0;
+					evt.KeyInput.Control = 0;
+					evt.KeyInput.Shift = 0;
 					e->OnEvent(evt);
 				}
 
@@ -581,6 +584,7 @@ void GUIFormSpecMenu::regenerateGui(v2u32 screensize)
 				size.Y-rect.getHeight()-5);
 		const wchar_t *text = wgettext("Left click: Move all items, Right click: Move single item");
 		Environment->addStaticText(text, rect, false, true, this, 256);
+		delete[] text;
 		changeCtype("C");
 	}
 	// If there's fields, add a Proceed button
@@ -604,7 +608,9 @@ void GUIFormSpecMenu::regenerateGui(v2u32 screensize)
 
 			v2s32 size = DesiredRect.getSize();
 			rect = core::rect<s32>(size.X/2-70, pos.Y, (size.X/2-70)+140, pos.Y+30);
-			Environment->addButton(rect, this, 257, wgettext("Proceed"));
+			wchar_t* text = wgettext("Proceed");
+			Environment->addButton(rect, this, 257, text);
+			delete[] text;
 		}
 		changeCtype("C");
 	}

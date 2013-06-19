@@ -27,7 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "tool.h" // For ToolCapabilities
 #include "gamedef.h"
 #include "player.h"
-#include "scriptapi.h"
+#include "cpp_api/scriptapi.h"
 #include "genericobject.h"
 #include "util/serialize.h"
 
@@ -387,8 +387,7 @@ LuaEntitySAO::LuaEntitySAO(ServerEnvironment *env, v3f pos,
 LuaEntitySAO::~LuaEntitySAO()
 {
 	if(m_registered){
-		lua_State *L = m_env->getLua();
-		scriptapi_luaentity_rm(L, m_id);
+		ENV_TO_SA(m_env)->luaentity_Remove(m_id);
 	}
 }
 
@@ -397,16 +396,15 @@ void LuaEntitySAO::addedToEnvironment(u32 dtime_s)
 	ServerActiveObject::addedToEnvironment(dtime_s);
 	
 	// Create entity from name
-	lua_State *L = m_env->getLua();
-	m_registered = scriptapi_luaentity_add(L, m_id, m_init_name.c_str());
+	m_registered = ENV_TO_SA(m_env)->luaentity_Add(m_id, m_init_name.c_str());
 	
 	if(m_registered){
 		// Get properties
-		scriptapi_luaentity_get_properties(L, m_id, &m_prop);
+		ENV_TO_SA(m_env)->luaentity_GetProperties(m_id, &m_prop);
 		// Initialize HP from properties
 		m_hp = m_prop.hp_max;
 		// Activate entity, supplying serialized state
-		scriptapi_luaentity_activate(L, m_id, m_init_state.c_str(), dtime_s);
+		ENV_TO_SA(m_env)->luaentity_Activate(m_id, m_init_state.c_str(), dtime_s);
 	}
 }
 
@@ -502,7 +500,7 @@ void LuaEntitySAO::step(float dtime, bool send_recommended)
 			v3f p_acceleration = m_acceleration;
 			moveresult = collisionMoveSimple(m_env,m_env->getGameDef(),
 					pos_max_d, box, stepheight, dtime,
-					p_pos, p_velocity, p_acceleration);
+					p_pos, p_velocity, p_acceleration,this);
 			// Apply results
 			m_base_position = p_pos;
 			m_velocity = p_velocity;
@@ -515,8 +513,7 @@ void LuaEntitySAO::step(float dtime, bool send_recommended)
 	}
 
 	if(m_registered){
-		lua_State *L = m_env->getLua();
-		scriptapi_luaentity_step(L, m_id, dtime);
+		ENV_TO_SA(m_env)->luaentity_Step(m_id, dtime);
 	}
 
 	if(send_recommended == false)
@@ -626,8 +623,7 @@ std::string LuaEntitySAO::getStaticData()
 	os<<serializeString(m_init_name);
 	// state
 	if(m_registered){
-		lua_State *L = m_env->getLua();
-		std::string state = scriptapi_luaentity_get_staticdata(L, m_id);
+		std::string state = ENV_TO_SA(m_env)->luaentity_GetStaticdata(m_id);
 		os<<serializeLongString(state);
 	} else {
 		os<<serializeLongString(m_init_state);
@@ -673,8 +669,14 @@ int LuaEntitySAO::punch(v3f dir,
 	{
 		setHP(getHP() - result.damage);
 		
+
+		std::string punchername = "nil";
+
+		if ( puncher != 0 )
+			punchername = puncher->getDescription();
+
 		actionstream<<getDescription()<<" punched by "
-				<<puncher->getDescription()<<", damage "<<result.damage
+				<<punchername<<", damage "<<result.damage
 				<<" hp, health now "<<getHP()<<" hp"<<std::endl;
 		
 		{
@@ -688,8 +690,7 @@ int LuaEntitySAO::punch(v3f dir,
 			m_removed = true;
 	}
 
-	lua_State *L = m_env->getLua();
-	scriptapi_luaentity_punch(L, m_id, puncher,
+	ENV_TO_SA(m_env)->luaentity_Punch(m_id, puncher,
 			time_from_last_punch, toolcap, dir);
 
 	return result.wear;
@@ -702,8 +703,7 @@ void LuaEntitySAO::rightClick(ServerActiveObject *clicker)
 	// It's best that attachments cannot be clicked
 	if(isAttached())
 		return;
-	lua_State *L = m_env->getLua();
-	scriptapi_luaentity_rightclick(L, m_id, clicker);
+	ENV_TO_SA(m_env)->luaentity_Rightclick(m_id, clicker);
 }
 
 void LuaEntitySAO::setPos(v3f pos)
@@ -935,7 +935,11 @@ PlayerSAO::PlayerSAO(ServerEnvironment *env_, Player *player_, u16 peer_id_,
 	m_moved(false),
 	m_inventory_not_sent(false),
 	m_hp_not_sent(false),
-	m_wielded_item_not_sent(false)
+	m_wielded_item_not_sent(false),
+	m_physics_override_speed(1),
+	m_physics_override_jump(1),
+	m_physics_override_gravity(1),
+	m_physics_override_sent(false)
 {
 	assert(m_player);
 	assert(m_peer_id != 0);
@@ -1019,7 +1023,7 @@ std::string PlayerSAO::getClientInitializationData(u16 protocol_version)
 		writeF1000(os, m_player->getYaw());
 		writeS16(os, getHP());
 
-		writeU8(os, 4 + m_bone_position.size()); // number of messages stuffed in here
+		writeU8(os, 5 + m_bone_position.size()); // number of messages stuffed in here
 		os<<serializeLongString(getPropertyPacket()); // message 1
 		os<<serializeLongString(gob_cmd_update_armor_groups(m_armor_groups)); // 2
 		os<<serializeLongString(gob_cmd_update_animation(m_animation_range, m_animation_speed, m_animation_blend)); // 3
@@ -1027,6 +1031,7 @@ std::string PlayerSAO::getClientInitializationData(u16 protocol_version)
 			os<<serializeLongString(gob_cmd_update_bone_position((*ii).first, (*ii).second.X, (*ii).second.Y)); // m_bone_position.size
 		}
 		os<<serializeLongString(gob_cmd_update_attachment(m_attachment_parent_id, m_attachment_bone, m_attachment_position, m_attachment_rotation)); // 4
+		os<<serializeLongString(gob_cmd_update_physics_override(m_physics_override_speed, m_physics_override_jump, m_physics_override_gravity)); // 5
 	}
 	else
 	{
@@ -1196,6 +1201,14 @@ void PlayerSAO::step(float dtime, bool send_recommended)
 		m_messages_out.push_back(aom);
 	}
 
+	if(m_physics_override_sent == false){
+		m_physics_override_sent = true;
+		std::string str = gob_cmd_update_physics_override(m_physics_override_speed, m_physics_override_jump, m_physics_override_gravity);
+		// create message and add to list
+		ActiveObjectMessage aom(getId(), true, str);
+		m_messages_out.push_back(aom);
+	}
+
 	if(m_animation_sent == false){
 		m_animation_sent = true;
 		std::string str = gob_cmd_update_animation(m_animation_range, m_animation_speed, m_animation_blend);
@@ -1294,8 +1307,13 @@ int PlayerSAO::punch(v3f dir,
 	HitParams hitparams = getHitParams(m_armor_groups, toolcap,
 			time_from_last_punch);
 
+	std::string punchername = "nil";
+
+	if ( puncher != 0 )
+		punchername = puncher->getDescription();
+
 	actionstream<<"Player "<<m_player->getName()<<" punched by "
-			<<puncher->getDescription()<<", damage "<<hitparams.hp
+			<<punchername<<", damage "<<hitparams.hp
 			<<" HP"<<std::endl;
 
 	setHP(getHP() - hitparams.hp);
@@ -1459,6 +1477,11 @@ std::string PlayerSAO::getPropertyPacket()
 }
 
 bool PlayerSAO::getCollisionBox(aabb3f *toset) {
-	//player collision handling is already done clientside no need to do it twice
-	return false;
+	//update collision box
+	*toset = m_player->getCollisionbox();
+
+	toset->MinEdge += m_base_position;
+	toset->MaxEdge += m_base_position;
+
+	return true;
 }

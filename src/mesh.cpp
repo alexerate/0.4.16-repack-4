@@ -246,6 +246,8 @@ static scene::IAnimatedMesh* extrudeARGB(u32 twidth, u32 theight, u8 *data)
 		}
 	}
 
+	delete[] solidity;
+
 	// Add to mesh
 	scene::SMesh *mesh = new scene::SMesh();
 	mesh->addMeshBuffer(buf);
@@ -282,7 +284,6 @@ scene::IAnimatedMesh* createExtrudedMesh(video::ITexture *texture,
 		if (img2 != NULL)
 		{
 			img1->copyTo(img2);
-			img1->drop();
 
 			mesh = extrudeARGB(size.Width, size.Height, (u8*) img2->lock());
 			img2->unlock();

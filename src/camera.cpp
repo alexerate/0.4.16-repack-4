@@ -67,9 +67,16 @@ Camera::Camera(scene::ISceneManager* smgr, MapDrawControl& draw_control,
 	m_view_bobbing_anim(0),
 	m_view_bobbing_state(0),
 	m_view_bobbing_speed(0),
+	m_view_bobbing_fall(0),
 
 	m_digging_anim(0),
-	m_digging_button(-1)
+	m_digging_button(-1),
+	m_dummymesh(createCubeMesh(v3f(1,1,1))),
+
+	m_wield_change_timer(0.125),
+	m_wield_mesh_next(NULL),
+	m_previous_playeritem(-1),
+	m_previous_itemname("")
 {
 	//dstream<<__FUNCTION_NAME<<std::endl;
 
@@ -84,13 +91,14 @@ Camera::Camera(scene::ISceneManager* smgr, MapDrawControl& draw_control,
 	// all other 3D scene nodes and before the GUI.
 	m_wieldmgr = smgr->createNewSceneManager();
 	m_wieldmgr->addCameraSceneNode();
-	m_wieldnode = m_wieldmgr->addMeshSceneNode(createCubeMesh(v3f(1,1,1)), NULL);  // need a dummy mesh
+	m_wieldnode = m_wieldmgr->addMeshSceneNode(m_dummymesh, NULL);  // need a dummy mesh
 }
 
 Camera::~Camera()
 {
-	m_wieldnode->setMesh(NULL);
 	m_wieldmgr->drop();
+
+	delete m_dummymesh;
 }
 
 bool Camera::successfullyCreated(std::wstring& error_message)
@@ -132,6 +140,29 @@ inline f32 my_modf(f32 x)
 
 void Camera::step(f32 dtime)
 {
+	if(m_view_bobbing_fall > 0)
+	{
+		m_view_bobbing_fall -= 3 * dtime;
+		if(m_view_bobbing_fall <= 0)
+			m_view_bobbing_fall = -1; // Mark the effect as finished
+	}
+
+	bool was_under_zero = m_wield_change_timer < 0;
+	if(m_wield_change_timer < 0.125)
+		m_wield_change_timer += dtime;
+	if(m_wield_change_timer > 0.125)
+		m_wield_change_timer = 0.125;
+
+	if(m_wield_change_timer >= 0 && was_under_zero) {
+		if(m_wield_mesh_next) {
+			m_wieldnode->setMesh(m_wield_mesh_next);
+			m_wieldnode->setVisible(true);
+		} else {
+			m_wieldnode->setVisible(false);
+		}
+		m_wield_mesh_next = NULL;
+	}
+
 	if (m_view_bobbing_state != 0)
 	{
 		//f32 offset = dtime * m_view_bobbing_speed * 0.035;
@@ -218,6 +249,8 @@ void Camera::update(LocalPlayer* player, f32 frametime, v2u32 screensize,
 	// Smooth the movement when walking up stairs
 	v3f old_player_position = m_playernode->getPosition();
 	v3f player_position = player->getPosition();
+	if (player->isAttached && player->parent)
+		player_position = player->parent->getPosition();
 	//if(player->touching_ground && player_position.Y > old_player_position.Y)
 	if(player->touching_ground &&
 			player_position.Y > old_player_position.Y)
@@ -233,11 +266,30 @@ void Camera::update(LocalPlayer* player, f32 frametime, v2u32 screensize,
 	m_playernode->setRotation(v3f(0, -1 * player->getYaw(), 0));
 	m_playernode->updateAbsolutePosition();
 
-	//Get camera tilt timer (hurt animation)
+	// Get camera tilt timer (hurt animation)
 	float cameratilt = fabs(fabs(player->hurt_tilt_timer-0.75)-0.75);
 
+	// Fall bobbing animation
+	float fall_bobbing = 0;
+	if(player->camera_impact >= 1)
+	{
+		if(m_view_bobbing_fall == -1) // Effect took place and has finished
+			player->camera_impact = m_view_bobbing_fall = 0;
+		else if(m_view_bobbing_fall == 0) // Initialize effect
+			m_view_bobbing_fall = 1;
+
+		// Convert 0 -> 1 to 0 -> 1 -> 0
+		fall_bobbing = m_view_bobbing_fall < 0.5 ? m_view_bobbing_fall * 2 : -(m_view_bobbing_fall - 0.5) * 2 + 1;
+		// Smoothen and invert the above
+		fall_bobbing = sin(fall_bobbing * 0.5 * M_PI) * -1;
+		// Amplify according to the intensity of the impact
+		fall_bobbing *= (1 - rangelim(50 / player->camera_impact, 0, 1)) * 5;
+
+		fall_bobbing *= g_settings->getFloat("fall_bobbing_amount");
+	}
+
 	// Set head node transformation
-	m_headnode->setPosition(player->getEyeOffset()+v3f(0,cameratilt*-player->hurt_tilt_strength,0));
+	m_headnode->setPosition(player->getEyeOffset()+v3f(0,cameratilt*-player->hurt_tilt_strength+fall_bobbing,0));
 	m_headnode->setRotation(v3f(player->getPitch(), 0, cameratilt*player->hurt_tilt_strength));
 	m_headnode->updateAbsolutePosition();
 
@@ -311,8 +363,7 @@ void Camera::update(LocalPlayer* player, f32 frametime, v2u32 screensize,
 	m_fov_y = fov_degrees * M_PI / 180.0;
 	// Increase vertical FOV on lower aspect ratios (<16:10)
 	m_fov_y *= MYMAX(1.0, MYMIN(1.4, sqrt(16./10. / m_aspect)));
-	// WTF is this? It can't be right
-	m_fov_x = 2 * atan(0.5 * m_aspect * tan(m_fov_y));
+	m_fov_x = 2 * atan(m_aspect * tan(0.5 * m_fov_y));
 	m_cameranode->setAspectRatio(m_aspect);
 	m_cameranode->setFOV(m_fov_y);
 
@@ -321,6 +372,10 @@ void Camera::update(LocalPlayer* player, f32 frametime, v2u32 screensize,
 	v3f wield_position = v3f(55, -35, 65);
 	//v3f wield_rotation = v3f(-100, 120, -100);
 	v3f wield_rotation = v3f(-100, 120, -100);
+	if(m_wield_change_timer < 0)
+		wield_position.Y -= 40 + m_wield_change_timer*320;
+	else
+		wield_position.Y -= 40 - m_wield_change_timer*320;
 	if(m_digging_anim < 0.05 || m_digging_anim > 0.5){
 		f32 frac = 1.0;
 		if(m_digging_anim > 0.5)
@@ -529,18 +584,34 @@ void Camera::setDigging(s32 button)
 		m_digging_button = button;
 }
 
-void Camera::wield(const ItemStack &item)
+void Camera::wield(const ItemStack &item, u16 playeritem)
 {
 	IItemDefManager *idef = m_gamedef->idef();
-	scene::IMesh *wield_mesh = idef->getWieldMesh(item.getDefinition(idef).name, m_gamedef);
-	if(wield_mesh)
-	{
-		m_wieldnode->setMesh(wield_mesh);
-		m_wieldnode->setVisible(true);
-	}
-	else
-	{
-		m_wieldnode->setVisible(false);
+	std::string itemname = item.getDefinition(idef).name;
+	m_wield_mesh_next = idef->getWieldMesh(itemname, m_gamedef);
+	if(playeritem != m_previous_playeritem &&
+			!(m_previous_itemname == "" && itemname == "")) {
+		m_previous_playeritem = playeritem;
+		m_previous_itemname = itemname;
+		if(m_wield_change_timer >= 0.125)
+			m_wield_change_timer = -0.125;
+		else if(m_wield_change_timer > 0) {
+			m_wield_change_timer = -m_wield_change_timer;
+		}
+	} else {
+		if(m_wield_mesh_next) {
+			m_wieldnode->setMesh(m_wield_mesh_next);
+			m_wieldnode->setVisible(true);
+		} else {
+			m_wieldnode->setVisible(false);
+		}
+		m_wield_mesh_next = NULL;
+		if(m_previous_itemname != itemname) {
+			m_previous_itemname = itemname;
+			m_wield_change_timer = 0;
+		}
+		else
+			m_wield_change_timer = 0.125;
 	}
 }
 

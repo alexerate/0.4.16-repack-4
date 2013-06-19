@@ -25,6 +25,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 class ClientEnvironment;
 
+class ClientActiveObject;
+
 class LocalPlayer : public Player
 {
 public:
@@ -35,6 +37,8 @@ public:
 	{
 		return true;
 	}
+	
+	ClientActiveObject *parent;
 
 	bool isAttached;
 
@@ -54,6 +58,8 @@ public:
 	float last_pitch;
 	float last_yaw;
 	unsigned int last_keyPressed;
+
+	float camera_impact;
 
 private:
 	// This is used for determining the sneaking range

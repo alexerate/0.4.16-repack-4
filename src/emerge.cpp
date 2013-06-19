@@ -1,6 +1,7 @@
 /*
-Minetest-c55
-Copyright (C) 2010-2011 celeron55, Perttu Ahola <celeron55@gmail.com>
+Minetest
+Copyright (C) 2010-2013 celeron55, Perttu Ahola <celeron55@gmail.com>
+Copyright (C) 2010-2013 kwolekr, Ryan Kwolek <kwolekr@minetest.net>
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
@@ -31,27 +32,29 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "mapblock.h"
 #include "serverobject.h"
 #include "settings.h"
-#include "script.h"
-#include "scriptapi.h"
+#include "cpp_api/scriptapi.h"
 #include "profiler.h"
 #include "log.h"
 #include "nodedef.h"
 #include "biome.h"
 #include "emerge.h"
 #include "mapgen_v6.h"
+#include "mapgen_v7.h"
 #include "mapgen_indev.h"
 #include "mapgen_singlenode.h"
 
 
 /////////////////////////////// Emerge Manager ////////////////////////////////
 
-EmergeManager::EmergeManager(IGameDef *gamedef, BiomeDefManager *bdef) {
+EmergeManager::EmergeManager(IGameDef *gamedef) {
 	//register built-in mapgens
 	registerMapgen("v6", new MapgenFactoryV6());
+	registerMapgen("v7", new MapgenFactoryV7());
 	registerMapgen("indev", new MapgenFactoryIndev());
 	registerMapgen("singlenode", new MapgenFactorySinglenode());
 
-	this->biomedef = bdef ? bdef : new BiomeDefManager(gamedef);
+	this->ndef     = gamedef->getNodeDefManager();
+	this->biomedef = new BiomeDefManager();
 	this->params   = NULL;
 	
 	mapgen_debug_info = g_settings->getBool("enable_mapgen_debug_info");
@@ -92,9 +95,20 @@ EmergeManager::~EmergeManager() {
 		delete emergethread[i];
 		delete mapgen[i];
 	}
+	emergethread.clear();
+	mapgen.clear();
+
+	for (unsigned int i = 0; i < ores.size(); i++)
+		delete ores[i];
+	ores.clear();
 	
+	for (std::map<std::string, MapgenFactory *>::iterator iter = mglist.begin();
+			iter != mglist.end(); iter ++) {
+		delete iter->second;
+	}
+	mglist.clear();
+
 	delete biomedef;
-	delete params;
 }
 
 
@@ -103,6 +117,8 @@ void EmergeManager::initMapgens(MapgenParams *mgparams) {
 	
 	if (mapgen.size())
 		return;
+	
+	biomedef->resolveNodeNames(ndef);
 	
 	this->params = mgparams;
 	for (unsigned int i = 0; i != emergethread.size(); i++) {
@@ -237,6 +253,8 @@ MapgenParams *EmergeManager::createMapgenParams(std::string mgname) {
 MapgenParams *EmergeManager::getParamsFromSettings(Settings *settings) {
 	std::string mg_name = settings->get("mg_name");
 	MapgenParams *mgparams = createMapgenParams(mg_name);
+	if (!mgparams)
+		return NULL;
 	
 	mgparams->mg_name     = mg_name;
 	mgparams->seed        = settings->getU64(settings == g_settings ? "fixed_map_seed" : "seed");
@@ -330,7 +348,7 @@ bool EmergeThread::getBlockOrStartGen(v3s16 p, MapBlock **b,
 
 void *EmergeThread::Thread() {
 	ThreadStarted();
-	log_register_thread("EmergeThread" + id);
+	log_register_thread("EmergeThread" + itos(id));
 	DSTACK(__FUNCTION_NAME);
 	BEGIN_DEBUG_EXCEPTION_HANDLER
 
@@ -399,7 +417,7 @@ void *EmergeThread::Thread() {
 						ign(&m_server->m_ignore_map_edit_events_area,
 						VoxelArea(minp, maxp));
 					{  // takes about 90ms with -O1 on an e3-1230v2
-						scriptapi_environment_on_generated(m_server->m_lua,
+						SERVER_TO_SA(m_server)->environment_OnGenerated(
 								minp, maxp, emerge->getBlockSeed(minp));
 					}
 

@@ -107,6 +107,7 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("enable_clouds", "true");
 	settings->setDefault("screenshot_path", ".");
 	settings->setDefault("view_bobbing_amount", "1.0");
+	settings->setDefault("fall_bobbing_amount", "0.0");
 	settings->setDefault("enable_3d_clouds", "true");
 	settings->setDefault("cloud_height", "120");
 	settings->setDefault("menu_clouds", "true");
@@ -116,6 +117,7 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("selectionbox_color", "(0,0,0)");
 	settings->setDefault("crosshair_color", "(255,255,255)");
 	settings->setDefault("crosshair_alpha", "255");
+	settings->setDefault("mouse_sensitivity", "0.2");
 	settings->setDefault("enable_sound", "true");
 	settings->setDefault("sound_volume", "0.8");
 	settings->setDefault("desynchronize_mapblock_texture_animation", "true");
@@ -173,6 +175,7 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("max_simultaneous_block_sends_server_total", "20");
 	settings->setDefault("max_block_send_distance", "9");
 	settings->setDefault("max_block_generate_distance", "7");
+	settings->setDefault("max_clearobjects_extra_loaded_blocks", "4096");
 	settings->setDefault("time_send_interval", "5");
 	settings->setDefault("time_speed", "72");
 	settings->setDefault("server_unload_unused_data_timeout", "29");
@@ -231,10 +234,12 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("mgv6_np_trees",          "0, 1, (125, 125, 125), 2, 4, 0.66");
 	settings->setDefault("mgv6_np_apple_trees",    "0, 1, (100, 100, 100), 342902, 3, 0.45");
 
-	settings->setDefault("mgv7_np_terrain",  "10, 12, (350, 350, 350), 82341, 5, 0.6");
-	settings->setDefault("mgv7_np_bgroup",   "0.5, 0.3125, (350, 350, 350), 5923, 2, 0.6");
-	settings->setDefault("mgv7_np_heat",     "25, 50, (500, 500, 500), 35293, 1, 0");
-	settings->setDefault("mgv7_np_humidity", "50, 31.25, (750, 750, 750), 12094, 2, 0.6");
+	settings->setDefault("mgv7_np_terrain_base",     "0, 80, (250, 250, 250), 82341, 5, 0.6");
+	settings->setDefault("mgv7_np_terrain_alt",      "0, 20, (250, 250, 250), 5934, 5, 0.6");
+	settings->setDefault("mgv7_np_terrain_mod",      "0, 1, (350, 350, 350), 85039, 5, 0.6");
+	settings->setDefault("mgv7_np_terrain_persist",  "0, 1, (500, 500, 500), 539, 3, 0.6");
+	settings->setDefault("mgv7_np_height_select",    "0.5, 0.5, (250, 250, 250), 4213, 5, 0.69");
+	settings->setDefault("mgv7_np_ridge",            "0.5, 1, (100, 100, 100), 6467, 4, 0.75");
 
 	settings->setDefault("mgindev_np_terrain_base",   "-4,   20,  (250, 250, 250), 82341, 5, 0.6,  10,  10");
 	settings->setDefault("mgindev_np_terrain_higher", "20,   16,  (500, 500, 500), 85039, 5, 0.6,  10,  10");
@@ -245,7 +250,6 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("mgindev_np_float_islands3", "0,    1,   (256, 256, 256), 6412,  2, 0.5,  1,   0.5");
 	settings->setDefault("mgindev_np_biome",          "0,    1,   (250, 250, 250), 9130,  3, 0.50, 1,   10");
 	settings->setDefault("mgindev_float_islands", "500");
-
 }
 
 void override_default_settings(Settings *settings, Settings *from)
