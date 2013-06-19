@@ -121,6 +121,9 @@ GUIChatConsole::GUIChatConsole(
 
 GUIChatConsole::~GUIChatConsole()
 {
+#if USE_FREETYPE
+	m_font->drop();
+#endif
 }
 
 void GUIChatConsole::openConsole(f32 height)
@@ -129,6 +132,11 @@ void GUIChatConsole::openConsole(f32 height)
 	m_desired_height_fraction = height;
 	m_desired_height = height * m_screensize.Y;
 	reformatConsole();
+}
+
+bool GUIChatConsole::isOpen() const
+{
+	return m_open;
 }
 
 bool GUIChatConsole::isOpenInhibited() const
@@ -535,7 +543,7 @@ bool GUIChatConsole::OnEvent(const SEvent& event)
 		{
 			// Tab or Shift-Tab pressed
 			// Nick completion
-			std::list<std::wstring> names = m_client->getConnectedPlayerNames();
+			std::list<std::string> names = m_client->getConnectedPlayerNames();
 			bool backwards = event.KeyInput.Shift;
 			m_chat_backend->getPrompt().nickCompletion(names, backwards);
 			return true;

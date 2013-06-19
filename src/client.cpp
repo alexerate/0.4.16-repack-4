@@ -29,6 +29,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "mapblock.h"
 #include "settings.h"
 #include "profiler.h"
+#include "gettext.h"
 #include "log.h"
 #include "nodemetadata.h"
 #include "nodedef.h"
@@ -45,6 +46,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "IMeshCache.h"
 #include "util/serialize.h"
 #include "config.h"
+#include "util/directiontables.h"
 
 #if USE_CURL
 #include <curl/curl.h>
@@ -348,6 +350,11 @@ Client::~Client()
 	m_mesh_update_thread.setRun(false);
 	while(m_mesh_update_thread.IsRunning())
 		sleep_ms(100);
+	while(!m_mesh_update_thread.m_queue_out.empty()) {
+		MeshUpdateResult r = m_mesh_update_thread.m_queue_out.pop_front();
+		delete r.mesh;
+	}
+
 
 	delete m_inventory_from_server;
 
@@ -363,6 +370,15 @@ Client::~Client()
 	for (std::list<MediaFetchThread*>::iterator i = m_media_fetch_threads.begin();
 			i != m_media_fetch_threads.end(); ++i)
 		delete *i;
+
+	// cleanup 3d model meshes on client shutdown
+	while (m_device->getSceneManager()->getMeshCache()->getMeshCount() != 0) {
+		scene::IAnimatedMesh * mesh =
+			m_device->getSceneManager()->getMeshCache()->getMeshByIndex(0);
+
+		if (mesh != NULL)
+			m_device->getSceneManager()->getMeshCache()->removeMesh(mesh);
+	}
 }
 
 void Client::connect(Address address)
@@ -746,6 +762,8 @@ void Client::step(float dtime)
 
 				// Replace with the new mesh
 				block->mesh = r.mesh;
+			} else {
+				delete r.mesh;
 			}
 			if(r.ack_block_to_server)
 			{
@@ -976,16 +994,28 @@ bool Client::loadMedia(const std::string &data, const std::string &filename)
 	{
 		verbosestream<<"Client: Storing model into Irrlicht: "
 				<<"\""<<filename<<"\""<<std::endl;
+		scene::ISceneManager *smgr = m_device->getSceneManager();
+
+		//check if mesh was already cached
+		scene::IAnimatedMesh *mesh =
+			smgr->getMeshCache()->getMeshByName(filename.c_str());
+
+		if (mesh != NULL) {
+			errorstream << "Multiple models with name: " << filename.c_str() <<
+					" found replacing previous model!" << std::endl;
+
+			smgr->getMeshCache()->removeMesh(mesh);
+			mesh = 0;
+		}
 
 		io::IFileSystem *irrfs = m_device->getFileSystem();
 		io::IReadFile *rfile = irrfs->createMemoryReadFile(
 				*data_rw, data_rw.getSize(), filename.c_str());
 		assert(rfile);
 		
-		scene::ISceneManager *smgr = m_device->getSceneManager();
-		scene::IAnimatedMesh *mesh = smgr->getMesh(rfile);
+		mesh = smgr->getMesh(rfile);
 		smgr->getMeshCache()->addMesh(filename.c_str(), mesh);
-		
+		rfile->drop();
 		return true;
 	}
 
@@ -1957,7 +1987,7 @@ void Client::ProcessData(u8 *data, u32 datasize, u16 sender_peer_id)
 
 		event.spawn_particle.expirationtime = expirationtime;
 		event.spawn_particle.size = size;
-		event.add_particlespawner.collisiondetection =
+		event.spawn_particle.collisiondetection =
 				collisiondetection;
 		event.spawn_particle.texture = new std::string(texture);
 
@@ -2018,6 +2048,110 @@ void Client::ProcessData(u8 *data, u32 datasize, u16 sender_peer_id)
 		event.delete_particlespawner.id = id;
 
 		m_client_event_queue.push_back(event);
+	}
+	else if(command == TOCLIENT_HUDADD)
+	{
+		std::string datastring((char *)&data[2], datasize - 2);
+		std::istringstream is(datastring, std::ios_base::binary);
+
+		u32 id           = readU32(is);
+		u8 type          = readU8(is);
+		v2f pos          = readV2F1000(is);
+		std::string name = deSerializeString(is);
+		v2f scale        = readV2F1000(is);
+		std::string text = deSerializeString(is);
+		u32 number       = readU32(is);
+		u32 item         = readU32(is);
+		u32 dir          = readU32(is);
+		v2f align        = readV2F1000(is);
+		v2f offset       = readV2F1000(is);
+
+		ClientEvent event;
+		event.type = CE_HUDADD;
+		event.hudadd.id     = id;
+		event.hudadd.type   = type;
+		event.hudadd.pos    = new v2f(pos);
+		event.hudadd.name   = new std::string(name);
+		event.hudadd.scale  = new v2f(scale);
+		event.hudadd.text   = new std::string(text);
+		event.hudadd.number = number;
+		event.hudadd.item   = item;
+		event.hudadd.dir    = dir;
+		event.hudadd.align  = new v2f(align);
+		event.hudadd.offset = new v2f(offset);
+		m_client_event_queue.push_back(event);
+	}
+	else if(command == TOCLIENT_HUDRM)
+	{
+		std::string datastring((char *)&data[2], datasize - 2);
+		std::istringstream is(datastring, std::ios_base::binary);
+
+		u32 id = readU32(is);
+
+		ClientEvent event;
+		event.type = CE_HUDRM;
+		event.hudrm.id = id;
+		m_client_event_queue.push_back(event);
+	}
+	else if(command == TOCLIENT_HUDCHANGE)
+	{	
+		std::string sdata;
+		v2f v2fdata;
+		u32 intdata = 0;
+		
+		std::string datastring((char *)&data[2], datasize - 2);
+		std::istringstream is(datastring, std::ios_base::binary);
+
+		u32 id  = readU32(is);
+		u8 stat = (HudElementStat)readU8(is);
+		
+		if (stat == HUD_STAT_POS || stat == HUD_STAT_SCALE ||
+			stat == HUD_STAT_ALIGN || stat == HUD_STAT_OFFSET)
+			v2fdata = readV2F1000(is);
+		else if (stat == HUD_STAT_NAME || stat == HUD_STAT_TEXT)
+			sdata = deSerializeString(is);
+		else
+			intdata = readU32(is);
+		
+		ClientEvent event;
+		event.type = CE_HUDCHANGE;
+		event.hudchange.id      = id;
+		event.hudchange.stat    = (HudElementStat)stat;
+		event.hudchange.v2fdata = new v2f(v2fdata);
+		event.hudchange.sdata   = new std::string(sdata);
+		event.hudchange.data    = intdata;
+		m_client_event_queue.push_back(event);
+	}
+	else if(command == TOCLIENT_HUD_SET_FLAGS)
+	{	
+		std::string datastring((char *)&data[2], datasize - 2);
+		std::istringstream is(datastring, std::ios_base::binary);
+
+		Player *player = m_env.getLocalPlayer();
+		assert(player != NULL);
+
+		u32 flags = readU32(is);
+		u32 mask  = readU32(is);
+		
+		player->hud_flags &= ~mask;
+		player->hud_flags |= flags;
+	}
+	else if(command == TOCLIENT_HUD_SET_PARAM)
+	{
+		std::string datastring((char *)&data[2], datasize - 2);
+		std::istringstream is(datastring, std::ios_base::binary);
+
+		Player *player = m_env.getLocalPlayer();
+		assert(player != NULL);
+
+		u16 param         = readU16(is);
+		std::string value = deSerializeString(is);
+
+		if(param == HUD_PARAM_HOTBAR_ITEMCOUNT && value.size() == 4){
+			s32 hotbar_itemcount = readS32((u8*) value.c_str());
+			if(hotbar_itemcount > 0 && hotbar_itemcount <= HUD_HOTBAR_ITEMCOUNT_MAX)
+				player->hud_hotbar_itemcount = hotbar_itemcount;
+		}
 	}
 	else
 	{
@@ -2446,6 +2580,9 @@ void Client::inventoryAction(InventoryAction *a)
 		Predict some local inventory changes
 	*/
 	a->clientApply(this, this);
+
+	// Remove it
+	delete a;
 }
 
 ClientActiveObject * Client::getSelectedActiveObject(
@@ -2501,18 +2638,9 @@ void Client::printDebugInfo(std::ostream &os)
 		<<std::endl;*/
 }
 
-std::list<std::wstring> Client::getConnectedPlayerNames()
+std::list<std::string> Client::getConnectedPlayerNames()
 {
-	std::list<Player*> players = m_env.getPlayers(true);
-	std::list<std::wstring> playerNames;
-	for(std::list<Player*>::iterator
-			i = players.begin();
-			i != players.end(); ++i)
-	{
-		Player *player = *i;
-		playerNames.push_back(narrow_to_wide(player->getName()));
-	}
-	return playerNames;
+	return m_env.getPlayerNames();
 }
 
 float Client::getAnimationTime()
@@ -2639,21 +2767,14 @@ void Client::addUpdateMeshTaskWithEdge(v3s16 blockpos, bool ack_to_server, bool 
 	}
 	catch(InvalidPositionException &e){}
 	// Leading edge
-	try{
-		v3s16 p = blockpos + v3s16(-1,0,0);
-		addUpdateMeshTask(p, false, urgent);
+	for (int i=0;i<6;i++)
+	{
+		try{
+			v3s16 p = blockpos + g_6dirs[i];
+			addUpdateMeshTask(p, false, urgent);
+		}
+		catch(InvalidPositionException &e){}
 	}
-	catch(InvalidPositionException &e){}
-	try{
-		v3s16 p = blockpos + v3s16(0,-1,0);
-		addUpdateMeshTask(p, false, urgent);
-	}
-	catch(InvalidPositionException &e){}
-	try{
-		v3s16 p = blockpos + v3s16(0,0,-1);
-		addUpdateMeshTask(p, false, urgent);
-	}
-	catch(InvalidPositionException &e){}
 }
 
 void Client::addUpdateMeshTaskForNode(v3s16 nodepos, bool ack_to_server, bool urgent)
@@ -2708,7 +2829,10 @@ ClientEvent Client::getClientEvent()
 	return m_client_event_queue.pop_front();
 }
 
-void Client::afterContentReceived()
+void draw_load_screen(const std::wstring &text,
+		IrrlichtDevice* device, gui::IGUIFont* font,
+		float dtime=0 ,int percent=0, bool clouds=true);
+void Client::afterContentReceived(IrrlichtDevice *device, gui::IGUIFont* font)
 {
 	infostream<<"Client::afterContentReceived() started"<<std::endl;
 	assert(m_itemdef_received);
@@ -2743,13 +2867,23 @@ void Client::afterContentReceived()
 	if(g_settings->getBool("preload_item_visuals"))
 	{
 		verbosestream<<"Updating item textures and meshes"<<std::endl;
+		wchar_t* text = wgettext("Item textures...");
+		draw_load_screen(text,device,font,0,0);
 		std::set<std::string> names = m_itemdef->getAll();
+		size_t size = names.size();
+		size_t count = 0;
+		int percent = 0;
 		for(std::set<std::string>::const_iterator
 				i = names.begin(); i != names.end(); ++i){
 			// Asking for these caches the result
 			m_itemdef->getInventoryTexture(*i, this);
 			m_itemdef->getWieldMesh(*i, this);
+			count++;
+			percent = count*100/size;
+			if (count%50 == 0) // only update every 50 item
+				draw_load_screen(text,device,font,0,percent);
 		}
+		delete[] text;
 	}
 
 	// Start mesh update thread after setting up content definitions

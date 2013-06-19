@@ -35,6 +35,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 LocalPlayer::LocalPlayer(IGameDef *gamedef):
 	Player(gamedef),
+	parent(0),
 	isAttached(false),
 	overridePosition(v3f(0,0,0)),
 	last_position(v3f(0,0,0)),
@@ -72,6 +73,7 @@ void LocalPlayer::move(f32 dtime, ClientEnvironment *env, f32 pos_max_d,
 	if(isAttached)
 	{
 		setPosition(overridePosition);
+		m_sneak_node_exists = false;
 		return;
 	}
 
@@ -84,6 +86,7 @@ void LocalPlayer::move(f32 dtime, ClientEnvironment *env, f32 pos_max_d,
 	{
         position += m_speed * dtime;
 		setPosition(position);
+		m_sneak_node_exists = false;
 		return;
 	}
 
@@ -153,9 +156,6 @@ void LocalPlayer::move(f32 dtime, ClientEnvironment *env, f32 pos_max_d,
 	// This should always apply, otherwise there are glitches
 	assert(d > pos_max_d);
 
-	float player_radius = BS*0.30;
-	float player_height = BS*1.55;
-	
 	// Maximum distance over border for sneaking
 	f32 sneak_max = BS*0.4;
 
@@ -183,24 +183,12 @@ void LocalPlayer::move(f32 dtime, ClientEnvironment *env, f32 pos_max_d,
 		}
 	}
 
-	/*
-		Calculate player collision box (new and old)
-	*/
-	core::aabbox3d<f32> playerbox(
-		-player_radius,
-		0.0,
-		-player_radius,
-		player_radius,
-		player_height,
-		player_radius
-	);
-
 	float player_stepheight = touching_ground ? (BS*0.6) : (BS*0.2);
 
 	v3f accel_f = v3f(0,0,0);
 
 	collisionMoveResult result = collisionMoveSimple(env, m_gamedef,
-			pos_max_d, playerbox, player_stepheight, dtime,
+			pos_max_d, m_collisionbox, player_stepheight, dtime,
 			position, m_speed, accel_f);
 
 	/*
@@ -328,6 +316,9 @@ void LocalPlayer::move(f32 dtime, ClientEnvironment *env, f32 pos_max_d,
 	if(!touching_ground_was && touching_ground){
 		MtEvent *e = new SimpleTriggerEvent("PlayerRegainGround");
 		m_gamedef->event()->put(e);
+
+		// Set camera impact value to be used for view bobbing
+		camera_impact = getSpeed().Y * -1;
 	}
 
 	{
@@ -388,7 +379,8 @@ void LocalPlayer::applyControl(float dtime)
 
 	bool free_move = fly_allowed && g_settings->getBool("free_move");
 	bool fast_move = fast_allowed && g_settings->getBool("fast_move");
-	bool fast_or_aux1_descends = (fast_move && control.aux1) || (fast_move && g_settings->getBool("aux1_descends"));
+	// When aux1_descends is enabled the fast key is used to go down, so fast isn't possible
+	bool fast_climb = fast_move && control.aux1 && !g_settings->getBool("aux1_descends");
 	bool continuous_forward = g_settings->getBool("continuous_forward");
 
 	// Whether superspeed mode is used or not
@@ -417,14 +409,12 @@ void LocalPlayer::applyControl(float dtime)
 			}
 			else if(in_liquid || in_liquid_stable)
 			{
-				// Always use fast when aux1_descends & fast_move are enabled in liquid, since the aux1 button would mean both turbo and "swim down" causing a conflict
-				speedV.Y = -movement_speed_fast;
+				speedV.Y = -movement_speed_walk;
 				swimming_vertical = true;
 			}
 			else if(is_climbing)
 			{
-				// Always use fast when aux1_descends & fast_move are enabled when climbing, since the aux1 button would mean both turbo and "descend" causing a conflict
-				speedV.Y = -movement_speed_fast;
+				speedV.Y = -movement_speed_climb;
 			}
 			else
 			{
@@ -461,8 +451,7 @@ void LocalPlayer::applyControl(float dtime)
 			}
 			else if(in_liquid || in_liquid_stable)
 			{
-				if(fast_or_aux1_descends)
-					// Always use fast when aux1_descends & fast_move are enabled in liquid, since the aux1 button would mean both turbo and "swim down" causing a conflict
+				if(fast_climb)
 					speedV.Y = -movement_speed_fast;
 				else
 					speedV.Y = -movement_speed_walk;
@@ -470,8 +459,7 @@ void LocalPlayer::applyControl(float dtime)
 			}
 			else if(is_climbing)
 			{
-				if(fast_or_aux1_descends)
-					// Always use fast when aux1_descends & fast_move are enabled when climbing, since the aux1 button would mean both turbo and "descend" causing a conflict
+				if(fast_climb)
 					speedV.Y = -movement_speed_fast;
 				else
 					speedV.Y = -movement_speed_climb;
@@ -528,7 +516,7 @@ void LocalPlayer::applyControl(float dtime)
 			v3f speedJ = getSpeed();
 			if(speedJ.Y >= -0.5 * BS)
 			{
-				speedJ.Y = movement_speed_jump;
+				speedJ.Y = movement_speed_jump * physics_override_jump;
 				setSpeed(speedJ);
 				
 				MtEvent *e = new SimpleTriggerEvent("PlayerJump");
@@ -537,8 +525,7 @@ void LocalPlayer::applyControl(float dtime)
 		}
 		else if(in_liquid)
 		{
-			if(fast_or_aux1_descends)
-				// Always use fast when aux1_descends & fast_move are enabled in liquid, since the aux1 button would mean both turbo and "swim down" causing a conflict
+			if(fast_climb)
 				speedV.Y = movement_speed_fast;
 			else
 				speedV.Y = movement_speed_walk;
@@ -546,8 +533,7 @@ void LocalPlayer::applyControl(float dtime)
 		}
 		else if(is_climbing)
 		{
-			if(fast_or_aux1_descends)
-				// Always use fast when aux1_descends & fast_move are enabled when climbing, since the aux1 button would mean both turbo and "descend" causing a conflict
+			if(fast_climb)
 				speedV.Y = movement_speed_fast;
 			else
 				speedV.Y = movement_speed_climb;
@@ -555,7 +541,7 @@ void LocalPlayer::applyControl(float dtime)
 	}
 
 	// The speed of the player (Y is ignored)
-	if(superspeed || (is_climbing && fast_or_aux1_descends) || ((in_liquid || in_liquid_stable) && fast_or_aux1_descends))
+	if(superspeed || (is_climbing && fast_climb) || ((in_liquid || in_liquid_stable) && fast_climb))
 		speedH = speedH.normalize() * movement_speed_fast;
 	else if(control.sneak && !free_move && !in_liquid && !in_liquid_stable)
 		speedH = speedH.normalize() * movement_speed_crouch;
@@ -574,17 +560,14 @@ void LocalPlayer::applyControl(float dtime)
 			incH = movement_acceleration_air * BS * dtime;
 		incV = 0; // No vertical acceleration in air
 	}
-	else if(superspeed || (fast_move && control.aux1))
-		incH = incV = movement_acceleration_fast * BS * dtime;
-	else if ((in_liquid || in_liquid_stable) && fast_or_aux1_descends)
-		// Always use fast when aux1_descends & fast_move are enabled in liquid, since the aux1 button would mean both turbo and "swim down" causing a conflict
+	else if (superspeed || (is_climbing && fast_climb) || ((in_liquid || in_liquid_stable) && fast_climb))
 		incH = incV = movement_acceleration_fast * BS * dtime;
 	else
 		incH = incV = movement_acceleration_default * BS * dtime;
 
 	// Accelerate to target speed with maximum increment
-	accelerateHorizontal(speedH, incH);
-	accelerateVertical(speedV, incV);
+	accelerateHorizontal(speedH * physics_override_speed, incH * physics_override_speed);
+	accelerateVertical(speedV * physics_override_speed, incV * physics_override_speed);
 }
 
 v3s16 LocalPlayer::getStandingNodePos()

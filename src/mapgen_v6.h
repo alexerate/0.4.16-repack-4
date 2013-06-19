@@ -23,7 +23,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "mapgen.h"
 
 #define AVERAGE_MUD_AMOUNT 4
-#define VMANIP_FLAG_CAVE VOXELFLAG_CHECKED1
 
 enum BiomeType
 {
@@ -43,47 +42,38 @@ extern NoiseParams nparams_v6_def_humidity;
 extern NoiseParams nparams_v6_def_trees;
 extern NoiseParams nparams_v6_def_apple_trees;
 
-struct Cave {
-	s16 min_tunnel_diameter;
-	s16 max_tunnel_diameter;
-	int dswitchint;
-	u16 tunnel_routepoints;
-	int part_max_length_rs;
-	bool large_cave_is_flat;
-	bool flooded;
-};
-
 struct MapgenV6Params : public MapgenParams {
 	float freq_desert;
 	float freq_beach;
-	NoiseParams *np_terrain_base;
-	NoiseParams *np_terrain_higher;
-	NoiseParams *np_steepness;
-	NoiseParams *np_height_select;
-	NoiseParams *np_mud;
-	NoiseParams *np_beach;
-	NoiseParams *np_biome;
-	NoiseParams *np_cave;
-	NoiseParams *np_humidity;
-	NoiseParams *np_trees;
-	NoiseParams *np_apple_trees;
+	NoiseParams np_terrain_base;
+	NoiseParams np_terrain_higher;
+	NoiseParams np_steepness;
+	NoiseParams np_height_select;
+	NoiseParams np_mud;
+	NoiseParams np_beach;
+	NoiseParams np_biome;
+	NoiseParams np_cave;
+	NoiseParams np_humidity;
+	NoiseParams np_trees;
+	NoiseParams np_apple_trees;
 	
 	MapgenV6Params() {
 		freq_desert       = 0.45;
 		freq_beach        = 0.15;
-		np_terrain_base   = &nparams_v6_def_terrain_base;
-		np_terrain_higher = &nparams_v6_def_terrain_higher;
-		np_steepness      = &nparams_v6_def_steepness;
-		np_height_select  = &nparams_v6_def_height_select;
-		np_mud            = &nparams_v6_def_mud;
-		np_beach          = &nparams_v6_def_beach;
-		np_biome          = &nparams_v6_def_biome;
-		np_cave           = &nparams_v6_def_cave;
-		np_humidity       = &nparams_v6_def_humidity;
-		np_trees          = &nparams_v6_def_trees;
-		np_apple_trees    = &nparams_v6_def_apple_trees;
-
+		np_terrain_base   = nparams_v6_def_terrain_base;
+		np_terrain_higher = nparams_v6_def_terrain_higher;
+		np_steepness      = nparams_v6_def_steepness;
+		np_height_select  = nparams_v6_def_height_select;
+		np_mud            = nparams_v6_def_mud;
+		np_beach          = nparams_v6_def_beach;
+		np_biome          = nparams_v6_def_biome;
+		np_cave           = nparams_v6_def_cave;
+		np_humidity       = nparams_v6_def_humidity;
+		np_trees          = nparams_v6_def_trees;
+		np_apple_trees    = nparams_v6_def_apple_trees;
 	}
+	
+	~MapgenV6Params() {}
 	
 	bool readParams(Settings *settings);
 	void writeParams(Settings *settings);
@@ -166,10 +156,8 @@ public:
 	void addDirtGravelBlobs();
 	void growGrass();
 	void placeTreesAndJungleGrass();
-	virtual void defineCave(Cave &cave, PseudoRandom ps,
-							v3s16 node_min, bool large_cave);
-	void generateCaves(int max_stone_y);
-	virtual void generateSomething() {}; //for next mapgen
+	virtual void generateCaves(int max_stone_y);
+	virtual void generateExperimental() {}
 };
 
 struct MapgenFactoryV6 : public MapgenFactory {

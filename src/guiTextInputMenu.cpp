@@ -121,14 +121,19 @@ void GUITextInputMenu::regenerateGui(v2u32 screensize)
 		evt.EventType = EET_KEY_INPUT_EVENT;
 		evt.KeyInput.Key = KEY_END;
 		evt.KeyInput.PressedDown = true;
+		evt.KeyInput.Char = 0;
+		evt.KeyInput.Control = 0;
+		evt.KeyInput.Shift = 0;
 		e->OnEvent(evt);
 	}
 	changeCtype("");
 	{
 		core::rect<s32> rect(0, 0, 140, 30);
 		rect = rect + v2s32(size.X/2-140/2, size.Y/2-30/2+25);
+		wchar_t* text = wgettext("Proceed");
 		Environment->addButton(rect, this, 257,
-			wgettext("Proceed"));
+			text);
+		delete[] text;
 	}
 	changeCtype("C");
 }

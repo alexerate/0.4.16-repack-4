@@ -34,6 +34,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "main.h" // For g_profiler
 #include "treegen.h"
 #include "mapgen_v6.h"
+#include "mapgen_v7.h"
 
 FlagDesc flagdesc_mapgen[] = {
 	{"trees",          MG_TREES},
@@ -70,6 +71,12 @@ Ore *createOre(OreType type) {
 }
 
 
+Ore::~Ore() {
+	delete np;
+	delete noise;
+}
+
+
 void Ore::resolveNodeNames(INodeDefManager *ndef) {
 	if (ore == CONTENT_IGNORE) {
 		ore = ndef->getId(ore_name);
@@ -93,7 +100,7 @@ void Ore::resolveNodeNames(INodeDefManager *ndef) {
 }
 
 
-void OreScatter::generate(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax) {
+void Ore::placeOre(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax) {
 	int in_range = 0;
 
 	in_range |= (nmin.Y <= height_max && nmax.Y >= height_min);
@@ -104,9 +111,6 @@ void OreScatter::generate(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax) {
 
 	resolveNodeNames(mg->ndef);
 	
-	MapNode n_ore(ore);
-	ManualMapVoxelManipulator *vm = mg->vm;
-	PseudoRandom pr(blockseed);
 	int ymin, ymax;
 	
 	if (in_range & ORE_RANGE_MIRROR) {
@@ -119,6 +123,17 @@ void OreScatter::generate(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax) {
 	if (clust_size >= ymax - ymin + 1)
 		return;
 	
+	nmin.Y = ymin;
+	nmax.Y = ymax;
+	generate(mg->vm, mg->seed, blockseed, nmin, nmax);
+}
+
+
+void OreScatter::generate(ManualMapVoxelManipulator *vm, int seed,
+						u32 blockseed, v3s16 nmin, v3s16 nmax) {
+	PseudoRandom pr(blockseed);
+	MapNode n_ore(ore, 0, ore_param2);
+
 	int volume = (nmax.X - nmin.X + 1) *
 				 (nmax.Y - nmin.Y + 1) *
 				 (nmax.Z - nmin.Z + 1);
@@ -128,10 +143,10 @@ void OreScatter::generate(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax) {
 
 	for (int i = 0; i != nclusters; i++) {
 		int x0 = pr.range(nmin.X, nmax.X - csize + 1);
-		int y0 = pr.range(ymin,   ymax   - csize + 1);
+		int y0 = pr.range(nmin.Y, nmax.Y - csize + 1);
 		int z0 = pr.range(nmin.Z, nmax.Z - csize + 1);
 		
-		if (np && (NoisePerlin3D(np, x0, y0, z0, mg->seed) < nthresh))
+		if (np && (NoisePerlin3D(np, x0, y0, z0, seed) < nthresh))
 			continue;
 		
 		for (int z1 = 0; z1 != csize; z1++)
@@ -148,53 +163,25 @@ void OreScatter::generate(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax) {
 }
 
 
-void OreSheet::generate(Mapgen *mg, u32 blockseed, v3s16 nmin, v3s16 nmax) {
-	int in_range = 0;
-
-	in_range |= (nmin.Y <= height_max && nmax.Y >= height_min);
-	if (flags & OREFLAG_ABSHEIGHT)
-		in_range |= (nmin.Y >= -height_max && nmax.Y <= -height_min) << 1;
-	if (!in_range)
-		return;
-		
-	resolveNodeNames(mg->ndef);
-
-	MapNode n_ore(ore);
-	ManualMapVoxelManipulator *vm = mg->vm;
+void OreSheet::generate(ManualMapVoxelManipulator *vm, int seed,
+						u32 blockseed, v3s16 nmin, v3s16 nmax) {
 	PseudoRandom pr(blockseed + 4234);
-	int ymin, ymax;
-	
-	if (in_range & ORE_RANGE_MIRROR) {
-		ymin = MYMAX(nmin.Y, -height_max);
-		ymax = MYMIN(nmax.Y, -height_min);
-	} else {
-		ymin = MYMAX(nmin.Y, height_min);
-		ymax = MYMIN(nmax.Y, height_max);
-	}
-
-	if (clust_size >= ymax - ymin + 1)
-		return;
-		
-	int x0 = nmin.X;
-	int z0 = nmin.Z;
-	
-	int x1 = nmax.X;
-	int z1 = nmax.Z;
+	MapNode n_ore(ore, 0, ore_param2);
 	
 	int max_height = clust_size;
-	int y_start = pr.range(ymin, ymax - max_height);
+	int y_start = pr.range(nmin.Y, nmax.Y - max_height);
 	
 	if (!noise) {
 		int sx = nmax.X - nmin.X + 1;
 		int sz = nmax.Z - nmin.Z + 1;
 		noise = new Noise(np, 0, sx, sz);
 	}
-	noise->seed = mg->seed + y_start;
-	noise->perlinMap2D(x0, z0);
+	noise->seed = seed + y_start;
+	noise->perlinMap2D(nmin.X, nmin.Z);
 	
 	int index = 0;
-	for (int z = z0; z != z1; z++)
-	for (int x = x0; x != x1; x++) {
+	for (int z = nmin.Z; z <= nmax.Z; z++)
+	for (int x = nmin.X; x <= nmax.X; x++) {
 		float noiseval = noise->result[index++];
 		if (noiseval < nthresh)
 			continue;
@@ -240,8 +227,7 @@ void Mapgen::updateLiquid(UniqueQueue<v3s16> *trans_liquid, v3s16 nmin, v3s16 nm
 
 void Mapgen::setLighting(v3s16 nmin, v3s16 nmax, u8 light) {
 	ScopeProfiler sp(g_profiler, "EmergeThread: mapgen lighting update", SPT_AVG);
-	VoxelArea a(nmin - v3s16(1,0,1) * MAP_BLOCKSIZE,
-				nmax + v3s16(1,0,1) * MAP_BLOCKSIZE);
+	VoxelArea a(nmin, nmax);
 
 	for (int z = a.MinEdge.Z; z <= a.MaxEdge.Z; z++) {
 		for (int y = a.MinEdge.Y; y <= a.MaxEdge.Y; y++) {
@@ -277,8 +263,7 @@ void Mapgen::lightSpread(VoxelArea &a, v3s16 p, u8 light) {
 
 
 void Mapgen::calcLighting(v3s16 nmin, v3s16 nmax) {
-	VoxelArea a(nmin - v3s16(1,0,1) * MAP_BLOCKSIZE,
-				nmax + v3s16(1,0,1) * MAP_BLOCKSIZE);
+	VoxelArea a(nmin, nmax);
 	bool block_is_underground = (water_level >= nmax.Y);
 
 	ScopeProfiler sp(g_profiler, "EmergeThread: mapgen lighting update", SPT_AVG);
@@ -341,9 +326,7 @@ void Mapgen::calcLighting(v3s16 nmin, v3s16 nmax) {
 
 void Mapgen::calcLightingOld(v3s16 nmin, v3s16 nmax) {
 	enum LightBank banks[2] = {LIGHTBANK_DAY, LIGHTBANK_NIGHT};
-
-	VoxelArea a(nmin - v3s16(1,0,1) * MAP_BLOCKSIZE,
-				nmax + v3s16(1,0,1) * MAP_BLOCKSIZE);
+	VoxelArea a(nmin, nmax);
 	bool block_is_underground = (water_level > nmax.Y);
 	bool sunlight = !block_is_underground;
 
@@ -370,23 +353,18 @@ bool MapgenV6Params::readParams(Settings *settings) {
 	freq_desert = settings->getFloat("mgv6_freq_desert");
 	freq_beach  = settings->getFloat("mgv6_freq_beach");
 
-	np_terrain_base   = settings->getNoiseParams("mgv6_np_terrain_base");
-	np_terrain_higher = settings->getNoiseParams("mgv6_np_terrain_higher");
-	np_steepness      = settings->getNoiseParams("mgv6_np_steepness");
-	np_height_select  = settings->getNoiseParams("mgv6_np_height_select");
-	np_mud            = settings->getNoiseParams("mgv6_np_mud");
-	np_beach          = settings->getNoiseParams("mgv6_np_beach");
-	np_biome          = settings->getNoiseParams("mgv6_np_biome");
-	np_cave           = settings->getNoiseParams("mgv6_np_cave");
-	np_humidity       = settings->getNoiseParams("mgv6_np_humidity");
-	np_trees          = settings->getNoiseParams("mgv6_np_trees");
-	np_apple_trees    = settings->getNoiseParams("mgv6_np_apple_trees");
-
-	bool success =
-		np_terrain_base  && np_terrain_higher && np_steepness &&
-		np_height_select && np_trees          && np_mud       &&
-		np_beach         && np_biome          && np_cave      &&
-		np_humidity      && np_apple_trees;
+	bool success = 
+		settings->getNoiseParams("mgv6_np_terrain_base",   np_terrain_base)   &&
+		settings->getNoiseParams("mgv6_np_terrain_higher", np_terrain_higher) &&
+		settings->getNoiseParams("mgv6_np_steepness",      np_steepness)      &&
+		settings->getNoiseParams("mgv6_np_height_select",  np_height_select)  &&
+		settings->getNoiseParams("mgv6_np_mud",            np_mud)            &&
+		settings->getNoiseParams("mgv6_np_beach",          np_beach)          &&
+		settings->getNoiseParams("mgv6_np_biome",          np_biome)          &&
+		settings->getNoiseParams("mgv6_np_cave",           np_cave)           &&
+		settings->getNoiseParams("mgv6_np_humidity",       np_humidity)       &&
+		settings->getNoiseParams("mgv6_np_trees",          np_trees)          &&
+		settings->getNoiseParams("mgv6_np_apple_trees",    np_apple_trees);
 	return success;
 }
 
@@ -406,6 +384,28 @@ void MapgenV6Params::writeParams(Settings *settings) {
 	settings->setNoiseParams("mgv6_np_humidity",       np_humidity);
 	settings->setNoiseParams("mgv6_np_trees",          np_trees);
 	settings->setNoiseParams("mgv6_np_apple_trees",    np_apple_trees);
+}
+
+
+bool MapgenV7Params::readParams(Settings *settings) {
+	bool success = 
+		settings->getNoiseParams("mgv7_np_terrain_base",    np_terrain_base)    &&
+		settings->getNoiseParams("mgv7_np_terrain_alt",     np_terrain_alt)     &&
+		settings->getNoiseParams("mgv7_np_terrain_mod",     np_terrain_mod)     &&
+		settings->getNoiseParams("mgv7_np_terrain_persist", np_terrain_persist) &&
+		settings->getNoiseParams("mgv7_np_height_select",   np_height_select)   &&
+		settings->getNoiseParams("mgv7_np_ridge",           np_ridge);
+	return success;
+}
+
+
+void MapgenV7Params::writeParams(Settings *settings) {
+	settings->setNoiseParams("mgv7_np_terrain_base",    np_terrain_base);
+	settings->setNoiseParams("mgv7_np_terrain_alt",     np_terrain_alt);
+	settings->setNoiseParams("mgv7_np_terrain_mod",     np_terrain_mod);
+	settings->setNoiseParams("mgv7_np_terrain_persist", np_terrain_persist);
+	settings->setNoiseParams("mgv7_np_height_select",   np_height_select);
+	settings->setNoiseParams("mgv7_np_ridge",           np_ridge);
 }
 
 

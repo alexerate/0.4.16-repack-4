@@ -192,7 +192,7 @@ bool wouldCollideWithCeiling(
 collisionMoveResult collisionMoveSimple(Environment *env, IGameDef *gamedef,
 		f32 pos_max_d, const aabb3f &box_0,
 		f32 stepheight, f32 dtime,
-		v3f &pos_f, v3f &speed_f, v3f &accel_f)
+		v3f &pos_f, v3f &speed_f, v3f &accel_f,ActiveObject* self)
 {
 	Map *map = &env->getMap();
 	//TimeTaker tt("collisionMoveSimple");
@@ -209,9 +209,14 @@ collisionMoveResult collisionMoveSimple(Environment *env, IGameDef *gamedef,
 	}
 	speed_f += accel_f * dtime;
 
-    // If there is no speed, there are no collisions
+	// If there is no speed, there are no collisions
 	if(speed_f.getLength() == 0)
 		return result;
+
+	// Limit speed for avoiding hangs
+	speed_f.Y=rangelim(speed_f.Y,-5000,5000);
+	speed_f.X=rangelim(speed_f.X,-5000,5000);
+	speed_f.Z=rangelim(speed_f.Z,-5000,5000);
 
 	/*
 		Collect node boxes in movement range
@@ -293,9 +298,11 @@ collisionMoveResult collisionMoveSimple(Environment *env, IGameDef *gamedef,
 			f32 distance = speed_f.getLength();
 			std::vector<DistanceSortedActiveObject> clientobjects;
 			c_env->getActiveObjects(pos_f,distance * 1.5,clientobjects);
-			for (int i=0; i < clientobjects.size(); i++)
+			for (size_t i=0; i < clientobjects.size(); i++)
 			{
-				objects.push_back((ActiveObject*)clientobjects[i].obj);
+				if ((self == 0) || (self != clientobjects[i].obj)) {
+					objects.push_back((ActiveObject*)clientobjects[i].obj);
+				}
 			}
 		}
 		else
@@ -309,7 +316,9 @@ collisionMoveResult collisionMoveSimple(Environment *env, IGameDef *gamedef,
 				for (std::set<u16>::iterator iter = s_objects.begin(); iter != s_objects.end(); iter++)
 				{
 					ServerActiveObject *current = s_env->getActiveObject(*iter);
-					objects.push_back((ActiveObject*)current);
+					if ((self == 0) || (self != current)) {
+						objects.push_back((ActiveObject*)current);
+					}
 				}
 			}
 		}
@@ -453,8 +462,9 @@ collisionMoveResult collisionMoveSimple(Environment *env, IGameDef *gamedef,
 			if (is_object[nearest_boxindex]) {
 				info.type = COLLISION_OBJECT;
 			}
-			else
+			else {
 				info.type = COLLISION_NODE;
+			}
 			info.node_p = node_positions[nearest_boxindex];
 			info.bouncy = bouncy;
 			info.old_speed = speed_f;

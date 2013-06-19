@@ -117,7 +117,7 @@ public:
 	void setDigging(s32 button);
 
 	// Replace the wielded item mesh
-	void wield(const ItemStack &item);
+	void wield(const ItemStack &item, u16 playeritem);
 
 	// Draw the wielded tool.
 	// This has to happen *after* the main scene is drawn.
@@ -166,6 +166,8 @@ private:
 	s32 m_view_bobbing_state;
 	// Speed of view bobbing animation
 	f32 m_view_bobbing_speed;
+	// Fall view bobbing
+	f32 m_view_bobbing_fall;
 
 	// Digging animation frame (0 <= m_digging_anim < 1)
 	f32 m_digging_anim;
@@ -173,6 +175,15 @@ private:
 	// If 0, left-click digging animation
 	// If 1, right-click digging animation
 	s32 m_digging_button;
+
+	//dummymesh for camera
+	irr::scene::IAnimatedMesh* m_dummymesh;
+
+	// Animation when changing wielded item
+	f32 m_wield_change_timer;
+	scene::IMesh *m_wield_mesh_next;
+	u16 m_previous_playeritem;
+	std::string m_previous_itemname;
 };
 
 #endif

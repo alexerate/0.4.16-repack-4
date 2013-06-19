@@ -1099,6 +1099,8 @@ MapBlockMesh::MapBlockMesh(MeshMakeData *data):
 			getShader("test_shader_1").material;
 	video::E_MATERIAL_TYPE shadermat2 = m_gamedef->getShaderSource()->
 			getShader("test_shader_2").material;
+	video::E_MATERIAL_TYPE shadermat3 = m_gamedef->getShaderSource()->
+			getShader("test_shader_3").material;
 	for(u32 i = 0; i < collector.prebuffers.size(); i++)
 	{
 		PreMeshBuffer &p = collector.prebuffers[i];
@@ -1174,7 +1176,7 @@ MapBlockMesh::MapBlockMesh(MeshMakeData *data):
 				= video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF;
 		material.setTexture(0, p.tile.texture.atlas);
 		if(enable_shaders)
-			p.tile.applyMaterialOptionsWithShaders(material, shadermat1, shadermat2);
+			p.tile.applyMaterialOptionsWithShaders(material, shadermat1, shadermat2, shadermat3);
 		else
 			p.tile.applyMaterialOptions(material);
 
@@ -1336,11 +1338,19 @@ void MeshCollector::append(const TileSpec &tile,
 		const video::S3DVertex *vertices, u32 numVertices,
 		const u16 *indices, u32 numIndices)
 {
+	if(numIndices > 65535)
+	{
+		dstream<<"FIXME: MeshCollector::append() called with numIndices="<<numIndices<<" (limit 65535)"<<std::endl;
+		return;
+	}
+
 	PreMeshBuffer *p = NULL;
 	for(u32 i=0; i<prebuffers.size(); i++)
 	{
 		PreMeshBuffer &pp = prebuffers[i];
 		if(pp.tile != tile)
+			continue;
+		if(pp.indices.size() + numIndices > 65535)
 			continue;
 
 		p = &pp;
@@ -1359,11 +1369,6 @@ void MeshCollector::append(const TileSpec &tile,
 	for(u32 i=0; i<numIndices; i++)
 	{
 		u32 j = indices[i] + vertex_count;
-		if(j > 65535)
-		{
-			dstream<<"FIXME: Meshbuffer ran out of indices"<<std::endl;
-			// NOTE: Fix is to just add an another MeshBuffer
-		}
 		p->indices.push_back(j);
 	}
 	for(u32 i=0; i<numVertices; i++)

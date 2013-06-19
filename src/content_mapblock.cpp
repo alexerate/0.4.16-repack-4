@@ -740,8 +740,7 @@ void mapblock_mesh_generate_special(MeshMakeData *data,
 					continue;
 
 				// The face at Z+
-				video::S3DVertex vertices[4] =
-				{
+				video::S3DVertex vertices[4] = {
 					video::S3DVertex(-BS/2,-BS/2,BS/2, 0,0,0, c,
 						ap.x0(), ap.y1()),
 					video::S3DVertex(BS/2,-BS/2,BS/2, 0,0,0, c,
@@ -779,6 +778,132 @@ void mapblock_mesh_generate_special(MeshMakeData *data,
 				u16 indices[] = {0,1,2,2,3,0};
 				// Add to mesh collector
 				collector.append(tile, vertices, 4, indices, 6);
+			}
+		break;}
+		case NDT_GLASSLIKE_FRAMED:
+		{
+			static const v3s16 dirs[6] = {
+				v3s16( 0, 1, 0),
+				v3s16( 0,-1, 0),
+				v3s16( 1, 0, 0),
+				v3s16(-1, 0, 0),
+				v3s16( 0, 0, 1),
+				v3s16( 0, 0,-1)
+			};
+			TileSpec tiles[2];
+			tiles[0] = getNodeTile(n, p, dirs[0], data);
+			tiles[1] = getNodeTile(n, p, dirs[1], data);
+			u16 l = getInteriorLight(n, 1, data);
+			video::SColor c = MapBlock_LightColor(255, l, decode_light(f.light_source));
+			v3f pos = intToFloat(p, BS);
+			static const float a=BS/2;
+			static const float b=.876*(BS/2);
+			static const aabb3f frame_edges[12] = {
+				aabb3f( b, b,-a, a, a, a), // y+
+				aabb3f(-a, b,-a,-b, a, a), // y+
+				aabb3f( b,-a,-a, a,-b, a), // y-
+				aabb3f(-a,-a,-a,-b,-b, a), // y-
+				aabb3f( b,-a, b, a, a, a), // x+
+				aabb3f( b,-a,-a, a, a,-b), // x+
+				aabb3f(-a,-a, b,-b, a, a), // x-
+				aabb3f(-a,-a,-a,-b, a,-b), // x-
+				aabb3f(-a, b, b, a, a, a), // z+
+				aabb3f(-a,-a, b, a,-b, a), // z+
+				aabb3f(-a,-a,-a, a,-b,-b), // z-
+				aabb3f(-a, b,-a, a, a,-b)  // z-
+			};
+			aabb3f glass_faces[6] = {
+				aabb3f(-a, a,-a, a, a, a), // y+
+				aabb3f(-a,-a,-a, a,-a, a), // y-
+				aabb3f( a,-a,-a, a, a, a), // x+
+				aabb3f(-a,-a,-a,-a, a, a), // x-
+				aabb3f(-a,-a, a, a, a, a), // z+
+				aabb3f(-a,-a,-a, a, a,-a)  // z-
+			};
+			
+			int visible_faces[6] = {0,0,0,0,0,0};
+			int nb[18] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+			u8 i;
+			content_t current = n.getContent();
+			content_t content;
+			MapNode n2;
+			v3s16 n2p;
+			for(i=0; i<18; i++)
+			{
+				n2p = blockpos_nodes + p + g_26dirs[i];
+				n2 = data->m_vmanip.getNodeNoEx(n2p);
+				content_t n2c = n2.getContent();
+				//TODO: remove CONTENT_IGNORE check when getNodeNoEx is fixed
+				if (n2c == current || n2c == CONTENT_IGNORE)
+					nb[i]=1;
+			}
+			for(i=0; i<6; i++)
+			{
+				n2p = blockpos_nodes + p + dirs[i];
+				n2 = data->m_vmanip.getNodeNoEx(n2p);
+				content = n2.getContent();
+				const ContentFeatures &f2 = nodedef->get(content);
+				if (content == CONTENT_AIR || f2.isLiquid())
+					visible_faces[i]=1;
+			}
+			static const u8 nb_triplet[12*3] = {
+				1,2, 7,  1,5, 6,  4,2,15,  4,5,14,
+				2,0,11,  2,3,13,  5,0,10,  5,3,12,
+				0,1, 8,  0,4,16,  3,4,17,  3,1, 9
+			};
+
+			f32 tx1,ty1,tz1,tx2,ty2,tz2;
+			aabb3f box;
+			for(i=0; i<12; i++)
+			{
+				int edge_invisible;
+				if (nb[nb_triplet[i*3+2]]==1)
+					edge_invisible=nb[nb_triplet[i*3]] & nb[nb_triplet[i*3+1]];
+				else
+					edge_invisible=nb[nb_triplet[i*3]] ^ nb[nb_triplet[i*3+1]];
+				if (edge_invisible)
+					continue;
+				box=frame_edges[i];
+				box.MinEdge += pos;
+				box.MaxEdge += pos;
+				tx1 = (box.MinEdge.X/BS)+0.5;
+				ty1 = (box.MinEdge.Y/BS)+0.5;
+				tz1 = (box.MinEdge.Z/BS)+0.5;
+				tx2 = (box.MaxEdge.X/BS)+0.5;
+				ty2 = (box.MaxEdge.Y/BS)+0.5;
+				tz2 = (box.MaxEdge.Z/BS)+0.5;
+				f32 txc1[24] = {
+					tx1,   1-tz2,   tx2, 1-tz1,
+					tx1,     tz1,   tx2,   tz2,
+					tz1,   1-ty2,   tz2, 1-ty1,
+					1-tz2, 1-ty2, 1-tz1, 1-ty1,
+					1-tx2, 1-ty2, 1-tx1, 1-ty1,
+					tx1,   1-ty2,   tx2, 1-ty1,
+				};
+				makeCuboid(&collector, box, &tiles[0], 1, c, txc1);
+			}
+			for(i=0; i<6; i++)
+			{
+				if (visible_faces[i]==0)
+					continue;
+				box=glass_faces[i];
+				box.MinEdge += pos;
+				box.MaxEdge += pos;
+				tx1 = (box.MinEdge.X/BS)+0.5;
+				ty1 = (box.MinEdge.Y/BS)+0.5;
+				tz1 = (box.MinEdge.Z/BS)+0.5;
+				tx2 = (box.MaxEdge.X/BS)+0.5;
+				ty2 = (box.MaxEdge.Y/BS)+0.5;
+				tz2 = (box.MaxEdge.Z/BS)+0.5;
+				f32 txc2[24] = {
+					tx1,   1-tz2,   tx2, 1-tz1,
+					tx1,     tz1,   tx2,   tz2,
+					tz1,   1-ty2,   tz2, 1-ty1,
+					1-tz2, 1-ty2, 1-tz1, 1-ty1,
+					1-tx2, 1-ty2, 1-tx1, 1-ty1,
+					tx1,   1-ty2,   tx2, 1-ty1,
+				};
+				makeCuboid(&collector, box, &tiles[1], 1, c, txc2);
 			}
 		break;}
 		case NDT_ALLFACES:
@@ -1063,34 +1188,81 @@ void mapblock_mesh_generate_special(MeshMakeData *data,
 			MapNode n_minus_z_plus_y = data->m_vmanip.getNodeNoEx(blockpos_nodes + v3s16(x, y+1, z-1));
 			MapNode n_plus_z_minus_y = data->m_vmanip.getNodeNoEx(blockpos_nodes + v3s16(x, y-1, z+1));
 			MapNode n_minus_z_minus_y = data->m_vmanip.getNodeNoEx(blockpos_nodes + v3s16(x, y-1, z-1));
-			
+
 			content_t thiscontent = n.getContent();
-			if(n_minus_x.getContent() == thiscontent)
+			std::string groupname = "connect_to_raillike"; // name of the group that enables connecting to raillike nodes of different kind
+			bool self_connect_to_raillike = ((ItemGroupList) nodedef->get(n).groups)[groupname] != 0;
+
+			if ((nodedef->get(n_minus_x).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_minus_x).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_minus_x.getContent() == thiscontent)
 				is_rail_x[0] = true;
-			if (n_minus_x_minus_y.getContent() == thiscontent)
+
+			if ((nodedef->get(n_minus_x_minus_y).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_minus_x_minus_y).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_minus_x_minus_y.getContent() == thiscontent)
 				is_rail_x_minus_y[0] = true;
-			if(n_minus_x_plus_y.getContent() == thiscontent)
+
+			if ((nodedef->get(n_minus_x_plus_y).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_minus_x_plus_y).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_minus_x_plus_y.getContent() == thiscontent)
 				is_rail_x_plus_y[0] = true;
 
-			if(n_plus_x.getContent() == thiscontent)
+			if ((nodedef->get(n_plus_x).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_plus_x).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_plus_x.getContent() == thiscontent)
 				is_rail_x[1] = true;
-			if (n_plus_x_minus_y.getContent() == thiscontent)
+
+			if ((nodedef->get(n_plus_x_minus_y).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_plus_x_minus_y).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_plus_x_minus_y.getContent() == thiscontent)
 				is_rail_x_minus_y[1] = true;
-			if(n_plus_x_plus_y.getContent() == thiscontent)
+
+			if ((nodedef->get(n_plus_x_plus_y).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_plus_x_plus_y).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_plus_x_plus_y.getContent() == thiscontent)
 				is_rail_x_plus_y[1] = true;
 
-			if(n_minus_z.getContent() == thiscontent)
+			if ((nodedef->get(n_minus_z).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_minus_z).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_minus_z.getContent() == thiscontent)
 				is_rail_z[0] = true;
-			if (n_minus_z_minus_y.getContent() == thiscontent)
+
+			if ((nodedef->get(n_minus_z_minus_y).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_minus_z_minus_y).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_minus_z_minus_y.getContent() == thiscontent)
 				is_rail_z_minus_y[0] = true;
-			if(n_minus_z_plus_y.getContent() == thiscontent)
+
+			if ((nodedef->get(n_minus_z_plus_y).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_minus_z_plus_y).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_minus_z_plus_y.getContent() == thiscontent)
 				is_rail_z_plus_y[0] = true;
 
-			if(n_plus_z.getContent() == thiscontent)
+			if ((nodedef->get(n_plus_z).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_plus_z).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_plus_z.getContent() == thiscontent)
 				is_rail_z[1] = true;
-			if (n_plus_z_minus_y.getContent() == thiscontent)
+
+			if ((nodedef->get(n_plus_z_minus_y).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_plus_z_minus_y).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_plus_z_minus_y.getContent() == thiscontent)
 				is_rail_z_minus_y[1] = true;
-			if(n_plus_z_plus_y.getContent() == thiscontent)
+
+			if ((nodedef->get(n_plus_z_plus_y).drawtype == NDT_RAILLIKE
+					&& ((ItemGroupList) nodedef->get(n_plus_z_plus_y).groups)[groupname] != 0
+					&& self_connect_to_raillike)
+					|| n_plus_z_plus_y.getContent() == thiscontent)
 				is_rail_z_plus_y[1] = true;
 
 			bool is_rail_x_all[] = {false, false};
@@ -1130,7 +1302,8 @@ void mapblock_mesh_generate_special(MeshMakeData *data,
 				if(is_rail_x_all[0] && is_rail_x_all[1])
 					angle = 90;
 				if(is_rail_z_all[0] && is_rail_z_all[1]){
-					if (n_minus_z_plus_y.getContent() == thiscontent) angle = 180;
+					if (is_rail_z_plus_y[0])
+						angle = 180;
 				}
 				else if(is_rail_x_all[0] && is_rail_z_all[0])
 					angle = 270;

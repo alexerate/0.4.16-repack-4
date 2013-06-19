@@ -1,6 +1,7 @@
-Minetest Lua Modding API Reference 0.4.6
+Minetest Lua Modding API Reference 0.4.7
 ========================================
-More information at http://c55.me/minetest/
+More information at http://www.minetest.net/
+Developer Wiki: http://dev.minetest.net/
 
 Introduction
 -------------
@@ -50,12 +51,8 @@ where gameid is unique to each game.
 
 The game directory contains the file game.conf, which contains these fields:
   name = <Human-readable full name of the game>
-  common_mods = <Comma-separated list of common mods>
 eg.
   name = Minetest
-  common_mods = bucket, default, doors, fire, stairs
-
-Common mods are loaded from the pseudo-game "common".
 
 The game directory can contain the file minetest.conf, which will be used
 to set default settings when running the particular game.
@@ -64,9 +61,9 @@ Mod load path
 -------------
 Generic:
   $path_share/games/gameid/mods/
-  $path_share/mods/gameid/
+  $path_share/mods/
   $path_user/games/gameid/mods/
-  $path_user/mods/gameid/ <-- User-installed mods
+  $path_user/mods/ <-- User-installed mods
   $worldpath/worldmods/
 
 In a run-in-place version (eg. the distributed windows version):
@@ -119,6 +116,17 @@ modname:
 depends.txt:
   List of mods that have to be loaded before loading this mod.
   A single line contains a single modname.
+
+  Optional dependencies can be defined by appending a question mark
+  to a single modname. Their meaning is that if the specified mod
+  is missing, that does not prevent this mod from being loaded.
+
+optdepends.txt:
+  An alternative way of specifying optional dependencies.
+  Like depends.txt, a single line contains a single modname.
+
+  NOTE: This file exists for compatibility purposes only and
+  support for it will be removed from the engine by the end of 2013.
 
 init.lua:
   The main Lua script. Running this script should register everything it
@@ -329,6 +337,7 @@ Look for examples in games/minimal or games/minetest_game.
 - liquid
 - flowingliquid
 - glasslike
+- glasslike_framed
 - allfaces
 - allfaces_optional
 - torchlike
@@ -401,6 +410,53 @@ Currently supported flags:  absheight
     Also produce this same ore between the height range of -height_max and -height_min.
     Useful for having ore in sky realms without having to duplicate ore entries.
 
+HUD element types
+-------------------
+The position field is used for all element types.
+To account for differing resolutions, the position coordinates are the percentage of the screen,
+ranging in value from 0 to 1.
+The name field is not yet used, but should contain a description of what the HUD element represents.
+The direction field is the direction in which something is drawn.
+0 draws from left to right, 1 draws from right to left, 2 draws from top to bottom, and 3 draws from bottom to top.
+The alignment field specifies how the item will be aligned. It ranges from -1 to 1,
+with 0 being the center, -1 is moved to the left/up, and 1 is to the right/down. Fractional
+values can be used.
+The offset field specifies a pixel offset from the position. Contrary to position,
+the offset is not scaled to screen size. This allows for some precisely-positioned
+items in the HUD.
+Below are the specific uses for fields in each type; fields not listed for that type are ignored.
+
+Note: Future revisions to the HUD API may be incompatible; the HUD API is still in the experimental stages.
+
+- image
+    Displays an image on the HUD.
+	- scale: The scale of the image, with 1 being the original texture size.
+             Only the X coordinate scale is used.
+    - text: The name of the texture that is displayed.
+    - alignment: The alignment of the image.
+    - offset: offset in pixels from position.
+- text
+    Displays text on the HUD.
+    - scale: Defines the bounding rectangle of the text.
+             A value such as {x=100, y=100} should work.
+    - text: The text to be displayed in the HUD element.
+    - number: An integer containing the RGB value of the color used to draw the text.
+              Specify 0xFFFFFF for white text, 0xFF0000 for red, and so on.
+    - alignment: The alignment of the text.
+    - offset: offset in pixels from position.
+- statbar
+    Displays a horizontal bar made up of half-images.
+    - text: The name of the texture that is used.
+    - number: The number of half-textures that are displayed.
+              If odd, will end with a vertically center-split texture.
+    - direction
+    - offset: offset in pixels from position.
+- inventory
+    - text: The name of the inventory list to be displayed.
+    - number: Number of items in the inventory to be displayed.
+    - item: Position of item that is selected.
+    - direction
+
 Representations of simple things
 --------------------------------
 Position/vector:
@@ -455,7 +511,7 @@ Usage:
 - Groups are stored in a table, having the group names with keys and the
   group ratings as values. For example:
     groups = {crumbly=3, soil=1}
-    ^ Default dirt (soil group actually currently not defined; TODO)
+    ^ Default dirt
     groups = {crumbly=2, soil=1, level=2, outerspace=1}
     ^ A more special dirt-kind of thing
 - Groups always have a rating associated with them. If there is no
@@ -528,6 +584,9 @@ Special groups
 - attached_node: if the node under it is not a walkable block the node will be
                   dropped as an item. If the node is wallmounted the
                   wallmounted direction is checked.
+- soil: saplings will grow on nodes in this group
+- connect_to_raillike: makes nodes of raillike drawtype connect to
+                       other group members with same drawtype
 
 Known damage and digging time defining groups
 ----------------------------------------------
@@ -710,7 +769,7 @@ Some of the values in the key-value store are handled specially:
 
 Example stuff:
 
-local meta = minetest.env:get_meta(pos)
+local meta = minetest.get_meta(pos)
 meta:set_string("formspec",
         "invsize[8,9;]"..
         "list[context;main;0,0;8,4;]"..
@@ -856,6 +915,7 @@ minetest.formspec_escape(string) -> string
 
 minetest namespace reference
 -----------------------------
+Utilities:
 minetest.get_current_modname() -> string
 minetest.get_modpath(modname) -> eg. "/home/user/.minetest/usermods/modname"
 ^ Useful for loading additional .lua modules or static data from mod
@@ -864,7 +924,13 @@ minetest.get_modnames() -> list of installed mods
 minetest.get_worldpath() -> eg. "/home/user/.minetest/world"
 ^ Useful for storing custom data
 minetest.is_singleplayer()
+minetest.features
+^ table containing API feature flags: {foo=true, bar=true}
+minetest.has_feature(arg) -> bool, missing_features
+^ arg: string or table in format {foo=true, bar=true}
+^ missing_features: {foo=true, bar=true}
 
+Logging:
 minetest.debug(line)
 ^ Always printed to stderr and logfile (print() is redirected here)
 minetest.log(line)
@@ -892,10 +958,12 @@ minetest.register_on_shutdown(func())
 minetest.register_on_placenode(func(pos, newnode, placer, oldnode, itemstack))
 ^ Called when a node has been placed
 ^ If return true no item is taken from itemstack
-^ Deprecated: Use on_construct or after_place_node in node definition instead
+^ Not recommended; use on_construct or after_place_node in node definition
+^                  whenever possible
 minetest.register_on_dignode(func(pos, oldnode, digger))
 ^ Called when a node has been dug.
-^ Deprecated: Use on_destruct or after_dig_node in node definition instead
+^ Not recommended: Use on_destruct or after_dig_node in node definition
+^                  whenever possible
 minetest.register_on_punchnode(func(pos, node, puncher))
 ^ Called when a node is punched
 minetest.register_on_generated(func(minp, maxp, blockseed))
@@ -955,10 +1023,70 @@ minetest.auth_reload()
 ^ These call the authentication handler
 minetest.check_player_privs(name, {priv1=true,...}) -> bool, missing_privs
 ^ A quickhand for checking privileges
+minetest.get_player_ip(name) -> IP address string
 
 Chat:
 minetest.chat_send_all(text)
-minetest.chat_send_player(name, text)
+minetest.chat_send_player(name, text, prepend)
+^ prepend: optional, if it is set to false "Server -!- " will not be prepended to the message
+
+Environment access:
+
+minetest.set_node(pos, node)
+minetest.add_node(pos, node): alias set_node(pos, node)
+^ Set node at position (node = {name="foo", param1=0, param2=0})
+minetest.remove_node(pos)
+^ Equivalent to set_node(pos, "air")
+minetest.get_node(pos)
+^ Returns {name="ignore", ...} for unloaded area
+minetest.get_node_or_nil(pos)
+^ Returns nil for unloaded area
+minetest.get_node_light(pos, timeofday) -> 0...15 or nil
+^ timeofday: nil = current time, 0 = night, 0.5 = day
+
+minetest.place_node(pos, node)
+^ Place node with the same effects that a player would cause
+minetest.dig_node(pos)
+^ Dig node with the same effects that a player would cause
+minetest.punch_node(pos)
+^ Punch node with the same effects that a player would cause
+  
+minetest.get_meta(pos) -- Get a NodeMetaRef at that position
+minetest.get_node_timer(pos) -- Get NodeTimerRef
+
+minetest.add_entity(pos, name): Spawn Lua-defined entity at position
+^ Returns ObjectRef, or nil if failed
+minetest.add_item(pos, item): Spawn item
+^ Returns ObjectRef, or nil if failed
+minetest.get_player_by_name(name) -- Get an ObjectRef to a player
+minetest.get_objects_inside_radius(pos, radius)
+minetest.set_timeofday(val): val: 0...1; 0 = midnight, 0.5 = midday
+minetest.get_timeofday()
+minetest.find_node_near(pos, radius, nodenames) -> pos or nil
+^ nodenames: eg. {"ignore", "group:tree"} or "default:dirt"
+minetest.find_nodes_in_area(minp, maxp, nodenames) -> list of positions
+^ nodenames: eg. {"ignore", "group:tree"} or "default:dirt"
+minetest.get_perlin(seeddiff, octaves, persistence, scale)
+^ Return world-specific perlin noise (int(worldseed)+seeddiff)
+minetest.clear_objects()
+^ clear all objects in the environments
+minetest.line_of_sight(pos1,pos2,stepsize) ->true/false
+^ checkif there is a direct line of sight between pos1 and pos2
+^ pos1 First position
+^ pos2 Second position
+^ stepsize smaller gives more accurate results but requires more computing
+             time. Default is 1.
+minetest.find_path(pos1,pos2,searchdistance,max_jump,max_drop,algorithm)
+^ -> table containing path
+^ returns a table of 3d points representing a path from pos1 to pos2 or nil
+^ pos1: start position
+^ pos2: end position
+^ searchdistance: number of blocks to search in each direction
+^ max_jump: maximum height difference to consider walkable
+^ max_drop: maximum height difference to consider droppable
+^ algorithm: A*_noprefetch(default), A*, Dijkstra
+minetest.spawn_tree (pos, {treedef})
+^ spawns L-System tree at given pos with definition in treedef table
 
 Inventory:
 minetest.get_inventory(location) -> InvRef
@@ -1002,10 +1130,23 @@ minetest.get_craft_recipe(output) -> input
 ^ input.items = for example { stack 1, stack 2, stack 3, stack 4,
                               stack 5, stack 6, stack 7, stack 8, stack 9 }
 ^ input.items = nil if no recipe found
-minetest.get_all_craft_recipes(output) -> table or nil
-^ returns table with all registered recipes for output item (node)
-^ returns nil if no recipe was found
-^ table entries have same format as minetest.get_craft_recipe
+minetest.get_all_craft_recipes(query item) -> table or nil
+^ returns indexed table with all registered recipes for query item (node)
+  or nil if no recipe was found
+  recipe entry table:
+  { 
+   method = 'normal' or 'cooking' or 'fuel'
+   width = 0-3, 0 means shapeless recipe
+   items = indexed [1-9] table with recipe items
+   output = string with item name and quantity
+  }
+  Example query for default:gold_ingot will return table:
+  {
+   1={type = "cooking", width = 3, output = "default:gold_ingot",
+    items = {1 = "default:gold_lump"}},
+   2={type = "normal", width = 1, output = "default:gold_ingot 9",
+    items = {1 = "default:goldblock"}}
+  }
 minetest.handle_node_drops(pos, drops, digger)
 ^ drops: list of itemstrings
 ^ Handles drops from nodes after digging: Default action is to put them into
@@ -1117,7 +1258,11 @@ minetest.deserialize(string) -> table
 
 Global objects:
 minetest.env - EnvRef of the server environment and world.
-^ Using this you can access nodes and entities
+^ Any function in the minetest namespace can be called using the syntax
+    minetest.env:somefunction(somearguments)
+  instead of
+    minetest.somefunction(somearguments)
+^ Deprecated, but support is not to be dropped soon
 
 Global tables:
 minetest.registered_items
@@ -1146,115 +1291,9 @@ minetest.digprop_glasslike(toughness)
 
 Class reference
 ----------------
-EnvRef: basically ServerEnvironment and ServerMap combined.
-methods:
-- set_node(pos, node)
-- add_node(pos, node): alias set_node(pos, node)
- ^ Set node at position (node = {name="foo", param1=0, param2=0})
-- remove_node(pos)
-  ^ Equivalent to set_node(pos, "air")
-- get_node(pos)
-  ^ Returns {name="ignore", ...} for unloaded area
-- get_node_or_nil(pos)
-  ^ Returns nil for unloaded area
-- get_node_light(pos, timeofday) -> 0...15 or nil
-  ^ timeofday: nil = current time, 0 = night, 0.5 = day
-
-- place_node(pos, node)
-  ^ Place node with the same effects that a player would cause
-- dig_node(pos)
-  ^ Dig node with the same effects that a player would cause
-- punch_node(pos)
-  ^ Punch node with the same effects that a player would cause
-  
-- get_meta(pos) -- Get a NodeMetaRef at that position
-- get_node_timer(pos) -- Get NodeTimerRef
-
-- add_entity(pos, name): Spawn Lua-defined entity at position
-  ^ Returns ObjectRef, or nil if failed
-- add_item(pos, item): Spawn item
-  ^ Returns ObjectRef, or nil if failed
-- get_player_by_name(name) -- Get an ObjectRef to a player
-- get_objects_inside_radius(pos, radius)
-- set_timeofday(val): val: 0...1; 0 = midnight, 0.5 = midday
-- get_timeofday()
-- find_node_near(pos, radius, nodenames) -> pos or nil
-  ^ nodenames: eg. {"ignore", "group:tree"} or "default:dirt"
-- find_nodes_in_area(minp, maxp, nodenames) -> list of positions
-  ^ nodenames: eg. {"ignore", "group:tree"} or "default:dirt"
-- get_perlin(seeddiff, octaves, persistence, scale)
-  ^ Return world-specific perlin noise (int(worldseed)+seeddiff)
-- clear_objects()
-  ^ clear all objects in the environments 
-- spawn_tree (pos, {treedef})
-  ^ spawns L-System tree at given pos with definition in treedef table
-treedef={
-  axiom,         - string  initial tree axiom
-  rules_a,       - string  rules set A
-  rules_b,       - string  rules set B
-  rules_c,       - string  rules set C
-  rules_d,       - string  rules set D
-  trunk,         - string  trunk node name
-  leaves,        - string  leaves node name
-  leaves2,       - string  secondary leaves node name
-  leaves2_chance,- num     chance (0-100) to replace leaves with leaves2
-  angle,         - num     angle in deg
-  iterations,    - num     max # of iterations, usually 2 -5
-  random_level,  - num     factor to lower nr of iterations, usually 0 - 3
-  trunk_type,    - string  single/double/crossed) type of trunk: 1 node, 2x2 nodes or 3x3 in cross shape
-  thin_branches, - boolean true -> use thin (1 node) branches
-  fruit,         - string  fruit node name
-  fruit_chance,  - num     chance (0-100) to replace leaves with fruit node
-  seed,          - num     random seed
-  }
-
-Key for Special L-System Symbols used in Axioms
-  G  - move forward one unit with the pen up
-  F  - move forward one unit with the pen down drawing trunks and branches
-  f  - move forward one unit with the pen down drawing leaves (100% chance)
-  T  - move forward one unit with the pen down drawing trunks only
-  R  - move forward one unit with the pen down placing fruit
-  A  - replace with rules set A
-  B  - replace with rules set B
-  C  - replace with rules set C
-  D  - replace with rules set D
-  a  - replace with rules set A, chance 90%
-  b  - replace with rules set B, chance 80%
-  c  - replace with rules set C, chance 70%
-  d  - replace with rules set D, chance 60%
-  +  - yaw the turtle right by angle parameter
-  -  - yaw the turtle left by angle parameter
-  &  - pitch the turtle down by angle parameter
-  ^  - pitch the turtle up by angle parameter
-  /  - roll the turtle to the right by angle parameter
-  *  - roll the turtle to the left by angle parameter
-  [  - save in stack current state info
-  ]  - recover from stack state info
-
-Example usage: spawn small apple tree
-apple_tree={
-  axiom="FFFFFAFFBF",
-  rules_a="[&&&FFFFF&&FFFF][&&&++++FFFFF&&FFFF][&&&----FFFFF&&FFFF]",
-  rules_b="[&&&++FFFFF&&FFFF][&&&--FFFFF&&FFFF][&&&------FFFFF&&FFFF]",
-  trunk="default:tree",
-  leaves="default:leaves",
-  angle=30,
-  iterations=2,
-  random_level=0,
-  trunk_type="single",
-  thin_branches=true,
-  fruit_chance=10,
-  fruit="default:apple"
-  }
-minetest.env:spawn_tree(pos,apple_tree)
-
-Deprecated:
-- add_rat(pos): Add C++ rat object (no-op)
-- add_firefly(pos): Add C++ firefly object (no-op)
-
 NodeMetaRef: Node metadata - reference extra data and functionality stored
              in a node
-- Can be gotten via minetest.env:get_nodemeta(pos)
+- Can be gotten via minetest.get_nodemeta(pos)
 methods:
 - set_string(name, value)
 - get_string(name)
@@ -1268,7 +1307,7 @@ methods:
   ^ See "Node Metadata"
   
 NodeTimerRef: Node Timers - a high resolution persistent per-node timer
-- Can be gotten via minetest.env:get_node_timer(pos)
+- Can be gotten via minetest.get_node_timer(pos)
 methods:
 - set(timeout,elapsed)
   ^ set a timer's state
@@ -1348,7 +1387,22 @@ Player-only: (no-op for other objects)
     {jump=bool,right=bool,left=bool,LMB=bool,RMB=bool,sneak=bool,aux1=bool,down=bool,up=bool}
 - get_player_control_bits(): returns integer with bit packed player pressed keys
     bit nr/meaning: 0/up ,1/down ,2/left ,3/right ,4/jump ,5/aux1 ,6/sneak ,7/LMB ,8/RMB
-    
+- set_physics_override(speed, jump, gravity)
+    modifies per-player walking speed, jump height, and gravity.
+    Values default to 1 and act as offsets to the physics settings 
+    in minetest.conf. nil will keep the current setting.
+- hud_add(hud definition): add a HUD element described by HUD def, returns ID number on success
+- hud_remove(id): remove the HUD element of the specified id
+- hud_change(id, stat, value): change a value of a previously added HUD element
+  ^ element stat values: position, name, scale, text, number, item, dir
+- hud_get(id): gets the HUD element definition structure of the specified ID
+- hud_set_flags(flags): sets specified HUD flags to true/false
+  ^ flags: (is visible) hotbar, healthbar, crosshair, wielditem
+  ^ pass a table containing a true/false value of each flag to be set or unset
+  ^ if a flag is nil, the flag is not modified
+- hud_set_hotbar_itemcount(count): sets number of items in builtin hotbar
+  ^ count: number of items, must be between 1 and 23
+
 InvRef: Reference to an inventory
 methods:
 - is_empty(listname): return true if list is empty
@@ -1410,7 +1464,7 @@ methods:
 
 PerlinNoise: A perlin noise generator
 - Can be created via PerlinNoise(seed, octaves, persistence, scale)
-- Also minetest.env:get_perlin(seeddiff, octaves, persistence, scale)
+- Also minetest.get_perlin(seeddiff, octaves, persistence, scale)
 methods:
 - get2d(pos) -> 2d noise value at pos={x=,y=}
 - get3d(pos) -> 3d noise value at pos={x=,y=,z=}
@@ -1439,6 +1493,68 @@ Registered entities
   - get_staticdata(self)
     ^ Should return a string that will be passed to on_activate when
       the object is instantiated the next time.
+
+L-system trees
+---------------
+treedef={
+  axiom,         - string  initial tree axiom
+  rules_a,       - string  rules set A
+  rules_b,       - string  rules set B
+  rules_c,       - string  rules set C
+  rules_d,       - string  rules set D
+  trunk,         - string  trunk node name
+  leaves,        - string  leaves node name
+  leaves2,       - string  secondary leaves node name
+  leaves2_chance,- num     chance (0-100) to replace leaves with leaves2
+  angle,         - num     angle in deg
+  iterations,    - num     max # of iterations, usually 2 -5
+  random_level,  - num     factor to lower nr of iterations, usually 0 - 3
+  trunk_type,    - string  single/double/crossed) type of trunk: 1 node, 2x2 nodes or 3x3 in cross shape
+  thin_branches, - boolean true -> use thin (1 node) branches
+  fruit,         - string  fruit node name
+  fruit_chance,  - num     chance (0-100) to replace leaves with fruit node
+  seed,          - num     random seed
+  }
+
+Key for Special L-System Symbols used in Axioms
+  G  - move forward one unit with the pen up
+  F  - move forward one unit with the pen down drawing trunks and branches
+  f  - move forward one unit with the pen down drawing leaves (100% chance)
+  T  - move forward one unit with the pen down drawing trunks only
+  R  - move forward one unit with the pen down placing fruit
+  A  - replace with rules set A
+  B  - replace with rules set B
+  C  - replace with rules set C
+  D  - replace with rules set D
+  a  - replace with rules set A, chance 90%
+  b  - replace with rules set B, chance 80%
+  c  - replace with rules set C, chance 70%
+  d  - replace with rules set D, chance 60%
+  +  - yaw the turtle right by angle parameter
+  -  - yaw the turtle left by angle parameter
+  &  - pitch the turtle down by angle parameter
+  ^  - pitch the turtle up by angle parameter
+  /  - roll the turtle to the right by angle parameter
+  *  - roll the turtle to the left by angle parameter
+  [  - save in stack current state info
+  ]  - recover from stack state info
+
+Example usage: spawn small apple tree
+apple_tree={
+  axiom="FFFFFAFFBF",
+  rules_a="[&&&FFFFF&&FFFF][&&&++++FFFFF&&FFFF][&&&----FFFFF&&FFFF]",
+  rules_b="[&&&++FFFFF&&FFFF][&&&--FFFFF&&FFFF][&&&------FFFFF&&FFFF]",
+  trunk="default:tree",
+  leaves="default:leaves",
+  angle=30,
+  iterations=2,
+  random_level=0,
+  trunk_type="single",
+  thin_branches=true,
+  fruit_chance=10,
+  fruit="default:apple"
+  }
+minetest.spawn_tree(pos,apple_tree)
 
 Definition tables
 ------------------
@@ -1564,6 +1680,7 @@ Node definition (register_node)
     ^ Special textures of node; used rarely (old field name: special_materials)
     ^ List can be shortened to needed length
     alpha = 255,
+    use_texture_alpha = false, -- Use texture's alpha channel
     post_effect_color = {a=0, r=0, g=0, b=0}, -- If player is inside node
     paramtype = "none", -- See "Nodes"
     paramtype2 = "none", -- See "Nodes"
@@ -1585,6 +1702,7 @@ Node definition (register_node)
     damage_per_second = 0, -- If player is inside node, this damage is caused
     node_box = {type="regular"}, -- See "Node boxes"
     selection_box = {type="regular"}, -- See "Node boxes"
+    ^ If drawtype "nodebox" is used and selection_box is nil, then node_box is used
     legacy_facedir_simple = false, -- Support maps made in and before January 2012
     legacy_wallmounted = false, -- Support maps made in and before January 2012
     sounds = {
@@ -1607,13 +1725,13 @@ Node definition (register_node)
 
     after_place_node = func(pos, placer, itemstack),
     ^ Called after constructing node when node was placed using
-      minetest.item_place_node / minetest.env:place_node
+      minetest.item_place_node / minetest.place_node
     ^ If return true no item is taken from itemstack
     ^ default: nil
     after_dig_node = func(pos, oldnode, oldmetadata, digger),
     ^ oldmetadata is in table format
     ^ Called after destructing node when node was dug using
-      minetest.node_dig / minetest.env:dig_node
+      minetest.node_dig / minetest.dig_node
     ^ default: nil
     can_dig = function(pos,player)
     ^ returns true if node can be dug, or false if not
@@ -1632,7 +1750,7 @@ Node definition (register_node)
     
     on_timer = function(pos,elapsed),
     ^ default: nil
-    ^ called by NodeTimers, see EnvRef and NodeTimerRef
+    ^ called by NodeTimers, see minetest.get_node_timer and NodeTimerRef
     ^ elapsed is the total time passed since the timer was started
     ^ return true to run the timer for another cycle with the same timeout value
 
@@ -1770,3 +1888,22 @@ Detached inventory callbacks
     ^ No return value
 }
 
+HUD Definition (hud_add, hud_get)
+{
+    hud_elem_type = "image", -- see HUD element types
+    ^ type of HUD element, can be either of "image", "text", "statbar", or "inventory"
+    position = {x=0.5, y=0.5},
+    ^ Left corner position of element
+    name = "<name>",
+    scale = {x=2, y=2},
+    text = "<text>",
+    number = 2,
+    item = 3,
+    ^ Selected item in inventory.  0 for no item selected.
+    direction = 0,
+    ^ Direction: 0: left-right, 1: right-left, 2: top-bottom, 3: bottom-top
+    alignment = {x=0, y=0},
+    ^ See "HUD Element Types"
+    offset = {x=0, y=0},
+    ^ See "HUD Element Types"
+}

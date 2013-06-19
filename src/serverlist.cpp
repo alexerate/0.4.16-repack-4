@@ -38,10 +38,12 @@ std::string getFilePath()
 {
 	std::string serverlist_file = g_settings->get("serverlist_file");
 
-	std::string rel_path = std::string("client") + DIR_DELIM
-		+ "serverlist" + DIR_DELIM
-		+ serverlist_file;
-	std::string path = porting::path_share + DIR_DELIM + rel_path;
+	std::string dir_path = std::string("client") + DIR_DELIM
+		+ "serverlist" + DIR_DELIM;
+	fs::CreateDir(porting::path_user + DIR_DELIM + "client");
+	fs::CreateDir(porting::path_user + DIR_DELIM + dir_path);
+	std::string rel_path = dir_path + serverlist_file;
+	std::string path = porting::path_user + DIR_DELIM + rel_path;
 	return path;
 }
 
@@ -51,7 +53,7 @@ std::vector<ServerListSpec> getLocal()
 	std::string liststring;
 	if(fs::PathExists(path))
 	{
-		std::ifstream istream(path.c_str(), std::ios::binary);
+		std::ifstream istream(path.c_str());
 		if(istream.is_open())
 		{
 			std::ostringstream ostream;
