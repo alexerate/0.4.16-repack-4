@@ -1,10 +1,111 @@
+minetest (version 0.4.7 -- June 06, 2013)
+=========================================
+
+ New Features:
+
+ * Big gameplay changes:
+   - Added snow, snow block, ice and dirt with snow (PilzAdam)
+   - Added sandstone bricks and desert stone bricks (PilzAdam & VanessaE)
+   - Added coal block, crafted out of 9 coal lumps (Zeg9)
+   - Added flowers to craft dyes; flowers and grass grow now on dirt_with_grass
+     (0gb.us, PilzAdam, VanessaE, ironzorg)
+   - Added farming mod; wheat can be used to bake bread and cotton can be used
+     to craft wool (PilzAdam) http://forum.minetest.net/viewtopic.php?id=6067
+
+ * Smaller gameplay tweaks:
+   - Added a little delay for falling nodes to update so that the objects
+     don't spawn all at once (PilzAdam)
+   - Added private messaging with /msg (ShadowNinja)
+   - Added copper block (RealBadAngel)
+   - Swing the camera down when the player lands on the ground; 
+     disabled by default; fall_bobbing_amount in minetest.conf (Taoki)
+   - Node placement prediction now accounts for "wallmounted", "facedir" and 
+     "attached_node" nodes and only replaces "buildable_to" nodes 
+    (kahrl, ShadowNinja & PilzAdam)
+   - Added disable_fire setting to disable fire burning (ShadowNinja)
+   - Added damage to the hand in creative mode (PilzAdam)
+   - Added a little animation when changing the wielded item (PilzAdam & blue42u)
+   - Apples now fall when the tree decays (PilzAdam) 
+
+ * Logistic changes:
+   - Added mapgen v7; not usable currently (kwolekr)
+   - Added support for LuaJIT, makes mod execution much faster (RealBadAngel)
+   - Move cave generation to cavegen.cpp and restructure it into a class (kwolekr)
+   - Added icons to select games in menu; menu/menu_<background/overlay/header/footer>.png 
+     of selected game is used in the main menu 
+     (TP can use <gameid>_menu_<background/overlay/header/footer>.png) (celeron55)
+   - Added --videomodes option to show available video modes (kahrl)
+   - Added ability to play main_menu.ogg (main_menu.<1-9>.ogg are supported too; 
+     they are choosen randomly if present) in main menu (RealBadAngel)
+   - Drop common mods system, Survival and Build game; 
+     minetest_game includes all common mods and the bones mod from Survival now (PilzAdam) 
+     http://forum.minetest.net/viewtopic.php?id=6034
+   - Changed mod system a bit: All user mods are installed in $path_user/mods/ now; 
+     they can be enabled per world in the configure world window or in world.mt
+     with load_mod_<modname> (PilzAdam) http://forum.minetest.net/viewtopic.php?id=6066
+   - Split init.lua of the default mod into several files (PilzAdam)
+   - Moved scriptapi to a subfolder (sapier, celeron55 & kahrl) 
+
+ * Visual changes:
+   - Changed "unknown block" texture to "unknown node" (khonkhortisan)
+   - Changed textures of sand, desert sand and desert stone (VanessaE)
+   - crosshair.png is used instead of the normal crosshair if present (dannydark & Exio4)
+   - Added progress bar and clouds to loading screen (Zeg9)
+   - Added new textures for all metal and diamond blocks (Zeg9)
+   - Added new Minetest header (BlockMen) 
+
+ * Other things
+   - Added mouse_sensitivity option (Exio4) 
+
+ * Bug Fixes
+   - Check if the address field is empty when hitting enter on the multiplayer tab (ShadowNinja)
+   - Limit speed in collisionMoveResult for avoiding hangs (Exio4)
+   - Fixed camera "jumping" when attached and the parent goes too fast (Zeg9)
+   - Fixed nick completion in chat console with the tab key (PilzAdam)
+   - Do not always move fast in water and ladders when aux1_descend it true (Taoki)
+   - Fixed a lot memory leaks (sapier, PilzAdam, kahrl, kwolekr)
+   - Fixed import of older maps (kwolekr)
+   - Fixed black trees (kwolekr)
+   - Fixed small objects colliding with themselves (sapier)
+   - Fixed get_craft_recipe() and get_all_craft_recipes() (RealBadAnge)
+   - Fixed spawning too high above ground (kwolekr)
+   - Fixed object -> player collision (sapier)
+   - Fixed favorite server list in globally installed versions of Minetest (RUN_IN_PLACE=0) (Zeg9)
+   - Fixed favorite server list on windows (sfan5)
+   - Fixed handling of mods in games in the configure world GUI (kahrl)
+   - Fixed static data of objects not beeing stored correctly on deactivation (sapier)
+   - Removed Meshbuffer ran out of indices limitation (kahrl)
+   - Fixed isBlockInSight() for higher FOV (Warr1024)
+   - Don't teleport back when a player is detached or turns free move off and holds shift (PilzAdam)
+   - Fixed bug where you need to move the mouse after closing a menu (kahrl)
+   - Reduced /clearobjects memory consumption; max_clearobjects_extra_loaded_blocks in minetest.conf (kahrl)
+   - Corrected segfault when registering new biomes (sweetbomber)
+   - Reduced video memory consumption by not generating unnecessary [forcesingle textures (kahrl)
+   - Close console when it loses focus but it is still on screen (Exio4) 
+
+ * Modding-related Changes
+   - Added player:set_physics_override() to set per-player physics (Taoki & PilzAdam)
+   - Use node_box for selection_box if drawtype = "nodebox" and selection_box = nil (kaeza)
+   - Added minetest.env:line_of_sight() and minetest.env:find_path() (sapier)
+   - Added API functions to add elements to the HUD of players (blue42u, kwolekr & kaeza)
+   - Added option to not prepend "Server -!- " to messages sent with minetest.chat_send_player() (ShadowNinja)
+   - Added minetest.get_player_ip() (ShadowNinja)
+   - Added use_texture_alpha in node definition to use alpha channel of node texture (kwolekr)
+   - Added glasslike_framed node drawtype (RealBadAngel)
+   - Added optional dependencies and different mod name conflict handling (kahrl)
+   - Use group soil for nodes where saplings can grow on (ShadowNinja)
+   - Nodes with drawtype raillike connect to all other nodes with the same drawtype if they are in the connect_to_raillike group (Jeija)
+   - Env functions are now in the global minetest table; 
+     that means they are called via minetest.<function> instead of minetest.env:<function> (sapier, celeron55 & kahrl)
+   - Added obj:set_hotbar_itemcount() (kahrl)
+
 minetest (version 0.4.6 -- April 03, 2013)
 ==========================================
 
  New Features:
- 
+
  * Big gameplay changes:
-   - Added lavacooling near water; lava source turns into obsidian, 
+   - Added lavacooling near water; lava source turns into obsidian,
      flowing lava turns into stone [PilzAdam]
    - Added junglewood (with stairs and slabs), jungleleaves and
      junglesaplings [PilzAdam]
@@ -19,7 +120,7 @@ minetest (version 0.4.6 -- April 03, 2013)
      wear out slower than mese tools [PilzAdam]
    - Added mese axe, shovel and sword; mese pick is not the ultimate
      tool anymore [PilzAdam]
-   - Added copper, bronze and bronze tools; bronze can be crafted with 
+   - Added copper, bronze and bronze tools; bronze can be crafted with
      copper ingot and steel ingot; bronze tools have same digging
      times but more uses than steel tools [PilzAdam]
 
@@ -50,7 +151,7 @@ minetest (version 0.4.6 -- April 03, 2013)
      [kwolekr]
    - Added singlenode mapgen [celeron55]
    - Added a new map generator called indev (float islands at 500+,
-     rare HUGE caves, near edges: higher mountains, larger biomes) 
+     rare HUGE caves, near edges: higher mountains, larger biomes)
      [proller]
 
  * Visual changes:
@@ -71,7 +172,7 @@ minetest (version 0.4.6 -- April 03, 2013)
      ServerEnvironment step CPU consumption cut in half [kwolekr]
 
  Bug Fixes:
- 
+
    - Fixed build with ogles2 driver [proller]
    - Fixed new_style_water (shaders are not used for this anymore)
      [PilzAdam]
@@ -81,7 +182,7 @@ minetest (version 0.4.6 -- April 03, 2013)
      at is replaced) [0gb.us]
 
  Modding-related Changes:
- 
+
    - Added minetest.get_all_craft_recipes(output) [RealBadAngel]
    - Allow any character in formspec strings with escape characters
      [kwolekr]
@@ -90,7 +191,7 @@ minetest (version 0.4.6 -- April 03, 2013)
    - Added player:set_look_yaw() and player:set_look_pitch() [RealBadAngel]
    - Added ability to load mods from the pseudo game ''common'' via
      common_mods in game.conf [celeron55]
-   - Added support for a minetest.conf file in games, wich override the 
+   - Added support for a minetest.conf file in games, wich override the
      default values [celeron55]
    - Added 6d facedir to rotate nodes with ''facedir'' drawtype [RealBadAngel]
    - Added minetest.add_particle(), minetest.add_particlespawner() and
@@ -102,11 +203,11 @@ minetest (version 0.4.6 -- April 03, 2013)
 
 minetest (version 0.4.5 -- March 04, 2013)
 ==========================================
- 
+
  New Features:
 
  * Big gameplay changes:
- 
+
    - Added Mese crystals and Mese crystal fragments (crafted from 1 Mese
      crystal); Mese blocks can be crafted with 9 Mese crystals; Mese
      pickaxes are now crafted using Mese crystals; old Mese equals the
@@ -123,7 +224,7 @@ minetest (version 0.4.5 -- March 04, 2013)
      [proller]
 
  * Smaller gameplay tweaks:
- 
+
    - Locked chest contents are now only shown to their owner [PilzAdam]
    - Added ability to write several lines on a sign [PilzAdam]
    - When sneaking, the current node/item will always be used when right
@@ -144,14 +245,14 @@ minetest (version 0.4.5 -- March 04, 2013)
      see "repeat_rightclick_time" setting in minetest.conf [Jeija]
 
  * Map generation changes:
- 
+
    - Added L-system tree generation [RealBadAngel & dannydark]
    - Map generation is now slightly faster and can be tweaked in
      minetest.conf [kwolekr]
    - Added optional flat map generation, with and without trees [kwolekr]
 
  * Visual changes:
- 
+
    - Mese pickaxe now has a new texture, which is more yellow [Jordach]
    - Tweaked dirt texture so that it tiles better; improved lump and
      ingot textures; added fake shading to the default player texture
@@ -179,7 +280,7 @@ minetest (version 0.4.5 -- March 04, 2013)
      is faster, disabled by default [Ilya Zhuravlev]
 
  Bug Fixes:
- 
+
    - Walking on stairs, slabs and glass now makes sounds [PilzAdam & dannydark]
    - Fixed and cleaned EmergeThread around a bit [kwolekr]
    - Punching entities and players with shovels and pickaxes now deals
@@ -195,7 +296,7 @@ minetest (version 0.4.5 -- March 04, 2013)
      server lags [PilzAdam]
 
  Modding-related changes:
- 
+
    - Added ability to change the itemstack in placenode callbacks [PilzAdam]
    - Added ability to create multi-line textfields in formspecs [Jeija]
    - Add on_rightclick(pos, node, clicker) callback for nodes [PilzAdam]
@@ -206,7 +307,7 @@ minetest (version 0.4.4 -- December 06, 2012)
 =============================================
 
  New Features:
- 
+
    - Added animated 3D player and a new default skin, the default
      model also supports Minecraft skins [Taoki, skin by Jordach]
    - Added shaders support (can be disabled in Settings menu), makes
@@ -266,7 +367,7 @@ minetest (version 0.4.4 -- December 06, 2012)
    - Fixed the automagic render distance tuner [celeron55]
 
  Modding-related Changes:
- 
+
    - Added 3D model support for entities [Taoki]
    - Added attachment support (so that entities can "ride" other
      entities) [Taoki]
@@ -282,4 +383,4 @@ minetest (version 0.4.4 -- December 06, 2012)
 
 
 This changelog was retrieved from http://dev.minetest.net/Changelog
-and manually edited on April 15, 2013.
+and manually edited afterward.
