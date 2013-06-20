@@ -105,7 +105,7 @@ get-orig-source:
 	set +ex; cd ${tmpdir} && \
 	    tar xf ${version}.tar.gz && rm -f ${version}.tar.gz && \
 	    cd minetest-${version}/games && \
-	    for game in minetest_game common build survival ; do \
+	    for game in minetest_game ; do \
 	       wget --no-verbose https://github.com/minetest/$${game}/archive/${version}.tar.gz -O - | tar xfz - ; \
 	       mv $${game}-${version} $${game} ; \
 	       done && \
