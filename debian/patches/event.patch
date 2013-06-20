@@ -7,7 +7,7 @@ Date:   Sun Mar 24 19:15:54 2013 +1100
 
 --- a/src/emerge.h
 +++ b/src/emerge.h
-@@ -4,6 +4,7 @@
+@@ -23,6 +23,7 @@
  #include <map>
  #include <queue>
  #include "util/thread.h"
@@ -51,3 +51,4 @@ Date:   Sun Mar 24 19:15:54 2013 +1100
 +};
 +
  #endif
+ 

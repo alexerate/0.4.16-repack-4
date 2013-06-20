@@ -6,11 +6,9 @@ Forwarded: upstream won't take it as they install to non-standard paths
  src/main.cpp |    2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-Index: b/src/main.cpp
-===================================================================
 --- a/src/main.cpp
 +++ b/src/main.cpp
-@@ -970,7 +970,7 @@
+@@ -1079,7 +1079,7 @@
  	// Create user data directory
  	fs::CreateDir(porting::path_user);
  

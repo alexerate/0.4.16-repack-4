@@ -5,34 +5,30 @@ Author: Matthew Bekkema <mat8913ftw@gmail.com>
  src/CMakeLists.txt |   13 +++++++------
  1 file changed, 7 insertions(+), 6 deletions(-)
 
-Index: b/src/CMakeLists.txt
-===================================================================
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -174,10 +174,13 @@
- 	set(CGUITTFONT_LIBRARY cguittfont)
- endif(USE_FREETYPE)
- 
--# Do not use system-wide installation of Lua, because it'll likely be a
--# different version and/or has different build options.
--set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
--set(LUA_LIBRARY "lua")
-+# DEBIAN CHANGE: Upstream use their included lua and json to play safe, but we
-+# naturally use the system-wide installations. That's why distros are made.
-+set(LUA_INCLUDE_DIR "/usr/include/lua5.1/")
-+set(LUA_LIBRARY "lua5.1")
-+
-+set(JSON_INCLUDE_DIR "/usr/include/jsoncpp/")
-+set(JSON_LIBRARY "jsoncpp")
- 
- configure_file(
- 	"${PROJECT_SOURCE_DIR}/cmake_config.h.in"
-@@ -595,12 +598,10 @@
- 
- if (LUA_FOUND)
- else (LUA_FOUND)
+@@ -189,7 +189,6 @@
+ 	message (STATUS "LuaJIT not found, using bundled Lua.")
+ 	set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
+ 	set(LUA_LIBRARY "lua")
 -	add_subdirectory(lua)
- endif (LUA_FOUND)
+ endif(LUA_LIBRARY AND LUA_INCLUDE_DIR)
+ 
+ mark_as_advanced(LUA_LIBRARY)
+@@ -586,12 +585,10 @@
+ 
+ if (JTHREAD_FOUND)
+ else (JTHREAD_FOUND)
+-	add_subdirectory(jthread)
+ endif (JTHREAD_FOUND)
+ 
+ if (SQLITE3_FOUND)
+ else (SQLITE3_FOUND)
+-	add_subdirectory(sqlite)
+ endif (SQLITE3_FOUND)
+ 
+ if (BUILD_CLIENT AND USE_FREETYPE)
+@@ -600,7 +597,6 @@
  
  if (JSON_FOUND)
  else (JSON_FOUND)
