@@ -38,7 +38,7 @@ Suggests:
  minetest-server,
 Description: Multiplayer infinite-world block sandbox
  Minetest is a minecraft-inspired game written from scratch and licensed
- under the GPL (version 2 or later). It supports both survival and creative
+ under the LGPL (version 2.1 or later). It supports both survival and creative
  modes along with multiplayer support, dynamic lighting, and an "infinite" map
  generator.
 
@@ -49,9 +49,9 @@ Depends:
  ${misc:Depends},
  minetest (= ${binary:Version}),
  minetest-server (= ${binary:Version}),
-Description: InfiniMiner/Minecraft-inspired open game world (debugging symbols)
+Description: Multiplayer infinite-world block sandbox (debugging symbols)
  Minetest is a minecraft-inspired game written from scratch and licensed
- under the GPL (version 2 or later). It supports both survival and creative
+ under the LGPL (version 2.1 or later). It supports both survival and creative
  modes along with multiplayer support, dynamic lighting, and an "infinite" map
  generator.
  .
@@ -63,9 +63,9 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends},
  minetest-data (= ${source:Version}),
-Description: InfiniMiner/Minecraft-inspired open game world (server)
+Description: Multiplayer infinite-world block sandbox (server)
  Minetest is a minecraft-inspired game written from scratch and licensed
- under the GPL (version 2 or later). It supports both survival and creative
+ under the LGPL (version 2.1 or later). It supports both survival and creative
  modes along with multiplayer support, dynamic lighting, and an "infinite" map
  generator.
  .
@@ -86,7 +86,7 @@ Replaces:
  minetest-common
 Description: Multiplayer infinite-world block sandbox (data files)
  Minetest is a minecraft-inspired game written from scratch and licensed
- under the GPL (version 2 or later). It supports both survival and creative
+ under the LGPL (version 2.1 or later). It supports both survival and creative
  modes along with multiplayer support, dynamic lighting, and an "infinite" map
  generator.
  .
