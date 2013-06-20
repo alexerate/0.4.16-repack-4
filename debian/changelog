@@ -4,7 +4,8 @@ minetest (0.4.7+repack-1) UNRELEASED; urgency=low
     - all mods but 'minetest_game' mods were dropped upstream. 
       We still need to repack to integrate the remaining mod, though.
   * Refresh our patches accordingly
-  * build-depend on luajit as it is now the used library for lua
+  * Build-depend on luajit as it is now the used library for lua
+  * d/control: bump standard version to 3.9.4 (no change needed)
 
  -- Martin Quinson <mquinson@debian.org>  Wed, 19 Jun 2013 21:05:08 +0200
 
