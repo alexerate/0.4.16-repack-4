@@ -9,5 +9,3 @@ usr/share/games/minetest/games/*     usr/share/games/minetest/games
 usr/share/games/minetest/client/*    usr/share/games/minetest/client
 usr/share/locale/*                   usr/share/locale
 
-games/build                          usr/share/games/minetest/games
-games/survival                       usr/share/games/minetest/games
