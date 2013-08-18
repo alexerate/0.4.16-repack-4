@@ -1,3 +1,4 @@
+In the upstream desktop file, use the icon name of what we install (Closes: #713808).
 ---
  misc/minetest.desktop |    2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
