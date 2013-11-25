@@ -14,7 +14,7 @@ Index: b/src/CMakeLists.txt
 ===================================================================
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -143,11 +143,6 @@
+@@ -142,11 +142,6 @@
  else()
  	# Unix probably
  	if(BUILD_CLIENT)
@@ -26,7 +26,7 @@ Index: b/src/CMakeLists.txt
  		if(APPLE)
  			FIND_LIBRARY(CARBON_LIB Carbon)
  			FIND_LIBRARY(COCOA_LIB Cocoa)
-@@ -164,7 +159,6 @@
+@@ -163,7 +158,6 @@
  	set(PLATFORM_LIBS -lpthread -lrt ${CMAKE_DL_LIBS})
  	#set(CLIENT_PLATFORM_LIBS -lXxf86vm)
  	# This way Xxf86vm is found on OpenBSD too

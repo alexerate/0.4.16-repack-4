@@ -1,6 +1,6 @@
 minetest (0.4.8+repack-1) unstable; urgency=low
 
-  * New upstream release.
+  * New upstream release. Refresh our patches (no big change).
 
  -- Martin Quinson <mquinson@debian.org>  Mon, 25 Nov 2013 09:10:55 +0100
 

@@ -12,11 +12,11 @@ Index: b/src/filesys.cpp
 ===================================================================
 --- a/src/filesys.cpp
 +++ b/src/filesys.cpp
-@@ -209,6 +209,7 @@
+@@ -231,6 +231,7 @@
  
  #else // POSIX
  
 +#include <unistd.h>
  #include <sys/types.h>
  #include <dirent.h>
- #include <errno.h>
+ #include <sys/stat.h>

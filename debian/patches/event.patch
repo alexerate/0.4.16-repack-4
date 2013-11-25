@@ -5,16 +5,25 @@ Author: Matthew Bekkema <mat8913ftw@gmail.com>
 Date:   Sun Mar 24 19:15:54 2013 +1100
     
 
+---
+ src/emerge.h |    1 +
+ src/event.h  |   22 ++++++++++++++++++++++
+ 2 files changed, 23 insertions(+)
+
+Index: b/src/emerge.h
+===================================================================
 --- a/src/emerge.h
 +++ b/src/emerge.h
-@@ -23,6 +23,7 @@
- #include <map>
- #include <queue>
- #include "util/thread.h"
+@@ -24,6 +24,7 @@
+ #include "irr_v3d.h"
+ #include "util/container.h"
+ #include "map.h" // for ManualMapVoxelManipulator
 +#include "event.h"
  
- #define BLOCK_EMERGE_ALLOWGEN (1<<0)
- 
+ #define MGPARAMS_SET_MGNAME      1
+ #define MGPARAMS_SET_SEED        2
+Index: b/src/event.h
+===================================================================
 --- a/src/event.h
 +++ b/src/event.h
 @@ -19,6 +19,7 @@

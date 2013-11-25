@@ -18,12 +18,15 @@ Index: b/src/CMakeLists.txt
  endif(LUA_LIBRARY AND LUA_INCLUDE_DIR)
  
  mark_as_advanced(LUA_LIBRARY)
-@@ -586,12 +585,10 @@
+@@ -229,7 +228,6 @@
+ 	-P "${CMAKE_SOURCE_DIR}/cmake/Modules/GenerateVersion.cmake"
+ 	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
  
- if (JTHREAD_FOUND)
- else (JTHREAD_FOUND)
--	add_subdirectory(jthread)
- endif (JTHREAD_FOUND)
+-add_subdirectory(jthread)
+ add_subdirectory(script)
+ add_subdirectory(util)
+ 
+@@ -631,7 +629,6 @@
  
  if (SQLITE3_FOUND)
  else (SQLITE3_FOUND)
@@ -31,7 +34,7 @@ Index: b/src/CMakeLists.txt
  endif (SQLITE3_FOUND)
  
  if (BUILD_CLIENT AND USE_FREETYPE)
-@@ -600,7 +597,6 @@
+@@ -640,7 +637,6 @@
  
  if (JSON_FOUND)
  else (JSON_FOUND)
