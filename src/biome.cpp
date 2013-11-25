@@ -21,8 +21,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "nodedef.h"
 #include "map.h" //for ManualMapVoxelManipulator
 #include "log.h"
+#include "util/numeric.h"
 #include "main.h"
-
+#include "util/mathconstants.h"
 
 NoiseParams nparams_biome_def_heat =
 	{50, 50, v3f(500.0, 500.0, 500.0), 5349, 3, 0.70};
@@ -41,16 +42,26 @@ BiomeDefManager::BiomeDefManager() {
 	b->id    = 0;
 	b->name  = "Default";
 	b->flags = 0;
+	
+	b->depth_top    = 0;
+	b->depth_filler = 0;
 
-	b->c_top         = CONTENT_AIR;
-	b->top_depth     = 0;
-	b->c_filler      = b->c_top;
-	b->filler_height = MAP_GENERATION_LIMIT;
+	b->nname_top        = "air";
+	b->nname_filler     = "air";
+	b->nname_water      = "mapgen_water_source";
+	b->nname_dust       = "air";
+	b->nname_dust_water = "mapgen_water_source";
 
-	b->height_min      = -MAP_GENERATION_LIMIT;
-	b->height_max      = MAP_GENERATION_LIMIT;
-	b->heat_point      = 0.0;
-	b->humidity_point  = 0.0;
+	b->c_top        = CONTENT_IGNORE;
+	b->c_filler     = CONTENT_IGNORE;
+	b->c_water      = CONTENT_IGNORE;
+	b->c_dust       = CONTENT_IGNORE;
+	b->c_dust_water = CONTENT_IGNORE;
+
+	b->height_min     = -MAP_GENERATION_LIMIT;
+	b->height_max     = MAP_GENERATION_LIMIT;
+	b->heat_point     = 0.0;
+	b->humidity_point = 0.0;
 
 	biomes.push_back(b);
 }
@@ -101,27 +112,42 @@ void BiomeDefManager::resolveNodeNames(INodeDefManager *ndef) {
 	
 	biome_registration_finished = true;
 	
-	for (size_t i = 0; i != biomes.size(); i++) {
+	for (size_t i = 0; i < biomes.size(); i++) {
 		b = biomes[i];
-		
+
+		b->c_top = ndef->getId(b->nname_top);
 		if (b->c_top == CONTENT_IGNORE) {
-			b->c_top = ndef->getId(b->top_nodename);
-			if (b->c_top == CONTENT_IGNORE) {
-				errorstream << "BiomeDefManager::resolveNodeNames: node '"
-					<< b->top_nodename << "' not defined" << std::endl;
-				b->c_top = CONTENT_AIR;
-				b->top_depth = 0;
-			}
+			errorstream << "BiomeDefManager::resolveNodeNames: node '"
+				<< b->nname_top << "' not defined" << std::endl;
+			b->c_top     = CONTENT_AIR;
+			b->depth_top = 0;
+		}
+	
+		b->c_filler = ndef->getId(b->nname_filler);
+		if (b->c_filler == CONTENT_IGNORE) {
+			errorstream << "BiomeDefManager::resolveNodeNames: node '"
+				<< b->nname_filler << "' not defined" << std::endl;
+			b->c_filler     = CONTENT_AIR;
+			b->depth_filler = 0;
 		}
 		
-		if (b->c_filler == CONTENT_IGNORE) {
-			b->c_filler = ndef->getId(b->filler_nodename);
-			if (b->c_filler == CONTENT_IGNORE) {
-				errorstream << "BiomeDefManager::resolveNodeNames: node '"
-					<< b->filler_nodename << "' not defined" << std::endl;
-				b->c_filler = CONTENT_AIR;
-				b->filler_height = MAP_GENERATION_LIMIT;
-			}
+		b->c_water = ndef->getId(b->nname_water);
+		if (b->c_water == CONTENT_IGNORE) {
+			errorstream << "BiomeDefManager::resolveNodeNames: node '"
+				<< b->nname_water << "' not defined" << std::endl;
+			b->c_water = CONTENT_AIR;
+		}
+		
+		b->c_dust = ndef->getId(b->nname_dust);
+		if (b->c_dust == CONTENT_IGNORE) {
+			errorstream << "BiomeDefManager::resolveNodeNames: node '"
+				<< b->nname_dust << "' not defined" << std::endl;
+		}
+		
+		b->c_dust_water = ndef->getId(b->nname_dust_water);
+		if (b->c_dust_water == CONTENT_IGNORE) {
+			errorstream << "BiomeDefManager::resolveNodeNames: node '"
+				<< b->nname_dust_water << "' not defined" << std::endl;
 		}
 	}
 }
@@ -156,8 +182,8 @@ Biome *BiomeDefManager::getBiome(float heat, float humidity, s16 y) {
 		if (y > b->height_max || y < b->height_min)
 			continue;
 
-		float d_heat      = heat     - b->heat_point;
-		float d_humidity  = humidity - b->humidity_point;
+		float d_heat     = heat     - b->heat_point;
+		float d_humidity = humidity - b->humidity_point;
 		float dist = (d_heat * d_heat) +
 					 (d_humidity * d_humidity);
 		if (dist < dist_min) {
@@ -167,4 +193,65 @@ Biome *BiomeDefManager::getBiome(float heat, float humidity, s16 y) {
 	}
 	
 	return biome_closest ? biome_closest : biomes[0];
+}
+
+
+u8 BiomeDefManager::getBiomeIdByName(const char *name) {
+	for (size_t i = 0; i != biomes.size(); i++) {
+		if (!strcasecmp(name, biomes[i]->name.c_str()))
+			return i;
+	}
+	
+	return 0;
+}
+
+
+///////////////////////////// Weather
+
+
+s16 BiomeDefManager::calcBlockHeat(v3s16 p, u64 seed, float timeofday, float totaltime) {
+	//variant 1: full random
+	//f32 heat = NoisePerlin3D(np_heat, p.X, env->getGameTime()/100, p.Z, seed);
+
+	//variant 2: season change based on default heat map
+	const f32 offset = 20; // = np_heat->offset
+	const f32 scale  = 20; // = np_heat->scale
+	const f32 range  = 20;
+	f32 heat = NoisePerlin2D(np_heat, p.X, p.Z, seed); // 0..50..100
+
+	heat -= np_heat->offset; // -50..0..+50
+
+	// normalizing - todo REMOVE after fixed NoiseParams nparams_biome_def_heat = {50, 50, -> 20, 50,
+	if (np_heat->scale)
+		heat /= np_heat->scale / scale; //  -20..0..+20
+
+	f32 seasonv = totaltime;
+	seasonv /= 86400 * g_settings->getS16("year_days"); // season change speed
+	seasonv += (f32)p.X / 3000; // you can walk to area with other season
+	seasonv = sin(seasonv * M_PI);
+	heat += (range * (heat < 0 ? 2 : 0.5)) * seasonv; // -60..0..30
+
+	heat += offset; // -40..0..50
+	heat += p.Y / -333; // upper=colder, lower=hotter, 3c per 1000
+
+	// daily change, hotter at sun +4, colder at night -4
+	heat += 8 * (sin(cycle_shift(timeofday, -0.25) * M_PI) - 0.5); //-44..20..54
+	
+	return heat;
+}
+
+
+s16 BiomeDefManager::calcBlockHumidity(v3s16 p, u64 seed, float timeofday, float totaltime) {
+
+	f32 humidity = NoisePerlin2D(np_humidity, p.X, p.Z, seed);
+
+	f32 seasonv = totaltime;
+	seasonv /= 86400 * 2; // bad weather change speed (2 days)
+	seasonv += (f32)p.Z / 300;
+	humidity += 30 * sin(seasonv * M_PI);
+
+	humidity += -12 * (sin(cycle_shift(timeofday, -0.1) * M_PI) - 0.5);
+	humidity = rangelim(humidity, 0, 100);
+	
+	return humidity;
 }

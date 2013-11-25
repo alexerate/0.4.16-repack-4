@@ -17,21 +17,21 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "cpp_api/scriptapi.h"
-#include "lua_api/l_base.h"
 #include "lua_api/l_env.h"
-#include "environment.h"
-#include "server.h"
-#include "daynightratio.h"
-#include "util/pointedthing.h"
-#include "content_sao.h"
-
-#include "common/c_converter.h"
-#include "common/c_content.h"
-#include "common/c_internal.h"
+#include "lua_api/l_internal.h"
 #include "lua_api/l_nodemeta.h"
 #include "lua_api/l_nodetimer.h"
 #include "lua_api/l_noise.h"
+#include "lua_api/l_vmanip.h"
+#include "common/c_converter.h"
+#include "common/c_content.h"
+#include "scripting_game.h"
+#include "environment.h"
+#include "server.h"
+#include "nodedef.h"
+#include "daynightratio.h"
+#include "util/pointedthing.h"
+#include "content_sao.h"
 #include "treegen.h"
 #include "pathfinder.h"
 
@@ -39,39 +39,48 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define GET_ENV_PTR ServerEnvironment* env =                                   \
 				dynamic_cast<ServerEnvironment*>(getEnv(L));                   \
 				if( env == NULL) return 0
+				
+///////////////////////////////////////////////////////////////////////////////
+
 
 void LuaABM::trigger(ServerEnvironment *env, v3s16 p, MapNode n,
 		u32 active_object_count, u32 active_object_count_wider)
 {
-	ScriptApi* scriptIface = SERVER_TO_SA(env);
+	GameScripting *scriptIface = env->getScriptIface();
 	scriptIface->realityCheck();
 
-	lua_State* L = scriptIface->getStack();
+	lua_State *L = scriptIface->getStack();
 	assert(lua_checkstack(L, 20));
 	StackUnroller stack_unroller(L);
+
+	lua_pushcfunction(L, script_error_handler);
+	int errorhandler = lua_gettop(L);
 
 	// Get minetest.registered_abms
 	lua_getglobal(L, "minetest");
 	lua_getfield(L, -1, "registered_abms");
 	luaL_checktype(L, -1, LUA_TTABLE);
-	int registered_abms = lua_gettop(L);
+	lua_remove(L, -2); // Remove "minetest"
 
 	// Get minetest.registered_abms[m_id]
 	lua_pushnumber(L, m_id);
-	lua_gettable(L, registered_abms);
+	lua_gettable(L, -2);
 	if(lua_isnil(L, -1))
 		assert(0);
+	lua_remove(L, -2); // Remove "registered_abms"
 
 	// Call action
 	luaL_checktype(L, -1, LUA_TTABLE);
 	lua_getfield(L, -1, "action");
 	luaL_checktype(L, -1, LUA_TFUNCTION);
+	lua_remove(L, -2); // Remove "registered_abms[m_id]"
 	push_v3s16(L, p);
 	pushnode(L, n, env->getGameDef()->ndef());
 	lua_pushnumber(L, active_object_count);
 	lua_pushnumber(L, active_object_count_wider);
-	if(lua_pcall(L, 4, 0, 0))
-		script_error(L, "error: %s", lua_tostring(L, -1));
+	if(lua_pcall(L, 4, 0, errorhandler))
+		script_error(L);
+	lua_pop(L, 1); // Pop error handler
 }
 
 // Exported functions
@@ -179,8 +188,13 @@ int ModApiEnvMod::l_place_node(lua_State *L)
 {
 	GET_ENV_PTR;
 
+	ScriptApiItem *scriptIfaceItem = getScriptApi<ScriptApiItem>(L);
+	Server *server = getServer(L);
+	INodeDefManager *ndef = server->ndef();
+	IItemDefManager *idef = server->idef();
+
 	v3s16 pos = read_v3s16(L, 1);
-	MapNode n = readnode(L, 2, env->getGameDef()->ndef());
+	MapNode n = readnode(L, 2, ndef);
 
 	// Don't attempt to load non-loaded area as of now
 	MapNode n_old = env->getMap().getNodeNoEx(pos);
@@ -189,8 +203,6 @@ int ModApiEnvMod::l_place_node(lua_State *L)
 		return 1;
 	}
 	// Create item to place
-	INodeDefManager *ndef = getServer(L)->ndef();
-	IItemDefManager *idef = getServer(L)->idef();
 	ItemStack item(ndef->get(n).name, 1, 0, "", idef);
 	// Make pointed position
 	PointedThing pointed;
@@ -199,7 +211,7 @@ int ModApiEnvMod::l_place_node(lua_State *L)
 	pointed.node_undersurface = pos + v3s16(0,-1,0);
 	// Place it with a NULL placer (appears in Lua as a non-functional
 	// ObjectRef)
-	bool success = get_scriptapi(L)->item_OnPlace(item, NULL, pointed);
+	bool success = scriptIfaceItem->item_OnPlace(item, NULL, pointed);
 	lua_pushboolean(L, success);
 	return 1;
 }
@@ -209,6 +221,8 @@ int ModApiEnvMod::l_place_node(lua_State *L)
 int ModApiEnvMod::l_dig_node(lua_State *L)
 {
 	GET_ENV_PTR;
+
+	ScriptApiNode *scriptIfaceNode = getScriptApi<ScriptApiNode>(L);
 
 	v3s16 pos = read_v3s16(L, 1);
 
@@ -220,7 +234,7 @@ int ModApiEnvMod::l_dig_node(lua_State *L)
 	}
 	// Dig it out with a NULL digger (appears in Lua as a
 	// non-functional ObjectRef)
-	bool success = get_scriptapi(L)->node_on_dig(pos, n, NULL);
+	bool success = scriptIfaceNode->node_on_dig(pos, n, NULL);
 	lua_pushboolean(L, success);
 	return 1;
 }
@@ -230,6 +244,8 @@ int ModApiEnvMod::l_dig_node(lua_State *L)
 int ModApiEnvMod::l_punch_node(lua_State *L)
 {
 	GET_ENV_PTR;
+
+	ScriptApiNode *scriptIfaceNode = getScriptApi<ScriptApiNode>(L);
 
 	v3s16 pos = read_v3s16(L, 1);
 
@@ -241,10 +257,69 @@ int ModApiEnvMod::l_punch_node(lua_State *L)
 	}
 	// Punch it with a NULL puncher (appears in Lua as a non-functional
 	// ObjectRef)
-	bool success = get_scriptapi(L)->node_on_punch(pos, n, NULL);
+	bool success = scriptIfaceNode->node_on_punch(pos, n, NULL);
 	lua_pushboolean(L, success);
 	return 1;
 }
+
+// minetest.get_node_max_level(pos)
+// pos = {x=num, y=num, z=num}
+int ModApiEnvMod::l_get_node_max_level(lua_State *L)
+{
+	GET_ENV_PTR;
+
+	v3s16 pos = read_v3s16(L, 1);
+	MapNode n = env->getMap().getNodeNoEx(pos);
+	lua_pushnumber(L, n.getMaxLevel(env->getGameDef()->ndef()));
+	return 1;
+}
+
+// minetest.get_node_level(pos)
+// pos = {x=num, y=num, z=num}
+int ModApiEnvMod::l_get_node_level(lua_State *L)
+{
+	GET_ENV_PTR;
+
+	v3s16 pos = read_v3s16(L, 1);
+	MapNode n = env->getMap().getNodeNoEx(pos);
+	lua_pushnumber(L, n.getLevel(env->getGameDef()->ndef()));
+	return 1;
+}
+
+// minetest.set_node_level(pos, level)
+// pos = {x=num, y=num, z=num}
+// level: 0..63
+int ModApiEnvMod::l_set_node_level(lua_State *L)
+{
+	GET_ENV_PTR;
+
+	v3s16 pos = read_v3s16(L, 1);
+	u8 level = 1;
+	if(lua_isnumber(L, 2))
+		level = lua_tonumber(L, 2);
+	MapNode n = env->getMap().getNodeNoEx(pos);
+	lua_pushnumber(L, n.setLevel(env->getGameDef()->ndef(), level));
+	env->setNode(pos, n);
+	return 1;
+}
+
+// minetest.add_node_level(pos, level)
+// pos = {x=num, y=num, z=num}
+// level: 0..63
+int ModApiEnvMod::l_add_node_level(lua_State *L)
+{
+	GET_ENV_PTR;
+
+	v3s16 pos = read_v3s16(L, 1);
+	u8 level = 1;
+	if(lua_isnumber(L, 2))
+		level = lua_tonumber(L, 2);
+	MapNode n = env->getMap().getNodeNoEx(pos);
+	lua_pushnumber(L, n.addLevel(env->getGameDef()->ndef(), level));
+	env->setNode(pos, n);
+	return 1;
+}
+
 
 // minetest.get_meta(pos)
 int ModApiEnvMod::l_get_meta(lua_State *L)
@@ -285,7 +360,7 @@ int ModApiEnvMod::l_add_entity(lua_State *L)
 	if(objectid == 0)
 		return 0;
 	// Return ObjectRef
-	get_scriptapi(L)->objectrefGetOrCreate(obj);
+	getScriptApiBase(L)->objectrefGetOrCreate(obj);
 	return 1;
 }
 
@@ -301,15 +376,21 @@ int ModApiEnvMod::l_add_item(lua_State *L)
 	ItemStack item = read_item(L, 2,getServer(L));
 	if(item.empty() || !item.isKnown(getServer(L)->idef()))
 		return 0;
+
+	lua_pushcfunction(L, script_error_handler);
+	int errorhandler = lua_gettop(L);
+
 	// Use minetest.spawn_item to spawn a __builtin:item
 	lua_getglobal(L, "minetest");
 	lua_getfield(L, -1, "spawn_item");
+	lua_remove(L, -2); // Remove minetest
 	if(lua_isnil(L, -1))
 		return 0;
 	lua_pushvalue(L, 1);
 	lua_pushstring(L, item.getItemString().c_str());
-	if(lua_pcall(L, 2, 1, 0))
-		script_error(L, "error: %s", lua_tostring(L, -1));
+	if(lua_pcall(L, 2, 1, errorhandler))
+		script_error(L);
+	lua_remove(L, errorhandler); // Remove error handler
 	return 1;
 	/*lua_pushvalue(L, 1);
 	lua_pushstring(L, "__builtin:item");
@@ -344,7 +425,7 @@ int ModApiEnvMod::l_get_player_by_name(lua_State *L)
 		return 1;
 	}
 	// Put player on stack
-	get_scriptapi(L)->objectrefGetOrCreate(sao);
+	getScriptApiBase(L)->objectrefGetOrCreate(sao);
 	return 1;
 }
 
@@ -370,9 +451,9 @@ int ModApiEnvMod::l_get_objects_inside_radius(lua_State *L)
 		// Insert object reference into table
 		lua_pushvalue(L, table_insert);
 		lua_pushvalue(L, table);
-		get_scriptapi(L)->objectrefGetOrCreate(obj);
+		getScriptApiBase(L)->objectrefGetOrCreate(obj);
 		if(lua_pcall(L, 2, 0, 0))
-			script_error(L, "error: %s", lua_tostring(L, -1));
+			script_error(L);
 	}
 	return 1;
 }
@@ -404,6 +485,16 @@ int ModApiEnvMod::l_get_timeofday(lua_State *L)
 	int timeofday_mh = env->getTimeOfDay();
 	float timeofday_f = (float)timeofday_mh / 24000.0;
 	lua_pushnumber(L, timeofday_f);
+	return 1;
+}
+
+// minetest.get_gametime()
+int ModApiEnvMod::l_get_gametime(lua_State *L)
+{
+	GET_ENV_PTR;
+
+	int game_time = env->getGameTime();
+	lua_pushnumber(L, game_time);
 	return 1;
 }
 
@@ -490,7 +581,7 @@ int ModApiEnvMod::l_find_nodes_in_area(lua_State *L)
 			lua_pushvalue(L, table);
 			push_v3s16(L, p);
 			if(lua_pcall(L, 2, 0, 0))
-				script_error(L, "error: %s", lua_tostring(L, -1));
+				script_error(L);
 		}
 	}
 	return 1;
@@ -533,6 +624,21 @@ int ModApiEnvMod::l_get_perlin_map(lua_State *L)
 	return 1;
 }
 
+// minetest.get_voxel_manip()
+// returns voxel manipulator
+int ModApiEnvMod::l_get_voxel_manip(lua_State *L)
+{
+	GET_ENV_PTR;
+
+	Map *map = &(env->getMap());
+	LuaVoxelManip *o = new LuaVoxelManip(map);
+	
+	*(void **)(lua_newuserdata(L, sizeof(void *))) = o;
+	luaL_getmetatable(L, "VoxelManip");
+	lua_setmetatable(L, -2);
+	return 1;
+}
+
 // minetest.clear_objects()
 // clear all objects in the environment
 int ModApiEnvMod::l_clear_objects(lua_State *L)
@@ -554,8 +660,8 @@ int ModApiEnvMod::l_line_of_sight(lua_State *L) {
 	// read position 2 from lua
 	v3f pos2 = checkFloatPos(L, 2);
 	//read step size from lua
-	if(lua_isnumber(L, 3))
-	stepsize = lua_tonumber(L, 3);
+	if (lua_isnumber(L, 3))
+		stepsize = lua_tonumber(L, 3);
 
 	return (env->line_of_sight(pos1,pos2,stepsize));
 }
@@ -572,8 +678,8 @@ int ModApiEnvMod::l_find_path(lua_State *L)
 	unsigned int max_jump       = luaL_checkint(L, 4);
 	unsigned int max_drop       = luaL_checkint(L, 5);
 	algorithm algo              = A_PLAIN_NP;
-	if(! lua_isnil(L, 6)) {
-		std::string algorithm       = luaL_checkstring(L,6);
+	if (!lua_isnil(L, 6)) {
+		std::string algorithm = luaL_checkstring(L,6);
 
 		if (algorithm == "A*")
 			algo = A_PLAIN;
@@ -652,38 +758,74 @@ int ModApiEnvMod::l_spawn_tree(lua_State *L)
 	return 1;
 }
 
-bool ModApiEnvMod::Initialize(lua_State *L,int top)
+
+// minetest.transforming_liquid_add(pos)
+int ModApiEnvMod::l_transforming_liquid_add(lua_State *L)
 {
+	GET_ENV_PTR;
 
-	bool retval = true;
-
-	retval &= API_FCT(set_node);
-	retval &= API_FCT(add_node);
-	retval &= API_FCT(add_item);
-	retval &= API_FCT(remove_node);
-	retval &= API_FCT(get_node);
-	retval &= API_FCT(get_node_or_nil);
-	retval &= API_FCT(get_node_light);
-	retval &= API_FCT(place_node);
-	retval &= API_FCT(dig_node);
-	retval &= API_FCT(punch_node);
-	retval &= API_FCT(add_entity);
-	retval &= API_FCT(get_meta);
-	retval &= API_FCT(get_node_timer);
-	retval &= API_FCT(get_player_by_name);
-	retval &= API_FCT(get_objects_inside_radius);
-	retval &= API_FCT(set_timeofday);
-	retval &= API_FCT(get_timeofday);
-	retval &= API_FCT(find_node_near);
-	retval &= API_FCT(find_nodes_in_area);
-	retval &= API_FCT(get_perlin);
-	retval &= API_FCT(get_perlin_map);
-	retval &= API_FCT(clear_objects);
-	retval &= API_FCT(spawn_tree);
-	retval &= API_FCT(find_path);
-	retval &= API_FCT(line_of_sight);
-
-	return retval;
+	v3s16 p0 = read_v3s16(L, 1);
+	env->getMap().transforming_liquid_add(p0);
+	return 1;
 }
 
-ModApiEnvMod modapienv_prototype;
+// minetest.get_heat(pos)
+// pos = {x=num, y=num, z=num}
+int ModApiEnvMod::l_get_heat(lua_State *L)
+{
+	GET_ENV_PTR;
+
+	v3s16 pos = read_v3s16(L, 1);
+	lua_pushnumber(L, env->getServerMap().updateBlockHeat(env, pos));
+	return 1;
+}
+
+// minetest.get_humidity(pos)
+// pos = {x=num, y=num, z=num}
+int ModApiEnvMod::l_get_humidity(lua_State *L)
+{
+	GET_ENV_PTR;
+
+	v3s16 pos = read_v3s16(L, 1);
+	lua_pushnumber(L, env->getServerMap().updateBlockHumidity(env, pos));
+	return 1;
+}
+
+
+void ModApiEnvMod::Initialize(lua_State *L, int top)
+{
+	API_FCT(set_node);
+	API_FCT(add_node);
+	API_FCT(add_item);
+	API_FCT(remove_node);
+	API_FCT(get_node);
+	API_FCT(get_node_or_nil);
+	API_FCT(get_node_light);
+	API_FCT(place_node);
+	API_FCT(dig_node);
+	API_FCT(punch_node);
+	API_FCT(get_node_max_level);
+	API_FCT(get_node_level);
+	API_FCT(set_node_level);
+	API_FCT(add_node_level);
+	API_FCT(add_entity);
+	API_FCT(get_meta);
+	API_FCT(get_node_timer);
+	API_FCT(get_player_by_name);
+	API_FCT(get_objects_inside_radius);
+	API_FCT(set_timeofday);
+	API_FCT(get_timeofday);
+	API_FCT(get_gametime);
+	API_FCT(find_node_near);
+	API_FCT(find_nodes_in_area);
+	API_FCT(get_perlin);
+	API_FCT(get_perlin_map);
+	API_FCT(get_voxel_manip);
+	API_FCT(clear_objects);
+	API_FCT(spawn_tree);
+	API_FCT(find_path);
+	API_FCT(line_of_sight);
+	API_FCT(transforming_liquid_add);
+	API_FCT(get_heat);
+	API_FCT(get_humidity);
+}

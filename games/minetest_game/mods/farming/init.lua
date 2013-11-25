@@ -1,6 +1,8 @@
 -- Minetest 0.4 mod: farming
 -- See README.txt for licensing and other information.
 
+farming = {}
+
 --
 -- Soil
 --
@@ -30,7 +32,10 @@ minetest.register_abm({
 		pos.y = pos.y+1
 		local nn = minetest.get_node(pos).name
 		pos.y = pos.y-1
-		if minetest.registered_nodes[nn] and minetest.registered_nodes[nn].walkable then
+		if minetest.registered_nodes[nn] and
+				minetest.registered_nodes[nn].walkable and
+				minetest.get_item_group(nn, "plant") == 0
+		then
 			minetest.set_node(pos, {name="default:dirt"})
 		end
 		-- check if there is water nearby
@@ -59,7 +64,7 @@ minetest.register_abm({
 -- Hoes
 --
 -- turns nodes with group soil=1 into soil
-local function hoe_on_use(itemstack, user, pointed_thing, uses)
+function farming.hoe_on_use(itemstack, user, pointed_thing, uses)
 	local pt = pointed_thing
 	-- check if pointing at a node
 	if not pt then
@@ -106,7 +111,7 @@ minetest.register_tool("farming:hoe_wood", {
 	inventory_image = "farming_tool_woodhoe.png",
 	
 	on_use = function(itemstack, user, pointed_thing)
-		return hoe_on_use(itemstack, user, pointed_thing, 30)
+		return farming.hoe_on_use(itemstack, user, pointed_thing, 30)
 	end,
 })
 
@@ -115,7 +120,7 @@ minetest.register_tool("farming:hoe_stone", {
 	inventory_image = "farming_tool_stonehoe.png",
 	
 	on_use = function(itemstack, user, pointed_thing)
-		return hoe_on_use(itemstack, user, pointed_thing, 90)
+		return farming.hoe_on_use(itemstack, user, pointed_thing, 90)
 	end,
 })
 
@@ -124,7 +129,7 @@ minetest.register_tool("farming:hoe_steel", {
 	inventory_image = "farming_tool_steelhoe.png",
 	
 	on_use = function(itemstack, user, pointed_thing)
-		return hoe_on_use(itemstack, user, pointed_thing, 200)
+		return farming.hoe_on_use(itemstack, user, pointed_thing, 200)
 	end,
 })
 
@@ -133,7 +138,7 @@ minetest.register_tool("farming:hoe_bronze", {
 	inventory_image = "farming_tool_bronzehoe.png",
 	
 	on_use = function(itemstack, user, pointed_thing)
-		return hoe_on_use(itemstack, user, pointed_thing, 220)
+		return farming.hoe_on_use(itemstack, user, pointed_thing, 220)
 	end,
 })
 
@@ -141,8 +146,8 @@ minetest.register_craft({
 	output = "farming:hoe_wood",
 	recipe = {
 		{"group:wood", "group:wood"},
-		{"", "default:stick"},
-		{"", "default:stick"},
+		{"", "group:stick"},
+		{"", "group:stick"},
 	}
 })
 
@@ -150,8 +155,8 @@ minetest.register_craft({
 	output = "farming:hoe_stone",
 	recipe = {
 		{"group:stone", "group:stone"},
-		{"", "default:stick"},
-		{"", "default:stick"},
+		{"", "group:stick"},
+		{"", "group:stick"},
 	}
 })
 
@@ -159,8 +164,8 @@ minetest.register_craft({
 	output = "farming:hoe_steel",
 	recipe = {
 		{"default:steel_ingot", "default:steel_ingot"},
-		{"", "default:stick"},
-		{"", "default:stick"},
+		{"", "group:stick"},
+		{"", "group:stick"},
 	}
 })
 
@@ -168,8 +173,8 @@ minetest.register_craft({
 	output = "farming:hoe_bronze",
 	recipe = {
 		{"default:bronze_ingot", "default:bronze_ingot"},
-		{"", "default:stick"},
-		{"", "default:stick"},
+		{"", "group:stick"},
+		{"", "group:stick"},
 	}
 })
 

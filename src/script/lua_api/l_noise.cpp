@@ -18,8 +18,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "lua_api/l_noise.h"
-#include "common/c_internal.h"
+#include "lua_api/l_internal.h"
 #include "common/c_converter.h"
+#include "common/c_content.h"
 #include "log.h"
 
 // garbage collector
@@ -159,6 +160,27 @@ int LuaPerlinNoiseMap::l_get2dMap(lua_State *L)
 	return 1;
 }
 
+int LuaPerlinNoiseMap::l_get2dMap_flat(lua_State *L)
+{
+	NO_MAP_LOCK_REQUIRED;
+
+	LuaPerlinNoiseMap *o = checkobject(L, 1);
+	v2f p = read_v2f(L, 2);
+
+	Noise *n = o->noise;
+	n->perlinMap2D(p.X, p.Y);
+
+	int maplen = n->sx * n->sy;
+	
+	lua_newtable(L);
+	for (int i = 0; i != maplen; i++) {
+		float noiseval = n->np->offset + n->np->scale * n->result[i];
+		lua_pushnumber(L, noiseval);
+		lua_rawseti(L, -2, i + 1);
+	}
+	return 1;
+}
+
 int LuaPerlinNoiseMap::l_get3dMap(lua_State *L)
 {
 	NO_MAP_LOCK_REQUIRED;
@@ -182,6 +204,28 @@ int LuaPerlinNoiseMap::l_get3dMap(lua_State *L)
 			lua_rawseti(L, -2, y + 1);
 		}
 		lua_rawseti(L, -2, z + 1);
+	}
+	return 1;
+}
+
+int LuaPerlinNoiseMap::l_get3dMap_flat(lua_State *L)
+{
+	NO_MAP_LOCK_REQUIRED;
+
+	LuaPerlinNoiseMap *o = checkobject(L, 1);
+	v3f p = read_v3f(L, 2);
+
+	Noise *n = o->noise;
+	n->perlinMap3D(p.X, p.Y, p.Z);
+
+
+	int maplen = n->sx * n->sy * n->sz;
+	
+	lua_newtable(L);
+	for (int i = 0; i != maplen; i++) {
+		float noiseval = n->np->offset + n->np->scale * n->result[i];
+		lua_pushnumber(L, noiseval);
+		lua_rawseti(L, -2, i + 1);
 	}
 	return 1;
 }
@@ -254,7 +298,9 @@ void LuaPerlinNoiseMap::Register(lua_State *L)
 const char LuaPerlinNoiseMap::className[] = "PerlinNoiseMap";
 const luaL_reg LuaPerlinNoiseMap::methods[] = {
 	luamethod(LuaPerlinNoiseMap, get2dMap),
+	luamethod(LuaPerlinNoiseMap, get2dMap_flat),
 	luamethod(LuaPerlinNoiseMap, get3dMap),
+	luamethod(LuaPerlinNoiseMap, get3dMap_flat),
 	{0,0}
 };
 
@@ -287,7 +333,10 @@ int LuaPseudoRandom::l_next(lua_State *L)
 		throw LuaError(L, "PseudoRandom.next(): max < min");
 	}
 	if(max - min != 32767 && max - min > 32767/5)
-		throw LuaError(L, "PseudoRandom.next() max-min is not 32767 and is > 32768/5. This is disallowed due to the bad random distribution the implementation would otherwise make.");
+		throw LuaError(L, "PseudoRandom.next() max-min is not 32767"
+				" and is > 32768/5. This is disallowed due to"
+				" the bad random distribution the"
+				" implementation would otherwise make.");
 	PseudoRandom &pseudo = o->m_pseudo;
 	int val = pseudo.next();
 	val = (val % (max-min+1)) + min;
@@ -367,7 +416,3 @@ const luaL_reg LuaPseudoRandom::methods[] = {
 	luamethod(LuaPseudoRandom, next),
 	{0,0}
 };
-
-REGISTER_LUA_REF(LuaPseudoRandom);
-REGISTER_LUA_REF(LuaPerlinNoiseMap);
-REGISTER_LUA_REF(LuaPerlinNoise);

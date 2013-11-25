@@ -21,14 +21,18 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define MODS_HEADER
 
 #include "irrlichttypes.h"
-#include <irrList.h>
 #include <list>
 #include <set>
 #include <vector>
 #include <string>
 #include <map>
 #include <exception>
-#include <list>
+#include "json/json.h"
+#include "config.h"
+
+#if USE_CURL
+#include <curl/curl.h>
+#endif
 
 #define MODNAME_ALLOWED_CHARS "abcdefghijklmnopqrstuvwxyz0123456789_"
 
@@ -146,12 +150,81 @@ private:
 	// exists. A name conflict happens when two or more mods
 	// at the same level have the same name but different paths.
 	// Levels (mods in higher levels override mods in lower levels):
-	// 1. common mod in modpack; 2. common mod;
-	// 3. game mod in modpack; 4. game mod;
-	// 5. world mod in modpack; 6. world mod;
-	// 7. addon mod in modpack; 8. addon mod.
+	// 1. game mod in modpack; 2. game mod;
+	// 3. world mod in modpack; 4. world mod;
+	// 5. addon mod in modpack; 6. addon mod.
 	std::set<std::string> m_name_conflicts;
 
+};
+
+#if USE_CURL
+Json::Value getModstoreUrl(std::string url);
+#else
+inline Json::Value getModstoreUrl(std::string url) {
+	return Json::Value();
+}
+#endif
+
+struct ModLicenseInfo {
+	int id;
+	std::string shortinfo;
+	std::string url;
+};
+
+struct ModAuthorInfo {
+	int id;
+	std::string username;
+};
+
+struct ModStoreMod {
+	int id;
+	std::string title;
+	std::string basename;
+	ModAuthorInfo author;
+	float rating;
+	bool valid;
+};
+
+struct ModStoreCategoryInfo {
+	int id;
+	std::string name;
+};
+
+struct ModStoreVersionEntry {
+	int id;
+	std::string date;
+	std::string file;
+	bool approved;
+	//ugly version number
+	int mtversion;
+};
+
+struct ModStoreTitlePic {
+	int id;
+	std::string file;
+	std::string description;
+	int mod;
+};
+
+struct ModStoreModDetails {
+	/* version_set?? */
+	std::vector<ModStoreCategoryInfo> categories;
+	ModAuthorInfo author;
+	ModLicenseInfo license;
+	ModStoreTitlePic titlepic;
+	int id;
+	std::string title;
+	std::string basename;
+	std::string description;
+	std::string repository;
+	float rating;
+	std::vector<std::string> depends;
+	std::vector<std::string> softdeps;
+
+	std::string download_url;
+	std::string screenshot_url;
+	std::vector<ModStoreVersionEntry> versions;
+	bool valid;
 };
 
 #endif

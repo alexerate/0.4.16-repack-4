@@ -37,10 +37,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "tool.h"
 #include "guiChatConsole.h"
 #include "config.h"
+#include "version.h"
 #include "clouds.h"
 #include "particles.h"
 #include "camera.h"
-#include "farmesh.h"
 #include "mapblock.h"
 #include "settings.h"
 #include "profiler.h"
@@ -206,33 +206,6 @@ public:
 	}
 
 	Client *m_client;
-};
-
-class FormspecFormSource: public IFormSource
-{
-public:
-	FormspecFormSource(std::string formspec,FormspecFormSource** game_formspec)
-	{
-		m_formspec = formspec;
-		m_game_formspec = game_formspec;
-	}
-
-	~FormspecFormSource()
-	{
-		*m_game_formspec = 0;
-	}
-
-	void setForm(std::string formspec) {
-		m_formspec = formspec;
-	}
-
-	std::string getForm()
-	{
-		return m_formspec;
-	}
-
-	std::string m_formspec;
-	FormspecFormSource** m_game_formspec;
 };
 
 /*
@@ -729,6 +702,18 @@ public:
 		sm->m_sound->playSound(sm->m_ndef->get(nde->n).sound_dug, false);
 	}
 
+	static void playerDamage(MtEvent *e, void *data)
+	{
+		SoundMaker *sm = (SoundMaker*)data;
+		sm->m_sound->playSound(SimpleSoundSpec("player_damage", 0.5), false);
+	}
+
+	static void playerFallingDamage(MtEvent *e, void *data)
+	{
+		SoundMaker *sm = (SoundMaker*)data;
+		sm->m_sound->playSound(SimpleSoundSpec("player_falling_damage", 0.5), false);
+	}
+
 	void registerReceiver(MtEventManager *mgr)
 	{
 		mgr->reg("ViewBobbingStep", SoundMaker::viewBobbingStep, this);
@@ -737,6 +722,8 @@ public:
 		mgr->reg("CameraPunchLeft", SoundMaker::cameraPunchLeft, this);
 		mgr->reg("CameraPunchRight", SoundMaker::cameraPunchRight, this);
 		mgr->reg("NodeDug", SoundMaker::nodeDug, this);
+		mgr->reg("PlayerDamage", SoundMaker::playerDamage, this);
+		mgr->reg("PlayerFallingDamage", SoundMaker::playerFallingDamage, this);
 	}
 
 	void step(float dtime)
@@ -808,19 +795,28 @@ public:
 		services->setPixelShaderConstant("skyBgColor", bgcolorfa, 4);
 
 		// Fog distance
-		float fog_distance = *m_fog_range;
-		if(*m_force_fog_off)
-			fog_distance = 10000*BS;
+		float fog_distance = 10000*BS;
+		if(g_settings->getBool("enable_fog") && !*m_force_fog_off)
+			fog_distance = *m_fog_range;
 		services->setPixelShaderConstant("fogDistance", &fog_distance, 1);
 
 		// Day-night ratio
 		u32 daynight_ratio = m_client->getEnv().getDayNightRatio();
 		float daynight_ratio_f = (float)daynight_ratio / 1000.0;
 		services->setPixelShaderConstant("dayNightRatio", &daynight_ratio_f, 1);
+		
+		// Normal map texture layer
+		int layer = 1;
+		// before 1.8 there isn't a "integer interface", only float
+#if (IRRLICHT_VERSION_MAJOR == 1 && IRRLICHT_VERSION_MINOR < 8)
+		services->setPixelShaderConstant("normalTexture" , (irr::f32*)&layer, 1);
+#else
+		services->setPixelShaderConstant("normalTexture" , (irr::s32*)&layer, 1);
+#endif
 	}
 };
 
-void nodePlacementPrediction(Client &client,
+bool nodePlacementPrediction(Client &client,
 		const ItemDefinition &playeritem_def,
 		v3s16 nodepos, v3s16 neighbourpos)
 {
@@ -840,7 +836,7 @@ void nodePlacementPrediction(Client &client,
 			if(nodedef->get(n_under).buildable_to)
 				p = nodepos;
 			else if (!nodedef->get(map.getNode(p)).buildable_to)
-				return;
+				return false;
 		}catch(InvalidPositionException &e){}
 		// Find id of predicted node
 		content_t id;
@@ -850,7 +846,7 @@ void nodePlacementPrediction(Client &client,
 					<<playeritem_def.name<<" (places "
 					<<prediction
 					<<") - Name not known"<<std::endl;
-			return;
+			return false;
 		}
 		// Predict param2 for facedir and wallmounted nodes
 		u8 param2 = 0;
@@ -889,13 +885,14 @@ void nodePlacementPrediction(Client &client,
 			else
 				pp = p + v3s16(0,-1,0);
 			if(!nodedef->get(map.getNode(pp)).walkable)
-				return;
+				return false;
 		}
 		// Add node to client map
 		MapNode n(id, 0, param2);
 		try{
 			// This triggers the required mesh update too
 			client.addNode(p, n);
+			return true;
 		}catch(InvalidPositionException &e){
 			errorstream<<"Node placement prediction failed for "
 					<<playeritem_def.name<<" (places "
@@ -903,6 +900,7 @@ void nodePlacementPrediction(Client &client,
 					<<") - Position not loaded"<<std::endl;
 		}
 	}
+	return false;
 }
 
 
@@ -918,7 +916,6 @@ void the_game(
 	std::string address, // If "", local server is used
 	u16 port,
 	std::wstring &error_message,
-	std::string configpath,
 	ChatBackend &chat_backend,
 	const SubgameSpec &gamespec, // Used for local game,
 	bool simple_singleplayer_mode
@@ -1004,7 +1001,7 @@ void the_game(
 		draw_load_screen(text, device, font,0,25);
 		delete[] text;
 		infostream<<"Creating server"<<std::endl;
-		server = new Server(map_dir, configpath, gamespec,
+		server = new Server(map_dir, gamespec,
 				simple_singleplayer_mode);
 		server->start(port);
 	}
@@ -1023,12 +1020,6 @@ void the_game(
 	infostream<<"Creating client"<<std::endl;
 	
 	MapDrawControl draw_control;
-
-	Client client(device, playername.c_str(), password, draw_control,
-			tsrc, shsrc, itemdef, nodedef, sound, &eventmgr);
-	
-	// Client acts as our GameDef
-	IGameDef *gamedef = &client;
 	
 	{
 		wchar_t* text = wgettext("Resolving address...");
@@ -1038,18 +1029,39 @@ void the_game(
 	Address connect_address(0,0,0,0, port);
 	try{
 		if(address == "")
+		{
 			//connect_address.Resolve("localhost");
-			connect_address.setAddress(127,0,0,1);
+			if(g_settings->getBool("enable_ipv6") && g_settings->getBool("ipv6_server"))
+			{
+				IPv6AddressBytes addr_bytes;
+				addr_bytes.bytes[15] = 1;
+				connect_address.setAddress(&addr_bytes);
+			}
+			else
+			{
+				connect_address.setAddress(127,0,0,1);
+			}
+		}
 		else
 			connect_address.Resolve(address.c_str());
 	}
 	catch(ResolveError &e)
 	{
-		error_message = L"Couldn't resolve address";
+		error_message = L"Couldn't resolve address: " + narrow_to_wide(e.what());
 		errorstream<<wide_to_narrow(error_message)<<std::endl;
 		// Break out of client scope
 		break;
 	}
+	
+	/*
+		Create client
+	*/
+	Client client(device, playername.c_str(), password, draw_control,
+		tsrc, shsrc, itemdef, nodedef, sound, &eventmgr,
+		connect_address.isIPv6());
+	
+	// Client acts as our GameDef
+	IGameDef *gamedef = &client;
 
 	/*
 		Attempt to connect to the server
@@ -1201,26 +1213,28 @@ void the_game(
 			}
 			
 			// Display status
-			std::ostringstream ss;
 			int progress=0;
 			if (!client.itemdefReceived())
 			{
-				ss << "Item definitions...";
+				wchar_t* text = wgettext("Item definitions...");
 				progress = 0;
+				draw_load_screen(text, device, font, dtime, progress);
+				delete[] text;
 			}
 			else if (!client.nodedefReceived())
 			{
-				ss << "Node definitions...";
+				wchar_t* text = wgettext("Node definitions...");
 				progress = 25;
+				draw_load_screen(text, device, font, dtime, progress);
+				delete[] text;
 			}
 			else
 			{
-				ss << "Media...";
+				wchar_t* text = wgettext("Media...");
 				progress = 50+client.mediaReceiveProgress()*50+0.5;
+				draw_load_screen(text, device, font, dtime, progress);
+				delete[] text;
 			}
-			wchar_t* text = wgettext(ss.str().c_str());
-			draw_load_screen(text, device, font, dtime, progress);
-			delete[] text;
 			
 			// On some computers framerate doesn't seem to be
 			// automatically limited
@@ -1293,16 +1307,6 @@ void the_game(
 	sky = new Sky(smgr->getRootSceneNode(), smgr, -1);
 	
 	/*
-		FarMesh
-	*/
-
-	FarMesh *farmesh = NULL;
-	if(g_settings->getBool("enable_farmesh"))
-	{
-		farmesh = new FarMesh(smgr->getRootSceneNode(), smgr, -1, client.getMapSeed(), &client);
-	}
-
-	/*
 		A copy of the local inventory
 	*/
 	Inventory local_inventory(itemdef);
@@ -1312,7 +1316,7 @@ void the_game(
 	*/
 	int crack_animation_length = 5;
 	{
-		video::ITexture *t = tsrc->getTextureRaw("crack_anylength.png");
+		video::ITexture *t = tsrc->getTexture("crack_anylength.png");
 		v2u32 size = t->getOriginalSize();
 		crack_animation_length = size.Y / size.X;
 	}
@@ -1366,6 +1370,7 @@ void the_game(
 			false, false);
 	guitext_profiler->setBackgroundColor(video::SColor(120,0,0,0));
 	guitext_profiler->setVisible(false);
+	guitext_profiler->setWordWrap(true);
 	
 	/*
 		Some statistics are collected in these
@@ -1390,7 +1395,6 @@ void the_game(
 	bool ldown_for_dig = false;
 
 	float damage_flash = 0;
-	s16 farmesh_range = 20*MAP_BLOCKSIZE;
 
 	float jump_timer = 0;
 	bool reset_jump_timer = false;
@@ -1452,6 +1456,8 @@ void the_game(
 	*/
 	Hud hud(driver, guienv, font, text_height,
 			gamedef, player, &local_inventory);
+
+	bool use_weather = g_settings->getBool("weather");
 
 	for(;;)
 	{
@@ -1717,7 +1723,7 @@ void the_game(
 			GUIFormSpecMenu *menu =
 				new GUIFormSpecMenu(device, guiroot, -1,
 					&g_menumgr,
-					&client, gamedef);
+					&client, gamedef, tsrc);
 
 			InventoryLocation inventoryloc;
 			inventoryloc.setCurrentPlayer();
@@ -2202,6 +2208,9 @@ void the_game(
 					player->hurt_tilt_timer = 1.5;
 					player->hurt_tilt_strength = event.player_damage.amount/2;
 					player->hurt_tilt_strength = rangelim(player->hurt_tilt_strength, 2.0, 10.0);
+
+					MtEvent *e = new SimpleTriggerEvent("PlayerDamage");
+					gamedef->event()->put(e);
 				}
 				else if(event.type == CE_PLAYER_FORCE_MOVE)
 				{
@@ -2253,7 +2262,7 @@ void the_game(
 						GUIFormSpecMenu *menu =
 								new GUIFormSpecMenu(device, guiroot, -1,
 										&g_menumgr,
-										&client, gamedef);
+										&client, gamedef, tsrc);
 						menu->setFormSource(current_formspec);
 						menu->setTextDest(current_textdest);
 						menu->drop();
@@ -2275,7 +2284,7 @@ void the_game(
 				else if(event.type == CE_SPAWN_PARTICLE)
 				{
 					LocalPlayer* player = client.getEnv().getLocalPlayer();
-					AtlasPointer ap =
+					video::ITexture *texture =
 						gamedef->tsrc()->getTexture(*(event.spawn_particle.texture));
 
 					new Particle(gamedef, smgr, player, client.getEnv(),
@@ -2284,12 +2293,15 @@ void the_game(
 						*event.spawn_particle.acc,
 						 event.spawn_particle.expirationtime,
 						 event.spawn_particle.size,
-						 event.spawn_particle.collisiondetection, ap);
+						 event.spawn_particle.collisiondetection,
+						 texture,
+						 v2f(0.0, 0.0),
+						 v2f(1.0, 1.0));
 				}
 				else if(event.type == CE_ADD_PARTICLESPAWNER)
 				{
 					LocalPlayer* player = client.getEnv().getLocalPlayer();
-					AtlasPointer ap =
+					video::ITexture *texture =
 						gamedef->tsrc()->getTexture(*(event.add_particlespawner.texture));
 
 					new ParticleSpawner(gamedef, smgr, player,
@@ -2306,7 +2318,7 @@ void the_game(
 						 event.add_particlespawner.minsize,
 						 event.add_particlespawner.maxsize,
 						 event.add_particlespawner.collisiondetection,
-						 ap,
+						 texture,
 						 event.add_particlespawner.id);
 				}
 				else if(event.type == CE_DELETE_PARTICLESPAWNER)
@@ -2434,10 +2446,12 @@ void the_game(
 		float full_punch_interval = playeritem_toolcap.full_punch_interval;
 		float tool_reload_ratio = time_from_last_punch / full_punch_interval;
 		tool_reload_ratio = MYMIN(tool_reload_ratio, 1.0);
-		camera.update(player, busytime, screensize, tool_reload_ratio);
+		camera.update(player, dtime, busytime, screensize,
+				tool_reload_ratio);
 		camera.step(dtime);
 
 		v3f player_position = player->getPosition();
+		v3s16 pos_i = floatToInt(player_position, BS);
 		v3f camera_position = camera.getPosition();
 		v3f camera_direction = camera.getDirection();
 		f32 camera_fov = camera.getFovMax();
@@ -2471,7 +2485,12 @@ void the_game(
 		
 		//u32 t1 = device->getTimer()->getRealTime();
 		
-		f32 d = 4; // max. distance
+		f32 d = playeritem_def.range; // max. distance
+		f32 d_hand = itemdef->get("").range;
+		if(d < 0 && d_hand >= 0)
+			d = d_hand;
+		else if(d < 0)
+			d = 4.0;
 		core::line3d<f32> shootline(camera_position,
 				camera_position + camera_direction * BS * (d+1));
 
@@ -2571,7 +2590,8 @@ void the_game(
 				Handle digging
 			*/
 			
-			if(nodig_delay_timer <= 0.0 && input->getLeftState())
+			if(nodig_delay_timer <= 0.0 && input->getLeftState()
+					&& client.checkPrivilege("interact"))
 			{
 				if(!digging)
 				{
@@ -2593,20 +2613,6 @@ void the_game(
 					const ToolCapabilities *tp = hand.tool_capabilities;
 					if(tp)
 						params = getDigParams(nodedef->get(n).groups, tp);
-				}
-				
-				SimpleSoundSpec sound_dig = nodedef->get(n).sound_dig;
-				if(sound_dig.exists()){
-					if(sound_dig.name == "__group"){
-						if(params.main_group != ""){
-							soundmaker.m_player_leftpunch_sound.gain = 0.5;
-							soundmaker.m_player_leftpunch_sound.name =
-									std::string("default_dig_") +
-											params.main_group;
-						}
-					} else{
-						soundmaker.m_player_leftpunch_sound = sound_dig;
-					}
 				}
 
 				float dig_time_complete = 0.0;
@@ -2638,6 +2644,20 @@ void the_game(
 				else
 				{
 					dig_index = crack_animation_length;
+				}
+
+				SimpleSoundSpec sound_dig = nodedef->get(n).sound_dig;
+				if(sound_dig.exists() && params.diggable){
+					if(sound_dig.name == "__group"){
+						if(params.main_group != ""){
+							soundmaker.m_player_leftpunch_sound.gain = 0.5;
+							soundmaker.m_player_leftpunch_sound.name =
+									std::string("default_dig_") +
+											params.main_group;
+						}
+					} else{
+						soundmaker.m_player_leftpunch_sound = sound_dig;
+					}
 				}
 
 				// Don't show cracks if not diggable
@@ -2688,13 +2708,20 @@ void the_game(
 					gamedef->event()->put(e);
 				}
 
-				dig_time += dtime;
+				if(dig_time_complete < 100000.0)
+					dig_time += dtime;
+				else {
+					dig_time = 0;
+					client.setCrack(-1, nodepos);
+				}
 
 				camera.setDigging(0);  // left click animation
 			}
 
-			if(input->getRightClicked() ||
-					repeat_rightclick_timer >= g_settings->getFloat("repeat_rightclick_time"))
+			if((input->getRightClicked() ||
+					repeat_rightclick_timer >=
+						g_settings->getFloat("repeat_rightclick_time")) &&
+					client.checkPrivilege("interact"))
 			{
 				repeat_rightclick_timer = 0;
 				infostream<<"Ground right-clicked"<<std::endl;
@@ -2731,7 +2758,7 @@ void the_game(
 					GUIFormSpecMenu *menu =
 						new GUIFormSpecMenu(device, guiroot, -1,
 							&g_menumgr,
-							&client, gamedef);
+							&client, gamedef, tsrc);
 					menu->setFormSpec(meta->getString("formspec"),
 							inventoryloc);
 					menu->setFormSource(new NodeMetadataFormSource(
@@ -2748,13 +2775,17 @@ void the_game(
 					
 					// If the wielded item has node placement prediction,
 					// make that happen
-					nodePlacementPrediction(client,
+					bool placed = nodePlacementPrediction(client,
 							playeritem_def,
 							nodepos, neighbourpos);
 					
 					// Read the sound
-					soundmaker.m_player_rightpunch_sound =
-							playeritem_def.sound_place;
+					if(placed)
+						soundmaker.m_player_rightpunch_sound =
+								playeritem_def.sound_place;
+					else
+						soundmaker.m_player_rightpunch_sound =
+								SimpleSoundSpec();
 				}
 			}
 		}
@@ -2828,16 +2859,14 @@ void the_game(
 			Fog range
 		*/
 	
-		if(farmesh)
-		{
-			fog_range = BS*farmesh_range;
-		}
-		else
-		{
+		if(draw_control.range_all)
+			fog_range = 100000*BS;
+		else {
 			fog_range = draw_control.wanted_range*BS + 0.0*MAP_BLOCKSIZE*BS;
+			if(use_weather)
+				fog_range *= (1.5 - 1.4*(float)client.getEnv().getClientMap().getHumidity(pos_i)/100);
+			fog_range = MYMIN(fog_range, (draw_control.farthest_drawn+20)*BS);
 			fog_range *= 0.9;
-			if(draw_control.range_all)
-				fog_range = 100000*BS;
 		}
 
 		/*
@@ -2876,7 +2905,6 @@ void the_game(
 		sky->update(time_of_day_smooth, time_brightness, direct_brightness,
 				sunlight_seen);
 		
-		float brightness = sky->getBrightness();
 		video::SColor bgcolor = sky->getBgColor();
 		video::SColor skycolor = sky->getSkyColor();
 
@@ -2895,22 +2923,6 @@ void the_game(
 		}
 		
 		/*
-			Update farmesh
-		*/
-		if(farmesh)
-		{
-			farmesh_range = draw_control.wanted_range * 10;
-			if(draw_control.range_all && farmesh_range < 500)
-				farmesh_range = 500;
-			if(farmesh_range > 1000)
-				farmesh_range = 1000;
-
-			farmesh->step(dtime);
-			farmesh->update(v2f(player_position.X, player_position.Z),
-					brightness, farmesh_range);
-		}
-
-		/*
 			Update particles
 		*/
 
@@ -2921,7 +2933,7 @@ void the_game(
 			Fog
 		*/
 		
-		if(g_settings->getBool("enable_fog") == true && !force_fog_off)
+		if(g_settings->getBool("enable_fog") && !force_fog_off)
 		{
 			driver->setFog(
 				bgcolor,
@@ -2952,9 +2964,6 @@ void the_game(
 
 		//TimeTaker guiupdatetimer("Gui updating");
 		
-		const char program_name_and_version[] =
-			"Minetest " VERSION_STRING;
-
 		if(show_debug)
 		{
 			static float drawtime_avg = 0;
@@ -2968,7 +2977,7 @@ void the_game(
 			
 			std::ostringstream os(std::ios_base::binary);
 			os<<std::fixed
-				<<program_name_and_version
+				<<"Minetest "<<minetest_version_hash
 				<<" (R: range_all="<<draw_control.range_all<<")"
 				<<std::setprecision(0)
 				<<" drawtime = "<<drawtime_avg
@@ -2984,7 +2993,9 @@ void the_game(
 		}
 		else if(show_hud || show_chat)
 		{
-			guitext->setText(narrow_to_wide(program_name_and_version).c_str());
+			std::ostringstream os(std::ios_base::binary);
+			os<<"Minetest "<<minetest_version_hash;
+			guitext->setText(narrow_to_wide(os.str()).c_str());
 			guitext->setVisible(true);
 		}
 		else
@@ -3000,7 +3011,9 @@ void the_game(
 				<<", "<<(player_position.Y/BS)
 				<<", "<<(player_position.Z/BS)
 				<<") (yaw="<<(wrapDegrees_0_360(camera_yaw))
-				<<") (seed = "<<((unsigned long long)client.getMapSeed())
+				<<") (t="<<client.getEnv().getClientMap().getHeat(pos_i)
+				<<"C, h="<<client.getEnv().getClientMap().getHumidity(pos_i)
+				<<"%) (seed = "<<((unsigned long long)client.getMapSeed())
 				<<")";
 			guitext2->setText(narrow_to_wide(os.str()).c_str());
 			guitext2->setVisible(true);
@@ -3190,6 +3203,11 @@ void the_game(
 
 				smgr->drawAll(); // 'smgr->drawAll();' may go here
 
+				driver->setTransform(video::ETS_WORLD, core::IdentityMatrix);
+
+				if (show_hud)
+					hud.drawSelectionBoxes(hilightboxes);
+
 
 				//Right eye...
 				irr::core::vector3df rightEye;
@@ -3213,6 +3231,11 @@ void the_game(
 				camera.getCameraNode()->setTarget( focusPoint );
 
 				smgr->drawAll(); // 'smgr->drawAll();' may go here
+
+				driver->setTransform(video::ETS_WORLD, core::IdentityMatrix);
+
+				if (show_hud)
+					hud.drawSelectionBoxes(hilightboxes);
 
 
 				//driver->endScene();
@@ -3242,9 +3265,11 @@ void the_game(
 		driver->setMaterial(m);
 
 		driver->setTransform(video::ETS_WORLD, core::IdentityMatrix);
-
-		if (show_hud)
+		if((!g_settings->getBool("anaglyph")) && (show_hud))
+		{
 			hud.drawSelectionBoxes(hilightboxes);
+		}
+
 		/*
 			Wielded tool
 		*/
@@ -3287,7 +3312,7 @@ void the_game(
 		if (show_hud)
 		{
 			hud.drawHotbar(v2s32(displaycenter.X, screensize.Y),
-					client.getHP(), client.getPlayerItem());
+					client.getHP(), client.getPlayerItem(), client.getBreath());
 		}
 
 		/*
@@ -3330,7 +3355,7 @@ void the_game(
 		*/
 		{
 			TimeTaker timer("endScene");
-			endSceneX(driver);
+			driver->endScene();
 			endscenetime = timer.stop(true);
 		}
 
@@ -3438,6 +3463,7 @@ void the_game(
 		infostream << "\t\t" << i << ":" << texture->getName().getPath().c_str()
 				<< std::endl;
 	}
+	clearTextureNameCache();
 	infostream << "\tRemaining materials: "
 		<< driver-> getMaterialRendererCount ()
 		<< " (note: irrlicht doesn't support removing renderers)"<< std::endl;
