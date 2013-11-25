@@ -272,6 +272,9 @@ minetest.register_chatcommand("teleport", {
 		local teleportee = nil
 		local p = {}
 		p.x, p.y, p.z = string.match(param, "^([%d.-]+)[, ] *([%d.-]+)[, ] *([%d.-]+)$")
+		p.x = tonumber(p.x)
+		p.y = tonumber(p.y)
+		p.z = tonumber(p.z)
 		teleportee = minetest.get_player_by_name(name)
 		if teleportee and p.x and p.y and p.z then
 			minetest.chat_send_player(name, "Teleporting to ("..p.x..", "..p.y..", "..p.z..")")
@@ -302,6 +305,9 @@ minetest.register_chatcommand("teleport", {
 			local p = {}
 			local teleportee_name = nil
 			teleportee_name, p.x, p.y, p.z = string.match(param, "^([^ ]+) +([%d.-]+)[, ] *([%d.-]+)[, ] *([%d.-]+)$")
+			p.x = tonumber(p.x)
+			p.y = tonumber(p.y)
+			p.z = tonumber(p.z)
 			if teleportee_name then
 				teleportee = minetest.get_player_by_name(teleportee_name)
 			end
@@ -465,10 +471,10 @@ minetest.register_chatcommand("spawnentity", {
 			minetest.chat_send_player(name, "entityname required")
 			return
 		end
-		print('/spawnentity invoked, entityname="'..entityname..'"')
+		minetest.log("action", '/spawnentity invoked, entityname="'..entityname..'"')
 		local player = minetest.get_player_by_name(name)
 		if player == nil then
-			print("Unable to spawn entity, player is nil")
+			minetest.log("error", "Unable to spawn entity, player is nil")
 			return true -- Handled chat message
 		end
 		local p = player:getpos()
@@ -485,7 +491,7 @@ minetest.register_chatcommand("pulverize", {
 	func = function(name, param)
 		local player = minetest.get_player_by_name(name)
 		if player == nil then
-			print("Unable to pulverize, player is nil")
+			minetest.log("error", "Unable to pulverize, player is nil")
 			return true -- Handled chat message
 		end
 		if player:get_wielded_item():is_empty() then

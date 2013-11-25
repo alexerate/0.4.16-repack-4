@@ -7,126 +7,503 @@ msgid ""
 msgstr ""
 "Project-Id-Version: minetest\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-05-13 18:26+0200\n"
-"PO-Revision-Date: 2013-04-21 23:38+0200\n"
-"Last-Translator: Daniel \"Tracerneo\" Ziółkowski <ziolkoneo@gmail.com>\n"
+"POT-Creation-Date: 2013-11-23 17:37+0100\n"
+"PO-Revision-Date: 2013-10-08 21:22+0200\n"
+"Last-Translator: Maciej Kasatkin <maciej.kasatkin@yahoo.com>\n"
 "Language-Team: Polish <>\n"
 "Language: pl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
-"|| n%100>=20) ? 1 : 2);\n"
-"X-Generator: Weblate 1.4-dev\n"
+"Plural-Forms: nplurals=3; plural=n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2;\n"
+"X-Generator: Weblate 1.7-dev\n"
 
-#: src/client.cpp:2846
+#: builtin/gamemgr.lua:23
+msgid "Game Name"
+msgstr "Nazwa Gry"
+
+#: builtin/gamemgr.lua:25 builtin/mainmenu.lua:310
+msgid "Create"
+msgstr "Utwórz"
+
+#: builtin/gamemgr.lua:26 builtin/mainmenu.lua:311 builtin/modmgr.lua:331
+#: builtin/modmgr.lua:448 src/guiKeyChangeMenu.cpp:195 src/keycode.cpp:223
+msgid "Cancel"
+msgstr "Anuluj"
+
+#: builtin/gamemgr.lua:118
+msgid "Gamemgr: Unable to copy mod \"$1\" to game \"$2\""
+msgstr "Gamemgr: Kopiowanie moda \"$1\" do gry \"$2\" nie powiodło się"
+
+#: builtin/gamemgr.lua:216
+msgid "GAMES"
+msgstr "GRY"
+
+#: builtin/gamemgr.lua:217 builtin/mainmenu.lua:1076
+msgid "Games"
+msgstr "Gry"
+
+#: builtin/gamemgr.lua:234
+msgid "Mods:"
+msgstr "Mody:"
+
+#: builtin/gamemgr.lua:235
+msgid "edit game"
+msgstr "edytuj grę"
+
+#: builtin/gamemgr.lua:238
+msgid "new game"
+msgstr "nowa gra"
+
+#: builtin/gamemgr.lua:248
+msgid "EDIT GAME"
+msgstr "EDYTUJ GRĘ"
+
+#: builtin/gamemgr.lua:269
+msgid "Remove selected mod"
+msgstr "Usuń zaznaczony mod"
+
+#: builtin/gamemgr.lua:272
+msgid "<<-- Add mod"
+msgstr "<<--Dodaj mod"
+
+#: builtin/mainmenu.lua:158
+msgid "Ok"
+msgstr "OK"
+
+#: builtin/mainmenu.lua:297
+msgid "World name"
+msgstr "Nazwa świata"
+
+#: builtin/mainmenu.lua:300
+msgid "Seed"
+msgstr ""
+
+#: builtin/mainmenu.lua:303
+msgid "Mapgen"
+msgstr "Generator mapy"
+
+#: builtin/mainmenu.lua:306
+msgid "Game"
+msgstr "Gra"
+
+#: builtin/mainmenu.lua:319
+msgid "Delete World \"$1\"?"
+msgstr "Usunąć świat \"$1\"?"
+
+#: builtin/mainmenu.lua:320 builtin/modmgr.lua:877
+msgid "Yes"
+msgstr "Tak"
+
+#: builtin/mainmenu.lua:321
+msgid "No"
+msgstr "Nie"
+
+#: builtin/mainmenu.lua:364
+msgid "A world named \"$1\" already exists"
+msgstr "Istnieje już świat o nazwie \"$1\""
+
+#: builtin/mainmenu.lua:381
+msgid "No worldname given or no game selected"
+msgstr "Nie podano nazwy świata lub nie wybrano gry"
+
+#: builtin/mainmenu.lua:650
+msgid "To enable shaders the OpenGL driver needs to be used."
+msgstr ""
+
+#: builtin/mainmenu.lua:818
+msgid "CLIENT"
+msgstr "KLIENT"
+
+#: builtin/mainmenu.lua:819
+msgid "Favorites:"
+msgstr "Ulubione:"
+
+#: builtin/mainmenu.lua:820
+msgid "Address/Port"
+msgstr "Adres/Port"
+
+#: builtin/mainmenu.lua:821
+msgid "Name/Password"
+msgstr "Nazwa gracza/Hasło"
+
+#: builtin/mainmenu.lua:824
+msgid "Public Serverlist"
+msgstr "Lista publicznych serwerów"
+
+#: builtin/mainmenu.lua:829 builtin/mainmenu.lua:874 builtin/mainmenu.lua:937
+#: src/keycode.cpp:229
+msgid "Delete"
+msgstr "Usuń"
+
+#: builtin/mainmenu.lua:833
+msgid "Connect"
+msgstr "Połącz"
+
+#: builtin/mainmenu.lua:875 builtin/mainmenu.lua:938
+msgid "New"
+msgstr "Nowy"
+
+#: builtin/mainmenu.lua:876 builtin/mainmenu.lua:939
+msgid "Configure"
+msgstr "Ustaw"
+
+#: builtin/mainmenu.lua:877
+msgid "Start Game"
+msgstr "Rozpocznij grę/Połącz"
+
+#: builtin/mainmenu.lua:878 builtin/mainmenu.lua:941
+msgid "Select World:"
+msgstr "Wybierz świat:"
+
+#: builtin/mainmenu.lua:879
+msgid "START SERVER"
+msgstr "URUCHOM SERWER"
+
+#: builtin/mainmenu.lua:880 builtin/mainmenu.lua:943
+msgid "Creative Mode"
+msgstr "Tryb kreatywny"
+
+#: builtin/mainmenu.lua:882 builtin/mainmenu.lua:945
+msgid "Enable Damage"
+msgstr "Włącz obrażenia"
+
+#: builtin/mainmenu.lua:884
+msgid "Public"
+msgstr "Publiczne"
+
+#: builtin/mainmenu.lua:886
+msgid "Name"
+msgstr "Nazwa"
+
+#: builtin/mainmenu.lua:888
+msgid "Password"
+msgstr "Hasło"
+
+#: builtin/mainmenu.lua:889
+msgid "Server Port"
+msgstr "Port Serwera"
+
+#: builtin/mainmenu.lua:899
+msgid "SETTINGS"
+msgstr "USTAWIENIA"
+
+#: builtin/mainmenu.lua:900
+msgid "Fancy trees"
+msgstr "Ozdobne drzewa"
+
+#: builtin/mainmenu.lua:902
+msgid "Smooth Lighting"
+msgstr "Płynne oświetlenie"
+
+#: builtin/mainmenu.lua:904
+msgid "3D Clouds"
+msgstr "Chmury 3D"
+
+#: builtin/mainmenu.lua:906
+msgid "Opaque Water"
+msgstr "Nieprzeźroczysta woda"
+
+#: builtin/mainmenu.lua:909
+msgid "Mip-Mapping"
+msgstr "Mip-Mappowanie"
+
+#: builtin/mainmenu.lua:911
+msgid "Anisotropic Filtering"
+msgstr "Filtrowanie anizotropowe"
+
+#: builtin/mainmenu.lua:913
+msgid "Bi-Linear Filtering"
+msgstr "Filtrowanie dwuliniowe"
+
+#: builtin/mainmenu.lua:915
+msgid "Tri-Linear Filtering"
+msgstr "Filtrowanie trójliniowe"
+
+#: builtin/mainmenu.lua:918
+msgid "Shaders"
+msgstr "Shadery"
+
+#: builtin/mainmenu.lua:920
+msgid "Preload item visuals"
+msgstr "Ładuj obrazy przedmiotów"
+
+#: builtin/mainmenu.lua:922
+msgid "Enable Particles"
+msgstr "Włącz cząstki"
+
+#: builtin/mainmenu.lua:924
+msgid "Finite Liquid"
+msgstr "Realistyczne ciecze"
+
+#: builtin/mainmenu.lua:927
+msgid "Change keys"
+msgstr "Zmień klawisze"
+
+#: builtin/mainmenu.lua:940 src/keycode.cpp:248
+msgid "Play"
+msgstr "Graj"
+
+#: builtin/mainmenu.lua:942
+msgid "SINGLE PLAYER"
+msgstr "TRYB JEDNOOSOBOWY"
+
+#: builtin/mainmenu.lua:955
+msgid "Select texture pack:"
+msgstr "Wybierz paczkę tekstur:"
+
+#: builtin/mainmenu.lua:956
+msgid "TEXTURE PACKS"
+msgstr "PACZKI TEKSTUR"
+
+#: builtin/mainmenu.lua:976
+msgid "No information available"
+msgstr "Brak informacjii"
+
+#: builtin/mainmenu.lua:1005
+msgid "Core Developers"
+msgstr "Twórcy"
+
+#: builtin/mainmenu.lua:1020
+msgid "Active Contributors"
+msgstr "Aktywni współautorzy"
+
+#: builtin/mainmenu.lua:1028
+msgid "Previous Contributors"
+msgstr "Byli współautorzy"
+
+#: builtin/mainmenu.lua:1069
+msgid "Singleplayer"
+msgstr "Pojedynczy gracz"
+
+#: builtin/mainmenu.lua:1070
+msgid "Client"
+msgstr "Klient"
+
+#: builtin/mainmenu.lua:1071
+msgid "Server"
+msgstr "Serwer"
+
+#: builtin/mainmenu.lua:1072
+msgid "Settings"
+msgstr "Ustawienia"
+
+#: builtin/mainmenu.lua:1073
+msgid "Texture Packs"
+msgstr "Paczki tekstur"
+
+#: builtin/mainmenu.lua:1080
+msgid "Mods"
+msgstr "Mody"
+
+#: builtin/mainmenu.lua:1082
+msgid "Credits"
+msgstr "Autorzy"
+
+#: builtin/modmgr.lua:236
+msgid "MODS"
+msgstr "MODY"
+
+#: builtin/modmgr.lua:237
+msgid "Installed Mods:"
+msgstr "Zainstalowane Mody:"
+
+#: builtin/modmgr.lua:243
+#, fuzzy
+msgid "Add mod:"
+msgstr "<<--Dodaj mod"
+
+#: builtin/modmgr.lua:244
+#, fuzzy
+msgid "Local install"
+msgstr "Instaluj"
+
+#: builtin/modmgr.lua:245
+msgid "Online mod repository"
+msgstr ""
+
+#: builtin/modmgr.lua:284
+#, fuzzy
+msgid "No mod description available"
+msgstr "Brak informacjii"
+
+#: builtin/modmgr.lua:288
+#, fuzzy
+msgid "Mod information:"
+msgstr "Brak informacjii"
+
+#: builtin/modmgr.lua:299
+msgid "Rename"
+msgstr "Zmień nazwę"
+
+#: builtin/modmgr.lua:301
+msgid "Uninstall selected modpack"
+msgstr ""
+
+#: builtin/modmgr.lua:312
+#, fuzzy
+msgid "Uninstall selected mod"
+msgstr "Usuń zaznaczony mod"
+
+#: builtin/modmgr.lua:324
+msgid "Rename Modpack:"
+msgstr "Zmień nazwe Paczki Modów:"
+
+#: builtin/modmgr.lua:329 src/keycode.cpp:227
+msgid "Accept"
+msgstr "Accept"
+
+#: builtin/modmgr.lua:423
+msgid "World:"
+msgstr "Świat:"
+
+#: builtin/modmgr.lua:427 builtin/modmgr.lua:429
+msgid "Hide Game"
+msgstr "Ukryj Grę"
+
+#: builtin/modmgr.lua:433 builtin/modmgr.lua:435
+msgid "Hide mp content"
+msgstr ""
+
+#: builtin/modmgr.lua:442
+msgid "Mod:"
+msgstr "Mod:"
+
+#: builtin/modmgr.lua:444
+msgid "Depends:"
+msgstr "Zależy od:"
+
+#: builtin/modmgr.lua:447 src/guiKeyChangeMenu.cpp:187
+msgid "Save"
+msgstr "Zapisz"
+
+#: builtin/modmgr.lua:464
+#, fuzzy
+msgid "Enable MP"
+msgstr "Włącz wszystkie"
+
+#: builtin/modmgr.lua:466
+#, fuzzy
+msgid "Disable MP"
+msgstr "Wyłącz wszystkie"
+
+#: builtin/modmgr.lua:470 builtin/modmgr.lua:472
+msgid "enabled"
+msgstr "włączone"
+
+#: builtin/modmgr.lua:478
+msgid "Enable all"
+msgstr "Włącz wszystkie"
+
+#: builtin/modmgr.lua:577
+msgid "Select Mod File:"
+msgstr "Wybierz plik moda:"
+
+#: builtin/modmgr.lua:616
+msgid "Install Mod: file: \"$1\""
+msgstr "Zainstaluj mod: plik: \"$1\""
+
+#: builtin/modmgr.lua:617
+msgid ""
+"\n"
+"Install Mod: unsupported filetype \"$1\""
+msgstr ""
+"\n"
+"Instalacja moda: nieznany typ pliku \"$1\""
+
+#: builtin/modmgr.lua:638
+msgid "Failed to install $1 to $2"
+msgstr "Instalacja $1 do $2 nie powiodła się"
+
+#: builtin/modmgr.lua:641
+msgid "Install Mod: unable to find suitable foldername for modpack $1"
+msgstr ""
+"Instalacja moda: nie można znaleźć odpowiedniego folderu dla paczki modów $1"
+
+#: builtin/modmgr.lua:661
+msgid "Install Mod: unable to find real modname for: $1"
+msgstr "Instalacja moda: nie można znaleźć nazwy moda $1"
+
+#: builtin/modmgr.lua:855
+msgid "Modmgr: failed to delete \"$1\""
+msgstr "Modmgr: nie można usunąć \"$1\""
+
+#: builtin/modmgr.lua:859
+msgid "Modmgr: invalid modpath \"$1\""
+msgstr "Modmgr: nieprawidłowy katalog \"$1\""
+
+#: builtin/modmgr.lua:876
+msgid "Are you sure you want to delete \"$1\"?"
+msgstr "Na pewno usunąć \"$1\"?"
+
+#: builtin/modmgr.lua:878
+msgid "No of course not!"
+msgstr "Oczywiście, że nie!"
+
+#: builtin/modstore.lua:183
+msgid "Page $1 of $2"
+msgstr "Strona $1 z $2"
+
+#: builtin/modstore.lua:243
+msgid "Rating"
+msgstr "Ocena"
+
+#: builtin/modstore.lua:251
+msgid "re-Install"
+msgstr "Ponowna instalacja"
+
+#: builtin/modstore.lua:253
+msgid "Install"
+msgstr "Instaluj"
+
+#: src/client.cpp:2917
 msgid "Item textures..."
-msgstr ""
+msgstr "Tekstury przedmiotów..."
 
-#: src/game.cpp:912
+#: src/game.cpp:940
 msgid "Loading..."
-msgstr ""
+msgstr "Ładowanie..."
 
-#: src/game.cpp:972
+#: src/game.cpp:1000
 msgid "Creating server...."
-msgstr ""
+msgstr "Tworzenie serwera...."
 
-#: src/game.cpp:988
+#: src/game.cpp:1016
 msgid "Creating client..."
-msgstr ""
+msgstr "Tworzenie klienta..."
 
-#: src/game.cpp:1003
+#: src/game.cpp:1025
 msgid "Resolving address..."
-msgstr ""
+msgstr "Sprawdzanie adresu..."
 
-#: src/game.cpp:1079
+#: src/game.cpp:1122
 msgid "Connecting to server..."
-msgstr ""
+msgstr "Łączenie z serwerem..."
 
-#: src/game.cpp:3348
+#: src/game.cpp:1219
+msgid "Item definitions..."
+msgstr "Definicje przedmiotów..."
+
+#: src/game.cpp:1226
+msgid "Node definitions..."
+msgstr "Definicje nod..."
+
+#: src/game.cpp:1233
+msgid "Media..."
+msgstr "Media..."
+
+#: src/game.cpp:3409
 msgid "Shutting down stuff..."
-msgstr ""
+msgstr "Wyłączanie..."
 
-#: src/game.cpp:3378 src/guiConfigureWorld.cpp:426
+#: src/game.cpp:3439
 msgid ""
 "\n"
 "Check debug.txt for details."
 msgstr ""
 "\n"
 "Sprawdź plik debug.txt by uzyskać więcej informacji."
-
-#: src/guiConfigureWorld.cpp:123
-msgid ""
-"Warning: Some mods are not configured yet.\n"
-"They will be enabled by default when you save the configuration.  "
-msgstr ""
-"Uwaga: Niektóre z modyfikacji nie zostały jeszcze skonfigurowane.\n"
-"Zostaną domyślnie włączone gdy zapiszesz konfigurację.  "
-
-#: src/guiConfigureWorld.cpp:143
-msgid ""
-"Warning: Some configured mods are missing.\n"
-"Their setting will be removed when you save the configuration.  "
-msgstr ""
-"Ostrzeżenie: Niektóre z modyfikacji nie zostały znalezione.\n"
-"Ich ustawienia zostaną usunięte gdy zapiszesz konfigurację.  "
-
-#: src/guiConfigureWorld.cpp:208
-msgid "enabled"
-msgstr "włączone"
-
-#: src/guiConfigureWorld.cpp:218
-msgid "Enable All"
-msgstr "Włącz wszystkie"
-
-#: src/guiConfigureWorld.cpp:227
-msgid "Disable All"
-msgstr "Wyłącz wszystkie"
-
-#: src/guiConfigureWorld.cpp:235
-msgid "depends on:"
-msgstr "zależne od:"
-
-#: src/guiConfigureWorld.cpp:248
-msgid "is required by:"
-msgstr "wymagane przez:"
-
-#: src/guiConfigureWorld.cpp:270 src/guiCreateWorld.cpp:177
-#: src/guiKeyChangeMenu.cpp:195 src/keycode.cpp:223
-msgid "Cancel"
-msgstr "Anuluj"
-
-#: src/guiConfigureWorld.cpp:277 src/guiKeyChangeMenu.cpp:187
-msgid "Save"
-msgstr "Zapisz"
-
-#: src/guiConfigureWorld.cpp:403
-msgid "Configuration saved.  "
-msgstr "Konfiguracja zapisana.  "
-
-#: src/guiConfigureWorld.cpp:415
-msgid "Warning: Configuration not consistent.  "
-msgstr "Ostrzeżenie: Plik konfiguracyjny niespójny.  "
-
-#: src/guiConfirmMenu.cpp:119
-msgid "Yes"
-msgstr "Tak"
-
-#: src/guiConfirmMenu.cpp:127
-msgid "No"
-msgstr "Nie"
-
-#: src/guiCreateWorld.cpp:125
-msgid "World name"
-msgstr "Nazwa świata"
-
-#: src/guiCreateWorld.cpp:145
-msgid "Game"
-msgstr "Gra"
-
-#: src/guiCreateWorld.cpp:169
-msgid "Create"
-msgstr "Utwórz"
 
 #: src/guiDeathScreen.cpp:96
 msgid "You died."
@@ -136,14 +513,8 @@ msgstr "Zginąłeś."
 msgid "Respawn"
 msgstr "Wróć do gry"
 
-#: src/guiFormSpecMenu.cpp:582
-msgid "Left click: Move all items, Right click: Move single item"
-msgstr ""
-"Lewy przycisk myszy: przenieś wszystkie przedmioty, Prawy przycisk myszy: "
-"przenieś pojedynczy przedmiot"
-
-#: src/guiFormSpecMenu.cpp:608 src/guiMessageMenu.cpp:107
-#: src/guiTextInputMenu.cpp:130
+#: src/guiFormSpecMenu.cpp:1656 src/guiMessageMenu.cpp:107
+#: src/guiTextInputMenu.cpp:139
 msgid "Proceed"
 msgstr "Kontynuuj"
 
@@ -161,279 +532,99 @@ msgstr "\"Użyj\" = wspinaj się"
 msgid "Double tap \"jump\" to toggle fly"
 msgstr "Wciśnij dwukrotnie \"Skok\" by włączyć tryb latania"
 
-#: src/guiKeyChangeMenu.cpp:290
+#: src/guiKeyChangeMenu.cpp:288
 msgid "Key already in use"
 msgstr "Klawisz już zdefiniowany"
 
-#: src/guiKeyChangeMenu.cpp:372
+#: src/guiKeyChangeMenu.cpp:363
 msgid "press key"
 msgstr "naciśnij klawisz"
 
-#: src/guiKeyChangeMenu.cpp:400
+#: src/guiKeyChangeMenu.cpp:389
 msgid "Forward"
 msgstr "Przód"
 
-#: src/guiKeyChangeMenu.cpp:401
+#: src/guiKeyChangeMenu.cpp:390
 msgid "Backward"
 msgstr "Tył"
 
-#: src/guiKeyChangeMenu.cpp:402 src/keycode.cpp:228
+#: src/guiKeyChangeMenu.cpp:391 src/keycode.cpp:228
 msgid "Left"
 msgstr "Lewo"
 
-#: src/guiKeyChangeMenu.cpp:403 src/keycode.cpp:228
+#: src/guiKeyChangeMenu.cpp:392 src/keycode.cpp:228
 msgid "Right"
 msgstr "Prawo"
 
-#: src/guiKeyChangeMenu.cpp:404
+#: src/guiKeyChangeMenu.cpp:393
 msgid "Use"
 msgstr "Użyj"
 
-#: src/guiKeyChangeMenu.cpp:405
+#: src/guiKeyChangeMenu.cpp:394
 msgid "Jump"
 msgstr "Skok"
 
-#: src/guiKeyChangeMenu.cpp:406
+#: src/guiKeyChangeMenu.cpp:395
 msgid "Sneak"
 msgstr "Skradanie"
 
-#: src/guiKeyChangeMenu.cpp:407
+#: src/guiKeyChangeMenu.cpp:396
 msgid "Drop"
 msgstr "Upuść"
 
-#: src/guiKeyChangeMenu.cpp:408
+#: src/guiKeyChangeMenu.cpp:397
 msgid "Inventory"
 msgstr "Ekwipunek"
 
-#: src/guiKeyChangeMenu.cpp:409
+#: src/guiKeyChangeMenu.cpp:398
 msgid "Chat"
 msgstr "Czat"
 
-#: src/guiKeyChangeMenu.cpp:410
+#: src/guiKeyChangeMenu.cpp:399
 msgid "Command"
 msgstr "Komenda"
 
-#: src/guiKeyChangeMenu.cpp:411
+#: src/guiKeyChangeMenu.cpp:400
 msgid "Console"
 msgstr "Konsola"
 
-#: src/guiKeyChangeMenu.cpp:412
+#: src/guiKeyChangeMenu.cpp:401
 msgid "Toggle fly"
 msgstr "Przełącz tryb latania"
 
-#: src/guiKeyChangeMenu.cpp:413
+#: src/guiKeyChangeMenu.cpp:402
 msgid "Toggle fast"
 msgstr "Przełącz tryb szybki"
 
-#: src/guiKeyChangeMenu.cpp:414
+#: src/guiKeyChangeMenu.cpp:403
 msgid "Toggle noclip"
 msgstr "Przełącz tryb noclip"
 
-#: src/guiKeyChangeMenu.cpp:415
+#: src/guiKeyChangeMenu.cpp:404
 msgid "Range select"
 msgstr "Zasięg widzenia"
 
-#: src/guiKeyChangeMenu.cpp:416
+#: src/guiKeyChangeMenu.cpp:405
 msgid "Print stacks"
 msgstr "Drukuj stosy"
 
-#: src/guiMainMenu.cpp:92
-msgid "Cannot create world: Name contains invalid characters"
-msgstr "Nie można stworzyć świata: Nazwa zawiera niedozwolone znaki"
-
-#: src/guiMainMenu.cpp:103
-msgid "Cannot create world: A world by this name already exists"
-msgstr "Nie można stworzyć świata: Istnieje już świat o takiej nazwie"
-
-#: src/guiMainMenu.cpp:285
-msgid "Singleplayer"
-msgstr "Pojedynczy gracz"
-
-#: src/guiMainMenu.cpp:288
-msgid "Multiplayer"
-msgstr "Gra wieloosobowa"
-
-#: src/guiMainMenu.cpp:291
-msgid "Advanced"
-msgstr "Zaawansowane"
-
-#: src/guiMainMenu.cpp:294
-msgid "Settings"
-msgstr "Ustawienia"
-
-#: src/guiMainMenu.cpp:297
-msgid "Credits"
-msgstr "Autorzy"
-
-#: src/guiMainMenu.cpp:330
-msgid "Select World:"
-msgstr "Wybierz świat:"
-
-#: src/guiMainMenu.cpp:360 src/guiMainMenu.cpp:578 src/keycode.cpp:229
-msgid "Delete"
-msgstr "Usuń"
-
-#: src/guiMainMenu.cpp:369
-msgid "New"
-msgstr "Nowy"
-
-#: src/guiMainMenu.cpp:379
-msgid "Configure"
-msgstr "Ustaw"
-
-#: src/guiMainMenu.cpp:396 src/keycode.cpp:248
-msgid "Play"
-msgstr "Graj"
-
-#: src/guiMainMenu.cpp:409 src/guiMainMenu.cpp:699
-msgid "Creative Mode"
-msgstr "Tryb kreatywny"
-
-#: src/guiMainMenu.cpp:417 src/guiMainMenu.cpp:707
-msgid "Enable Damage"
-msgstr "Włącz obrażenia"
-
-#: src/guiMainMenu.cpp:459 src/guiMainMenu.cpp:614
-msgid "Name/Password"
-msgstr "Nazwa gracza/Hasło"
-
-#: src/guiMainMenu.cpp:498 src/guiMainMenu.cpp:519 src/guiMainMenu.cpp:1324
-msgid "Favorites:"
-msgstr "Ulubione:"
-
-#: src/guiMainMenu.cpp:508 src/guiMainMenu.cpp:1338
-msgid "Public Server List:"
-msgstr "Lista publicznych serwerów:"
-
-#: src/guiMainMenu.cpp:532 src/guiMainMenu.cpp:643
-msgid "Address/Port"
-msgstr "Adres/Port"
-
-#: src/guiMainMenu.cpp:560 src/guiMainMenu.cpp:1323
-msgid "Show Public"
-msgstr "Pokaż publiczne"
-
-#: src/guiMainMenu.cpp:567 src/guiMainMenu.cpp:1337
-msgid "Show Favorites"
-msgstr "Pokaż ulubione"
-
-#: src/guiMainMenu.cpp:591
-msgid "Connect"
-msgstr "Połącz"
-
-#: src/guiMainMenu.cpp:668
-msgid "Leave address blank to start a local server."
-msgstr "Pozostaw pole adresu puste, by uruchomić serwer lokalny."
-
-#: src/guiMainMenu.cpp:678
-msgid "Start Game / Connect"
-msgstr "Rozpocznij grę/Połącz"
-
-#: src/guiMainMenu.cpp:716
-msgid "Public"
-msgstr "Publiczne"
-
-#: src/guiMainMenu.cpp:726 src/guiMainMenu.cpp:1245
-msgid "Delete world"
-msgstr "Usuń świat"
-
-#: src/guiMainMenu.cpp:735
-msgid "Create world"
-msgstr "Stwórz świat"
-
-#: src/guiMainMenu.cpp:773
-msgid "Fancy trees"
-msgstr "Ozdobne drzewa"
-
-#: src/guiMainMenu.cpp:781
-msgid "Smooth Lighting"
-msgstr "Płynne oświetlenie"
-
-#: src/guiMainMenu.cpp:789
-msgid "3D Clouds"
-msgstr "Chmury 3D"
-
-#: src/guiMainMenu.cpp:797
-msgid "Opaque water"
-msgstr "Nieprzeźroczysta woda"
-
-#: src/guiMainMenu.cpp:809
-msgid "Mip-Mapping"
-msgstr "Mip-Mappowanie"
-
-#: src/guiMainMenu.cpp:818
-msgid "Anisotropic Filtering"
-msgstr "Filtrowanie anizotropowe"
-
-#: src/guiMainMenu.cpp:827
-msgid "Bi-Linear Filtering"
-msgstr "Dwuliniowe filtrowanie"
-
-#: src/guiMainMenu.cpp:836
-msgid "Tri-Linear Filtering"
-msgstr "Trójliniowe filtrowanie"
-
-#: src/guiMainMenu.cpp:846
-msgid "Shaders"
-msgstr "Shadery"
-
-#: src/guiMainMenu.cpp:855
-msgid "Preload item visuals"
-msgstr "Ładuj obrazy przedmiotów"
-
-#: src/guiMainMenu.cpp:864
-msgid "Enable Particles"
-msgstr "Włącz cząstki"
-
-#: src/guiMainMenu.cpp:873
-msgid "Finite liquid"
-msgstr "Realistyczne ciecze"
-
-#: src/guiMainMenu.cpp:885
-msgid "Change keys"
-msgstr "Zmień klawisze"
-
-#: src/guiMainMenu.cpp:1211 src/guiMainMenu.cpp:1372
-msgid "Address required."
-msgstr "Wymagany adres."
-
-#: src/guiMainMenu.cpp:1231
-msgid "Cannot delete world: Nothing selected"
-msgstr "Nie można skasować świata: nic nie zaznaczono"
-
-#: src/guiMainMenu.cpp:1246
-msgid "Files to be deleted"
-msgstr "Pliki do skasowania"
-
-#: src/guiMainMenu.cpp:1267
-msgid "Cannot create world: No games found"
-msgstr "Nie można utworzyć świata: Nie znaleziono żadnego trybu gry"
-
-#: src/guiMainMenu.cpp:1286
-msgid "Cannot configure world: Nothing selected"
-msgstr "Nie można skonfigurować świata: Nic nie zaznaczono"
-
-#: src/guiMainMenu.cpp:1428
-msgid "Failed to delete all world files"
-msgstr "Nie udało się skasować wszystkich plików świata"
-
-#: src/guiPasswordChange.cpp:108
+#: src/guiPasswordChange.cpp:106
 msgid "Old Password"
 msgstr "Stare hasło"
 
-#: src/guiPasswordChange.cpp:126
+#: src/guiPasswordChange.cpp:122
 msgid "New Password"
 msgstr "Nowe hasło"
 
-#: src/guiPasswordChange.cpp:143
+#: src/guiPasswordChange.cpp:137
 msgid "Confirm Password"
 msgstr "Potwierdź hasło"
 
-#: src/guiPasswordChange.cpp:161
+#: src/guiPasswordChange.cpp:153
 msgid "Change"
 msgstr "Zmień"
 
-#: src/guiPasswordChange.cpp:170
+#: src/guiPasswordChange.cpp:162
 msgid "Passwords do not match!"
 msgstr "Hasła nie są jednakowe!"
 
@@ -471,12 +662,23 @@ msgid ""
 "- Mouse wheel: select item\n"
 "- T: chat\n"
 msgstr ""
+"Domyślne sterowanie:↵\n"
+"- WASD: ruch↵\n"
+"- Spacja: skok/wspinanie się↵\n"
+"- Shift: skradanie się/schodzenie w dół↵\n"
+"- Q: upuszczenie przedmiotu↵\n"
+"- I: ekwipunek↵\n"
+"- Mysz: obracanie się/patrzenie↵\n"
+"- Lewy przycisk myszy: kopanie/uderzanie↵\n"
+"- Prawy przycisk myszy: postawienie/użycie przedmiotu↵\n"
+"- Rolka myszy: wybór przedmiotu↵\n"
+"- T: chat\n"
 
-#: src/guiVolumeChange.cpp:108
+#: src/guiVolumeChange.cpp:107
 msgid "Sound Volume: "
 msgstr "Głośność: "
 
-#: src/guiVolumeChange.cpp:122
+#: src/guiVolumeChange.cpp:121
 msgid "Exit"
 msgstr "Wyjście"
 
@@ -563,10 +765,6 @@ msgstr "Kanji"
 #: src/keycode.cpp:226
 msgid "Nonconvert"
 msgstr "Nonconvert"
-
-#: src/keycode.cpp:227
-msgid "Accept"
-msgstr "Accept"
 
 #: src/keycode.cpp:227
 msgid "End"
@@ -772,29 +970,43 @@ msgstr "PA1"
 msgid "Zoom"
 msgstr "Zoom"
 
-#: src/main.cpp:1680
+#: src/main.cpp:1472
+msgid "needs_fallback_font"
+msgstr ""
+
+#: src/main.cpp:1547
 msgid "Main Menu"
 msgstr "Menu główne"
 
-#: src/main.cpp:2035
-msgid "Failed to initialize world"
-msgstr "Inicjalizacja świata nie powiodła się"
-
-#: src/main.cpp:2048
+#: src/main.cpp:1723
 msgid "No world selected and no address provided. Nothing to do."
 msgstr "Nie wybrano świata ani adresu."
 
-#: src/main.cpp:2056
+#: src/main.cpp:1731
 msgid "Could not find or load game \""
 msgstr "Nie można znaleźć lub wczytać trybu gry \""
 
-#: src/main.cpp:2070
+#: src/main.cpp:1745
 msgid "Invalid gamespec."
 msgstr "Nieprawidłowa specyfikacja trybu gry."
 
-#: src/main.cpp:2111
+#: src/main.cpp:1790
 msgid "Connection error (timed out?)"
 msgstr "Błąd połączenia (brak odpowiedzi?)"
+
+#~ msgid ""
+#~ "Warning: Some mods are not configured yet.\n"
+#~ "They will be enabled by default when you save the configuration.  "
+#~ msgstr ""
+#~ "Uwaga: Niektóre z modyfikacji nie zostały jeszcze skonfigurowane.\n"
+#~ "Zostaną domyślnie włączone gdy zapiszesz konfigurację.  "
+
+#~ msgid ""
+#~ "Warning: Some configured mods are missing.\n"
+#~ "Their setting will be removed when you save the configuration.  "
+#~ msgstr ""
+#~ "Ostrzeżenie: Niektóre z modyfikacji nie zostały znalezione.\n"
+#~ "Ich ustawienia zostaną usunięte gdy zapiszesz konfigurację.  "
 
 #~ msgid ""
 #~ "Default Controls:\n"
@@ -820,3 +1032,59 @@ msgstr "Błąd połączenia (brak odpowiedzi?)"
 #~ "- I: menu ekwipunku\n"
 #~ "- ESC: to menu\n"
 #~ "- T: czat\n"
+
+#~ msgid "Failed to delete all world files"
+#~ msgstr "Nie udało się skasować wszystkich plików świata"
+
+#~ msgid "Cannot configure world: Nothing selected"
+#~ msgstr "Nie można skonfigurować świata: Nic nie zaznaczono"
+
+#~ msgid "Cannot create world: No games found"
+#~ msgstr "Nie można utworzyć świata: Nie znaleziono żadnego trybu gry"
+
+#~ msgid "Files to be deleted"
+#~ msgstr "Pliki do skasowania"
+
+#~ msgid "Cannot delete world: Nothing selected"
+#~ msgstr "Nie można skasować świata: nic nie zaznaczono"
+
+#~ msgid "Address required."
+#~ msgstr "Wymagany adres."
+
+#~ msgid "Create world"
+#~ msgstr "Stwórz świat"
+
+#~ msgid "Leave address blank to start a local server."
+#~ msgstr "Pozostaw pole adresu puste, by uruchomić serwer lokalny."
+
+#~ msgid "Show Favorites"
+#~ msgstr "Pokaż ulubione"
+
+#~ msgid "Show Public"
+#~ msgstr "Pokaż publiczne"
+
+#~ msgid "Advanced"
+#~ msgstr "Zaawansowane"
+
+#~ msgid "Multiplayer"
+#~ msgstr "Gra wieloosobowa"
+
+#~ msgid "Cannot create world: Name contains invalid characters"
+#~ msgstr "Nie można stworzyć świata: Nazwa zawiera niedozwolone znaki"
+
+#~ msgid "Warning: Configuration not consistent.  "
+#~ msgstr "Ostrzeżenie: Plik konfiguracyjny niespójny.  "
+
+#~ msgid "Configuration saved.  "
+#~ msgstr "Konfiguracja zapisana.  "
+
+#~ msgid "is required by:"
+#~ msgstr "wymagane przez:"
+
+#~ msgid "Left click: Move all items, Right click: Move single item"
+#~ msgstr ""
+#~ "Lewy przycisk myszy: przenieś wszystkie przedmioty, Prawy przycisk myszy: "
+#~ "przenieś pojedynczy przedmiot"
+
+#~ msgid "Download"
+#~ msgstr "Ściągnij"

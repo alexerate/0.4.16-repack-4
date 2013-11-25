@@ -19,12 +19,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 
+#include "emerge.h"
 #include "server.h"
 #include <iostream>
 #include <queue>
-#include "clientserver.h"
 #include "map.h"
-#include "jmutexautolock.h"
+#include "environment.h"
+#include "util/container.h"
+#include "util/thread.h"
 #include "main.h"
 #include "constants.h"
 #include "voxel.h"
@@ -32,16 +34,56 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "mapblock.h"
 #include "serverobject.h"
 #include "settings.h"
-#include "cpp_api/scriptapi.h"
+#include "scripting_game.h"
 #include "profiler.h"
 #include "log.h"
 #include "nodedef.h"
 #include "biome.h"
-#include "emerge.h"
 #include "mapgen_v6.h"
 #include "mapgen_v7.h"
 #include "mapgen_indev.h"
 #include "mapgen_singlenode.h"
+#include "mapgen_math.h"
+
+
+class EmergeThread : public SimpleThread
+{
+public:
+	Server *m_server;
+	ServerMap *map;
+	EmergeManager *emerge;
+	Mapgen *mapgen;
+	bool enable_mapgen_debug_info;
+	int id;
+	
+	Event qevent;
+	std::queue<v3s16> blockqueue;
+	
+	EmergeThread(Server *server, int ethreadid):
+		SimpleThread(),
+		m_server(server),
+		map(NULL),
+		emerge(NULL),
+		mapgen(NULL),
+		id(ethreadid)
+	{
+	}
+
+	void *Thread();
+
+	void trigger()
+	{
+		setRun(true);
+		if(IsRunning() == false)
+		{
+			Start();
+		}
+	}
+
+	bool popBlockEmerge(v3s16 *pos, u8 *flags);
+	bool getBlockOrStartGen(v3s16 p, MapBlock **b,
+			BlockMakeData *data, bool allow_generate);
+};
 
 
 /////////////////////////////// Emerge Manager ////////////////////////////////
@@ -52,10 +94,15 @@ EmergeManager::EmergeManager(IGameDef *gamedef) {
 	registerMapgen("v7", new MapgenFactoryV7());
 	registerMapgen("indev", new MapgenFactoryIndev());
 	registerMapgen("singlenode", new MapgenFactorySinglenode());
+	registerMapgen("math", new MapgenFactoryMath());
 
 	this->ndef     = gamedef->getNodeDefManager();
 	this->biomedef = new BiomeDefManager();
 	this->params   = NULL;
+	
+	this->luaoverride_params          = NULL;
+	this->luaoverride_params_modified = 0;
+	this->luaoverride_flagmask        = 0;
 	
 	mapgen_debug_info = g_settings->getBool("enable_mapgen_debug_info");
 
@@ -101,6 +148,10 @@ EmergeManager::~EmergeManager() {
 	for (unsigned int i = 0; i < ores.size(); i++)
 		delete ores[i];
 	ores.clear();
+
+	for (unsigned int i = 0; i < decorations.size(); i++)
+		delete decorations[i];
+	decorations.clear();
 	
 	for (std::map<std::string, MapgenFactory *>::iterator iter = mglist.begin();
 			iter != mglist.end(); iter ++) {
@@ -118,10 +169,39 @@ void EmergeManager::initMapgens(MapgenParams *mgparams) {
 	if (mapgen.size())
 		return;
 	
+	// Resolve names of nodes for things that were registered
+	// (at this point, the registration period is over)
 	biomedef->resolveNodeNames(ndef);
 	
+	for (size_t i = 0; i != ores.size(); i++)
+		ores[i]->resolveNodeNames(ndef);
+		
+	for (size_t i = 0; i != decorations.size(); i++)
+		decorations[i]->resolveNodeNames(ndef);
+	
+	// Apply mapgen parameter overrides from Lua
+	if (luaoverride_params) {
+		if (luaoverride_params_modified & MGPARAMS_SET_MGNAME)
+			mgparams->mg_name = luaoverride_params->mg_name;
+		
+		if (luaoverride_params_modified & MGPARAMS_SET_SEED)
+			mgparams->seed = luaoverride_params->seed;
+		
+		if (luaoverride_params_modified & MGPARAMS_SET_WATER_LEVEL)
+			mgparams->water_level = luaoverride_params->water_level;
+		
+		if (luaoverride_params_modified & MGPARAMS_SET_FLAGS) {
+			mgparams->flags &= ~luaoverride_flagmask;
+			mgparams->flags |= luaoverride_params->flags;
+		}
+		
+		delete luaoverride_params;
+		luaoverride_params = NULL;
+	}
+	
+	// Create the mapgens
 	this->params = mgparams;
-	for (unsigned int i = 0; i != emergethread.size(); i++) {
+	for (size_t i = 0; i != emergethread.size(); i++) {
 		mg = createMapgen(params->mg_name, 0, params);
 		if (!mg) {
 			infostream << "EmergeManager: falling back to mapgen v6" << std::endl;
@@ -133,6 +213,21 @@ void EmergeManager::initMapgens(MapgenParams *mgparams) {
 	}
 }
 
+
+Mapgen *EmergeManager::getCurrentMapgen() {
+	for (unsigned int i = 0; i != emergethread.size(); i++) {
+		if (emergethread[i]->IsSameThread())
+			return emergethread[i]->mapgen;
+	}
+	
+	return NULL;
+}
+
+
+void EmergeManager::triggerAllThreads() {
+	for (unsigned int i = 0; i != emergethread.size(); i++)
+		emergethread[i]->trigger();
+}
 
 bool EmergeManager::enqueueBlockEmerge(u16 peer_id, v3s16 p, bool allow_generate) {
 	std::map<v3s16, BlockEmergeData *>::const_iterator iter;
@@ -256,8 +351,11 @@ MapgenParams *EmergeManager::getParamsFromSettings(Settings *settings) {
 	if (!mgparams)
 		return NULL;
 	
+	std::string seedstr = settings->get(settings == g_settings ?
+									"fixed_map_seed" : "seed");
+	
 	mgparams->mg_name     = mg_name;
-	mgparams->seed        = settings->getU64(settings == g_settings ? "fixed_map_seed" : "seed");
+	mgparams->seed        = read_seed(seedstr.c_str());
 	mgparams->water_level = settings->getS16("water_level");
 	mgparams->chunksize   = settings->getS16("chunksize");
 	mgparams->flags       = settings->getFlagStr("mg_flags", flagdesc_mapgen);
@@ -331,6 +429,8 @@ bool EmergeThread::getBlockOrStartGen(v3s16 p, MapBlock **b,
 	if (!block || block->isDummy() || !block->isGenerated()) {
 		EMERGE_DBG_OUT("not in memory, attempting to load from disk");
 		block = map->loadBlock(p);
+		if (block && block->isGenerated())
+			map->prepareBlock(block);
 	}
 
 	// If could not load and allowed to generate,
@@ -417,7 +517,7 @@ void *EmergeThread::Thread() {
 						ign(&m_server->m_ignore_map_edit_events_area,
 						VoxelArea(minp, maxp));
 					{  // takes about 90ms with -O1 on an e3-1230v2
-						SERVER_TO_SA(m_server)->environment_OnGenerated(
+						m_server->getScriptIface()->environment_OnGenerated(
 								minp, maxp, emerge->getBlockSeed(minp));
 					}
 

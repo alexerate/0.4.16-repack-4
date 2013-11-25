@@ -20,9 +20,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "client.h"
 #include <iostream>
 #include "clientserver.h"
-#include "jmutexautolock.h"
+#include "jthread/jmutexautolock.h"
 #include "main.h"
 #include <sstream>
+#include "filesys.h"
 #include "porting.h"
 #include "mapsector.h"
 #include "mapblock_mesh.h"
@@ -47,6 +48,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "util/serialize.h"
 #include "config.h"
 #include "util/directiontables.h"
+#include "version.h"
 
 #if USE_CURL
 #include <curl/curl.h>
@@ -244,13 +246,14 @@ void * MediaFetchThread::Thread()
 		std::ostringstream stream;
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_data);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &stream);
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, (std::string("Minetest ")+minetest_version_hash).c_str());
 		res = curl_easy_perform(curl);
 		if (res == CURLE_OK) {
 			std::string data = stream.str();
 			m_file_data.push_back(make_pair(i->name, data));
 		} else {
 			m_failed.push_back(*i);
-			infostream << "cURL request failed for " << i->name << std::endl;
+			infostream << "cURL request failed for " << i->name << " (" << curl_easy_strerror(res) << ")"<< std::endl;
 		}
 		curl_easy_cleanup(curl);
 	}
@@ -271,7 +274,8 @@ Client::Client(
 		IWritableItemDefManager *itemdef,
 		IWritableNodeDefManager *nodedef,
 		ISoundManager *sound,
-		MtEventManager *event
+		MtEventManager *event,
+		bool ipv6
 ):
 	m_tsrc(tsrc),
 	m_shsrc(shsrc),
@@ -287,7 +291,7 @@ Client::Client(
 		device->getSceneManager(),
 		tsrc, this, device
 	),
-	m_con(PROTOCOL_ID, 512, CONNECTION_TIMEOUT, this),
+	m_con(PROTOCOL_ID, 512, CONNECTION_TIMEOUT, ipv6, this),
 	m_device(device),
 	m_server_ser_ver(SER_FMT_VER_INVALID),
 	m_playeritem(0),
@@ -319,12 +323,6 @@ Client::Client(
 	m_playerpos_send_timer = 0.0;
 	m_ignore_damage_timer = 0.0;
 
-	// Build main texture atlas, now that the GameDef exists (that is, us)
-	if(g_settings->getBool("enable_texture_atlas"))
-		m_tsrc->buildMainAtlas(this);
-	else
-		infostream<<"Not building texture atlas."<<std::endl;
-	
 	/*
 		Add local player
 	*/
@@ -561,14 +559,14 @@ void Client::step(float dtime)
 	
 			// Send TOSERVER_INIT
 			// [0] u16 TOSERVER_INIT
-			// [2] u8 SER_FMT_VER_HIGHEST
+			// [2] u8 SER_FMT_VER_HIGHEST_READ
 			// [3] u8[20] player_name
 			// [23] u8[28] password (new in some version)
 			// [51] u16 minimum supported network protocol version (added sometime)
 			// [53] u16 maximum supported network protocol version (added later than the previous one)
 			SharedBuffer<u8> data(2+1+PLAYERNAME_SIZE+PASSWORD_SIZE+2+2);
 			writeU16(&data[0], TOSERVER_INIT);
-			writeU8(&data[2], SER_FMT_VER_HIGHEST);
+			writeU8(&data[2], SER_FMT_VER_HIGHEST_READ);
 
 			memset((char*)&data[3], 0, PLAYERNAME_SIZE);
 			snprintf((char*)&data[3], PLAYERNAME_SIZE, "%s", myplayer->getName());
@@ -697,9 +695,14 @@ void Client::step(float dtime)
 					m_client_event_queue.push_back(event);
 				}
 			}
+			else if(event.type == CEE_PLAYER_BREATH)
+			{
+					u16 breath = event.player_breath.amount;
+					sendBreath(breath);
+			}
 		}
 	}
-	
+
 	/*
 		Print some info
 	*/
@@ -802,7 +805,8 @@ void Client::step(float dtime)
 			all_stopped &= !(*thread)->IsRunning();
 			while (!(*thread)->m_file_data.empty()) {
 				std::pair <std::string, std::string> out = (*thread)->m_file_data.pop_front();
-				++m_media_received_count;
+				if(m_media_received_count < m_media_count)
+					m_media_received_count++;
 
 				bool success = loadMedia(out.second, out.first);
 				if(success){
@@ -1153,8 +1157,7 @@ void Client::ProcessData(u8 *data, u32 datasize, u16 sender_peer_id)
 		infostream<<"Client: TOCLIENT_INIT received with "
 				"deployed="<<((int)deployed&0xff)<<std::endl;
 
-		if(deployed < SER_FMT_VER_LOWEST
-				|| deployed > SER_FMT_VER_HIGHEST)
+		if(!ser_ver_supported(deployed))
 		{
 			infostream<<"Client: TOCLIENT_INIT: Server sent "
 					<<"unsupported ser_fmt_ver"<<std::endl;
@@ -1299,6 +1302,7 @@ void Client::ProcessData(u8 *data, u32 datasize, u16 sender_peer_id)
 			*/
 			//infostream<<"Updating"<<std::endl;
 			block->deSerialize(istr, ser_version, false);
+			block->deSerializeNetworkSpecific(istr);
 		}
 		else
 		{
@@ -1308,6 +1312,7 @@ void Client::ProcessData(u8 *data, u32 datasize, u16 sender_peer_id)
 			//infostream<<"Creating new"<<std::endl;
 			block = new MapBlock(&m_env.getMap(), p, this);
 			block->deSerialize(istr, ser_version, false);
+			block->deSerializeNetworkSpecific(istr);
 			sector->insertBlock(block);
 		}
 
@@ -1354,8 +1359,6 @@ void Client::ProcessData(u8 *data, u32 datasize, u16 sender_peer_id)
 			std::istringstream is(datastring, std::ios_base::binary);
 			//t3.stop();
 			
-			//m_env.printPlayers(infostream);
-
 			//TimeTaker t4("player get", m_device);
 			Player *player = m_env.getLocalPlayer();
 			assert(player != NULL);
@@ -1583,6 +1586,15 @@ void Client::ProcessData(u8 *data, u32 datasize, u16 sender_peer_id)
 			m_client_event_queue.push_back(event);
 		}
 	}
+	else if(command == TOCLIENT_BREATH)
+	{
+		std::string datastring((char*)&data[2], datasize-2);
+		std::istringstream is(datastring, std::ios_base::binary);
+		Player *player = m_env.getLocalPlayer();
+		assert(player != NULL);
+		u16 breath = readU16(is);
+		player->setBreath(breath) ;
+	}
 	else if(command == TOCLIENT_MOVE_PLAYER)
 	{
 		std::string datastring((char*)&data[2], datasize-2);
@@ -1736,14 +1748,8 @@ void Client::ProcessData(u8 *data, u32 datasize, u16 sender_peer_id)
 	}
 	else if(command == TOCLIENT_MEDIA)
 	{
-		if (m_media_count == 0)
-			return;
 		std::string datastring((char*)&data[2], datasize-2);
 		std::istringstream is(datastring, std::ios_base::binary);
-
-		// Mesh update thread must be stopped while
-		// updating content definitions
-		assert(!m_mesh_update_thread.IsRunning());
 
 		/*
 			u16 command
@@ -1759,11 +1765,31 @@ void Client::ProcessData(u8 *data, u32 datasize, u16 sender_peer_id)
 		*/
 		int num_bunches = readU16(is);
 		int bunch_i = readU16(is);
-		int num_files = readU32(is);
+		u32 num_files = readU32(is);
 		infostream<<"Client: Received files: bunch "<<bunch_i<<"/"
 				<<num_bunches<<" files="<<num_files
 				<<" size="<<datasize<<std::endl;
-		for(int i=0; i<num_files; i++){
+
+		// Check total and received media count
+		assert(m_media_received_count <= m_media_count);
+		if (num_files > m_media_count - m_media_received_count) {
+			errorstream<<"Client: Received more files than requested:"
+				<<" total count="<<m_media_count
+				<<" total received="<<m_media_received_count
+				<<" bunch "<<bunch_i<<"/"<<num_bunches
+				<<" files="<<num_files
+				<<" size="<<datasize<<std::endl;
+			num_files = m_media_count - m_media_received_count;
+		}
+		if (num_files == 0)
+			return;
+
+		// Mesh update thread must be stopped while
+		// updating content definitions
+		assert(!m_mesh_update_thread.IsRunning());
+
+		for(u32 i=0; i<num_files; i++){
+			assert(m_media_received_count < m_media_count);
 			m_media_received_count++;
 			std::string name = deSerializeString(is);
 			std::string data = deSerializeLongString(is);
@@ -2151,6 +2177,10 @@ void Client::ProcessData(u8 *data, u32 datasize, u16 sender_peer_id)
 			s32 hotbar_itemcount = readS32((u8*) value.c_str());
 			if(hotbar_itemcount > 0 && hotbar_itemcount <= HUD_HOTBAR_ITEMCOUNT_MAX)
 				player->hud_hotbar_itemcount = hotbar_itemcount;
+		} else if (param == HUD_PARAM_HOTBAR_IMAGE) {
+			((LocalPlayer *) player)->hotbar_image = value;
+		} else if (param == HUD_PARAM_HOTBAR_SELECTED_IMAGE) {
+			((LocalPlayer *) player)->hotbar_selected_image = value;
 		}
 	}
 	else
@@ -2342,6 +2372,20 @@ void Client::sendDamage(u8 damage)
 	writeU16(os, TOSERVER_DAMAGE);
 	writeU8(os, damage);
 
+	// Make data buffer
+	std::string s = os.str();
+	SharedBuffer<u8> data((u8*)s.c_str(), s.size());
+	// Send as reliable
+	Send(0, data, true);
+}
+
+void Client::sendBreath(u16 breath)
+{
+	DSTACK(__FUNCTION_NAME);
+	std::ostringstream os(std::ios_base::binary);
+
+	writeU16(os, TOSERVER_BREATH);
+	writeU16(os, breath);
 	// Make data buffer
 	std::string s = os.str();
 	SharedBuffer<u8> data((u8*)s.c_str(), s.size());
@@ -2680,6 +2724,13 @@ u16 Client::getHP()
 	return player->hp;
 }
 
+u16 Client::getBreath()
+{
+	Player *player = m_env.getLocalPlayer();
+	assert(player != NULL);
+	return player->getBreath();
+}
+
 bool Client::getChatMessage(std::wstring &message)
 {
 	if(m_chat_queue.size() == 0)
@@ -2847,12 +2898,8 @@ void Client::afterContentReceived(IrrlichtDevice *device, gui::IGUIFont* font)
 	infostream<<"- Rebuilding images and textures"<<std::endl;
 	m_tsrc->rebuildImagesAndTextures();
 
-	// Update texture atlas
-	infostream<<"- Updating texture atlas"<<std::endl;
-	if(g_settings->getBool("enable_texture_atlas"))
-		m_tsrc->buildMainAtlas(this);
-
 	// Rebuild shaders
+	infostream<<"- Rebuilding shaders"<<std::endl;
 	m_shsrc->rebuildShaders();
 
 	// Update node aliases

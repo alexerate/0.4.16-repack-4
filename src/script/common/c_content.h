@@ -39,24 +39,27 @@ extern "C" {
 #include "irrlichttypes_bloated.h"
 #include "util/string.h"
 
-class MapNode;
+namespace Json { class Value; }
+
+struct MapNode;
 class INodeDefManager;
-class PointedThing;
-class ItemStack;
-class ItemDefinition;
-class ToolCapabilities;
-class ObjectProperties;
-class SimpleSoundSpec;
-class ServerSoundParams;
+struct PointedThing;
+struct ItemStack;
+struct ItemDefinition;
+struct ToolCapabilities;
+struct ObjectProperties;
+struct SimpleSoundSpec;
+struct ServerSoundParams;
 class Inventory;
-class NodeBox;
-class ContentFeatures;
-class TileDef;
+struct NodeBox;
+struct ContentFeatures;
+struct TileDef;
 class Server;
 struct DigParams;
 struct HitParams;
 struct EnumString;
 struct NoiseParams;
+class DecoSchematic;
 
 
 ContentFeatures    read_content_features         (lua_State *L, int index);
@@ -86,14 +89,13 @@ void               read_object_properties    (lua_State *L,
                                               int index,
                                               ObjectProperties *prop);
 
-//TODO fix parameter oreder!
-void               push_inventory_list       (Inventory *inv,
-                                              const char *name,
-                                              lua_State *L);
-void               read_inventory_list       (Inventory *inv,
-                                              const char *name,
-                                              lua_State *L,
+void               push_inventory_list       (lua_State *L,
+                                              Inventory *inv,
+                                              const char *name);
+void               read_inventory_list       (lua_State *L,
                                               int tableindex,
+                                              Inventory *inv,
+                                              const char *name,
                                               Server* srv,
                                               int forcesize=-1);
 
@@ -139,7 +141,15 @@ bool               string_to_enum            (const EnumString *spec,
 
 NoiseParams*       read_noiseparams          (lua_State *L, int index);
 
+bool               read_schematic            (lua_State *L, int index,
+                                              DecoSchematic *dschem,
+                                              Server *server);
+
 void               luaentity_get             (lua_State *L,u16 id);
+
+bool               push_json_value           (lua_State *L,
+                                              const Json::Value &value,
+                                              int nullindex);
 
 extern struct EnumString es_TileAnimationType[];
 

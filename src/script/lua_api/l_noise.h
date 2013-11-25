@@ -20,16 +20,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef L_NOISE_H_
 #define L_NOISE_H_
 
-extern "C" {
-#include <lua.h>
-#include <lauxlib.h>
-}
-
+#include "lua_api/l_base.h"
 #include "irr_v3d.h"
 #include "noise.h"
 
-class LuaPerlinNoise
-{
+/*
+	LuaPerlinNoise
+*/
+class LuaPerlinNoise : public ModApiBase {
 private:
 	int seed;
 	int octaves;
@@ -62,10 +60,9 @@ public:
 };
 
 /*
-  PerlinNoiseMap
- */
-class LuaPerlinNoiseMap
-{
+	LuaPerlinNoiseMap
+*/
+class LuaPerlinNoiseMap : public ModApiBase {
 private:
 	Noise *noise;
 	static const char className[];
@@ -74,8 +71,9 @@ private:
 	static int gc_object(lua_State *L);
 
 	static int l_get2dMap(lua_State *L);
-
+	static int l_get2dMap_flat(lua_State *L);
 	static int l_get3dMap(lua_State *L);
+	static int l_get3dMap_flat(lua_State *L);
 
 public:
 	LuaPerlinNoiseMap(NoiseParams *np, int seed, v3s16 size);
@@ -94,10 +92,7 @@ public:
 /*
 	LuaPseudoRandom
 */
-
-
-class LuaPseudoRandom
-{
+class LuaPseudoRandom : public ModApiBase {
 private:
 	PseudoRandom m_pseudo;
 
@@ -128,7 +123,5 @@ public:
 
 	static void Register(lua_State *L);
 };
-
-NoiseParams *read_noiseparams(lua_State *L, int index);
 
 #endif /* L_NOISE_H_ */

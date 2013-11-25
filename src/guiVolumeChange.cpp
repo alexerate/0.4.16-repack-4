@@ -27,6 +27,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <IGUIStaticText.h>
 #include <IGUIFont.h>
 #include "main.h"
+#include "settings.h"
 
 #include "gettext.h"
 
@@ -100,7 +101,6 @@ void GUIVolumeChange::regenerateGui(v2u32 screensize)
 	/*
 		Add stuff
 	*/
-	changeCtype("");
 	{
 		core::rect<s32> rect(0, 0, 120, 20);
 		rect = rect + v2s32(size.X/2-60, size.Y/2-35);
@@ -131,7 +131,6 @@ void GUIVolumeChange::regenerateGui(v2u32 screensize)
 		e->setMax(100);
 		e->setPos(volume);
 	}
-	changeCtype("");
 }
 
 void GUIVolumeChange::drawMenu()

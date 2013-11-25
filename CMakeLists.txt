@@ -12,9 +12,12 @@ set(VERSION_EXTRA "" CACHE STRING "Stuff to append to version string")
 # Also remember to set PROTOCOL_VERSION in clientserver.h when releasing
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 4)
-set(VERSION_PATCH 7)
+set(VERSION_PATCH 8)
 if(VERSION_EXTRA)
 	set(VERSION_PATCH ${VERSION_PATCH}-${VERSION_EXTRA})
+else()
+	# Comment the following line during release
+	#set(VERSION_PATCH ${VERSION_PATCH}-dev)
 endif()
 set(VERSION_STRING "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
@@ -26,6 +29,13 @@ if(WIN32)
 	set(RUN_IN_PLACE 1 CACHE BOOL "Run directly in source directory structure")
 else()
 	set(RUN_IN_PLACE 0 CACHE BOOL "Run directly in source directory structure")
+endif()
+
+# RUN_IN_PLACE is exported as a #define value, ensure it's 1/0 instead of ON/OFF
+if(RUN_IN_PLACE)
+	set(RUN_IN_PLACE 1)
+else()
+	set(RUN_IN_PLACE 0)
 endif()
 
 set(BUILD_CLIENT 1 CACHE BOOL "Build client")
@@ -146,7 +156,7 @@ if(BUILD_CLIENT)
 endif()
 if(RUN_IN_PLACE)
 	install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/mods/mods_here.txt" DESTINATION "${SHAREDIR}/mods")
-	install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/textures/all/textures_here.txt" DESTINATION "${SHAREDIR}/textures/all")
+	install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/textures/texture_packs_here.txt" DESTINATION "${SHAREDIR}/textures")
 endif()
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/fonts" DESTINATION "${SHAREDIR}")

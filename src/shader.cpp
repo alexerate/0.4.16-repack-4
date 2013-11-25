@@ -362,7 +362,7 @@ ShaderInfo generate_shader(std::string name, IrrlichtDevice *device,
 	Load shader programs
 */
 void load_shaders(std::string name, SourceShaderCache *sourcecache,
-		video::E_DRIVER_TYPE drivertype, s32 enable_shaders,
+		video::E_DRIVER_TYPE drivertype, bool enable_shaders,
 		std::string &vertex_program, std::string &pixel_program,
 		std::string &geometry_program, bool &is_highlevel);
 
@@ -417,29 +417,31 @@ u32 ShaderSource::getShaderId(const std::string &name)
 	if(get_current_thread_id() == m_main_thread){
 		return getShaderIdDirect(name);
 	} else {
-		infostream<<"getShaderId(): Queued: name=\""<<name<<"\""<<std::endl;
+		/*errorstream<<"getShaderId(): Queued: name=\""<<name<<"\""<<std::endl;*/
 
 		// We're gonna ask the result to be put into here
-		ResultQueue<std::string, u32, u8, u8> result_queue;
+
+		static ResultQueue<std::string, u32, u8, u8> result_queue;
 
 		// Throw a request in
 		m_get_shader_queue.add(name, 0, 0, &result_queue);
 
-		infostream<<"Waiting for shader from main thread, name=\""
-				<<name<<"\""<<std::endl;
+		/* infostream<<"Waiting for shader from main thread, name=\""
+				<<name<<"\""<<std::endl;*/
 
 		try{
-			// Wait result for a second
-			GetResult<std::string, u32, u8, u8>
+			while(true) {
+				// Wait result for a second
+				GetResult<std::string, u32, u8, u8>
 					result = result_queue.pop_front(1000);
 
-			// Check that at least something worked OK
-			assert(result.key == name);
-
-			return result.item;
+				if (result.key == name) {
+					return result.item;
+				}
+			}
 		}
 		catch(ItemNotFoundException &e){
-			infostream<<"Waiting for shader timed out."<<std::endl;
+			errorstream<<"Waiting for shader " << name << " timed out."<<std::endl;
 			return 0;
 		}
 	}
@@ -541,18 +543,12 @@ void ShaderSource::processQueue()
 		GetRequest<std::string, u32, u8, u8>
 				request = m_get_shader_queue.pop();
 
-		/*infostream<<"ShaderSource::processQueue(): "
+		/**errorstream<<"ShaderSource::processQueue(): "
 				<<"got shader request with "
 				<<"name=\""<<request.key<<"\""
-				<<std::endl;*/
+				<<std::endl;**/
 
-		GetResult<std::string, u32, u8, u8>
-				result;
-		result.key = request.key;
-		result.callers = request.callers;
-		result.item = getShaderIdDirect(request.key);
-
-		request.dest->push_back(result);
+		m_get_shader_queue.pushResult(request,getShaderIdDirect(request.key));
 	}
 }
 
@@ -585,8 +581,10 @@ void ShaderSource::rebuildShaders()
 	// Recreate shaders
 	for(u32 i=0; i<m_shaderinfo_cache.size(); i++){
 		ShaderInfo *info = &m_shaderinfo_cache[i];
-		*info = generate_shader(info->name, m_device,
-				m_shader_callback, &m_sourcecache);
+		if(info->name != ""){
+			*info = generate_shader(info->name, m_device,
+					m_shader_callback, &m_sourcecache);
+		}
 	}
 }
 
@@ -598,7 +596,7 @@ void ShaderSource::onSetConstants(video::IMaterialRendererServices *services,
 		setter->onSetConstants(services, is_highlevel);
 	}
 }
- 
+
 ShaderInfo generate_shader(std::string name, IrrlichtDevice *device,
 		video::IShaderConstantSetCallBack *callback,
 		SourceShaderCache *sourcecache)
@@ -622,9 +620,8 @@ ShaderInfo generate_shader(std::string name, IrrlichtDevice *device,
 		}
 	}
 
-	// 0 = off, 1 = assembly shaders only, 2 = highlevel or assembly
-	s32 enable_shaders = g_settings->getS32("enable_shaders");
-	if(enable_shaders <= 0)
+	bool enable_shaders = g_settings->getBool("enable_shaders");
+	if(!enable_shaders)
 		return shaderinfo;
 
 	video::IVideoDriver* driver = device->getVideoDriver();
@@ -746,7 +743,7 @@ ShaderInfo generate_shader(std::string name, IrrlichtDevice *device,
 }
 
 void load_shaders(std::string name, SourceShaderCache *sourcecache,
-		video::E_DRIVER_TYPE drivertype, s32 enable_shaders,
+		video::E_DRIVER_TYPE drivertype, bool enable_shaders,
 		std::string &vertex_program, std::string &pixel_program,
 		std::string &geometry_program, bool &is_highlevel)
 {
@@ -755,7 +752,7 @@ void load_shaders(std::string name, SourceShaderCache *sourcecache,
 	geometry_program = "";
 	is_highlevel = false;
 
-	if(enable_shaders >= 2){
+	if(enable_shaders){
 		// Look for high level shaders
 		if(drivertype == video::EDT_DIRECT3D9){
 			// Direct3D 9: HLSL
@@ -776,24 +773,4 @@ void load_shaders(std::string name, SourceShaderCache *sourcecache,
 		}
 	}
 
-	if(enable_shaders >= 1){
-		// Look for assembly shaders
-		if(drivertype == video::EDT_DIRECT3D8){
-			// Direct3D 8 assembly shaders
-			vertex_program = sourcecache->getOrLoad(name, "d3d8_vertex.asm");
-			pixel_program = sourcecache->getOrLoad(name, "d3d8_pixel.asm");
-		}
-		else if(drivertype == video::EDT_DIRECT3D9){
-			// Direct3D 9 assembly shaders
-			vertex_program = sourcecache->getOrLoad(name, "d3d9_vertex.asm");
-			pixel_program = sourcecache->getOrLoad(name, "d3d9_pixel.asm");
-		}
-		else if(drivertype == video::EDT_OPENGL){
-			// OpenGL assembly shaders
-			vertex_program = sourcecache->getOrLoad(name, "opengl_vertex.asm");
-			pixel_program = sourcecache->getOrLoad(name, "opengl_fragment.asm");
-		}
-		if(vertex_program != "" || pixel_program != "")
-			return;
-	}
 }
