@@ -51,8 +51,6 @@ override_dh_clean:
 	
 override_dh_auto_clean:
 	dh_clean --exclude old/Makefile.old
-	sed -e s/jthread\:\:JMutex/JMutex/g -e s/jthread\:\:JThread/JThread/g \
-	    -i ${sources} ${headers}
 	rm -rf ${cleanremovals}
 
 override_dh_auto_configure:
@@ -62,14 +60,11 @@ override_dh_auto_configure:
 	    cmake -DRUN_IN_PLACE=0 \
 	          -DENABLE_GETTEXT=1 \
 		  -DENABLE_FREETYPE=1 \
-		  -DCMAKE_INCLUDE_PATH=/usr/include/jthread \
 		  -DCUSTOM_LOCALEDIR=/usr/share/locale \
 		  -DCUSTOM_SHAREDIR=/usr/share/games/minetest \
 		  -DCMAKE_INSTALL_PREFIX=/usr .
 
 override_dh_auto_build:
-	sed -e s/JMutex/jthread\:\:JMutex/g -e s/JThread/jthread\:\:JThread/g \
-	    -i ${sources} ${headers}
 	make VERBOSE=1 ${parallel}
 	
 override_dh_install:
