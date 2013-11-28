@@ -1,3 +1,88 @@
+minetest (version 0.4.8 -- November 24, 2013)
+=========================================
+
+ New Features:
+ 
+ * Big gameplay changes:
+   - Added drowning (PilzAdam, RealBadAngel, BlockMen)
+   - Added weather support (proller) 
+
+ * Smaller gameplay tweaks:
+   - Added new sounds (someone who can't decide if he wants to be called mitori or mito551)
+   - Don't predict placing and removing nodes if interact privilege is missing (PilzAdam) 
+
+ * Logistic changes:
+   - Clean up rendering code a bit (increases FPS by 5 to 10) (Exio)
+   - Added support for IPv6 (matttpt)
+   - Don't write player files all the time if they are not modified (PilzAdam)
+   - Made the main menu Lua based (sapier, kahrl)
+   - Change static ContentFeatures array into a vector (rathgit, kahrl)
+   - Allow multiple singleplayer games at the same time (PilzAdam)
+   - Added texture pack selection to main menu (Novatux)
+   - Don't write files directly but rather write to a temporary file that gets renamed after succesfully written; fixes many causes of corrupted files (PilzAdam)
+   - Adjust the Lua API structure and improve header inclusion to decrease compile time (kahrl)
+   - Database abstraction, LevelDB support (sfan5, wieszak, xyz)
+
+ * Visual changes:
+   - Added support for bumpmapping (RealBadAngel)
+   - Added diagonal liquid animation (kahrl)
+   - Damage updates and effects are now sent to other players (PilzAdam) 
+
+ * Other things: 
+   - Play player_damage.ogg when recieving damage and player_falling_damage.ogg on falling damage (PilzAdam)
+   - Added basic unicode support to the console in Linux (Exio)
+   - Added a setting for max loop count per step in liquid update (PilzAdam)
+   - Added math mapgen with fractal based worlds (proller)
+   - Disallow the name 'singleplayer' in a multiplayer server (PilzAdam)
+   - Added max_objects_per_block to minetest.conf to control the maximum number of static objects per block (Novatux)
+   - Removed broken farmesh (kahrl)
+   - Added language setting to minetest.conf which forces Minetest to use specified translation (xyz) 
+
+ * Bug Fixes
+   - Fixed print(nil) crashing the server (kahrl)
+   - Fixed output of profiler (F6) when using freetype (kahrl)
+   - Fixed bug where wrong item is selected when dropping something in the inventory on another stack (kahrl)
+   - Fixed lighting bug caused by disappearing lava (PilzAdam)
+   - Fixed /unban command crashing the server (kahrl)
+   - Fixed lighting bug with 6d facedir (RealBadAngel)
+   - Fixed and improved view range tuner (celeron55)
+   - Fixed and improved anticheat (celeron55)
+   - Fixed server getting completely choked up on even a little of DoS (celeron55)
+   - Fixed crack overlay for animated textures (kahrl)
+   - Added fallback font for Chinese, Japanese and Korean languages, the translations in those languages can now be displayed (xyz)
+   - Fixed most object duplication bugs (celeron55) 
+
+ * Modding-related Changes
+   - Added ingame modstore to download mods from mmdb (sapier)
+   - Added minetest.register_decoration() (kwolekr)
+   - Added schematic support; new functions minetest.place_schematic() and minetest.create_schematic() (kwolekr)
+   - Seperated formspecs of furnace and chests to provide override by mods (BlockMen)
+   - Added Lua VoxelManip (kwolekr) http://forum.minetest.net/viewtopic.php?id=6396
+   - Added vector helpers (ShadowNinja)
+   - Added range to item definition (PilzAdam)
+   - Added after_use to item definition (Novatux)
+   - Added liquid_range to node definition (PilzAdam)
+   - Added collide_with_objects to entitiy definition, to disable object <-> object collision (PilzAdam)
+   - Added minetest.facedir_to_dir() and 6d facedir support for minetest.dir_to_facedir() (hdastwb)
+   - Added gettext for image_button (BlockMen)
+   - Added stepheight to entity definition (sapier)
+   - Added support for multiple wherein nodes in <code>minetest.register_ore() (PilzAdam)
+   - Added minetest.register_on_cheat() (celeron55)
+   - Added automatic_face_movement_dir to entity definition (sapier)
+   - Added player:hud_set_hotbar_image() and player:hud_set_hotbar_selected_image() (PilzAdam, BlockMen)
+   - Added percent scaling for HUD images (BlockMen, kahrl)
+   - Added minetest.get_gametime() (Novatux)
+   - Moved tree growing and grass growing ABMs to Lua (Novatux)
+   - Added minetest.register_on_craft() and minetest.register_craft_predict() (Novatux) 
+
+ * Formspec Additions/Changes:
+   - pwdfield, vertlabel, tabheader, dropdown and checkbox (sapier)
+   - <noclip>;<drawborder>;<pressed texture name> options for image_button (sapier, BlockMen)
+   - textlist and box with color support (sapier, sfan5)
+   - listcolors and bgcolor (BlockMen, kahrl)
+   - <auto_clip> option for background images (BlockMen)
+   - Added support for a callback on formspec close (Novatux) 
+
 minetest (version 0.4.7 -- June 06, 2013)
 =========================================
 
