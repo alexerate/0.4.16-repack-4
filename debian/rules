@@ -21,10 +21,10 @@ dfsgremovals=Makefile.bak \
 	     .hgignore \
 	     .hgtags \
 	     fontlucida.png \
-	     jthread \
 	     sqlite \
 	     json \
 	     lua
+#	     jthread # upstream patched that lib, which seem dead upstream itself, so use minetest's version even if I don't like it.
 cleanremovals= bin \
 	       CMakeFiles \
 	       src/CMakeFiles \

@@ -1,6 +1,16 @@
 Description: Adapt to upstream modification of jmutex.h
- Upstream added a class "Event" to their jmutex.h, but we build with a
- system-wide jmutex. So put this class into event.h instead
+ Upstream modified their dependency jthread, in a way that we cannot
+ fix when using a system-wide jthread.
+ 
+ SO THIS PATCH IS DISABLED FOR NOW
+ 
+ mutex so we need to re-add these things another way.
+ Two changes so far:
+ .
+  - They added a class "Event" to their jmutex.h, so we add it to event.h
+    instead.
+  - They added a method IsSameThread()
+ 
 Author: Matthew Bekkema <mat8913ftw@gmail.com>
 Date:   Sun Mar 24 19:15:54 2013 +1100
     

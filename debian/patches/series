@@ -2,7 +2,7 @@ desktop-file-fix-icon
 powerpc.patch
 kfreebsd-gettext.patch
 i18n.patch
-event.patch
+# jthread-changed.patch
 useless-depends.patch
 dynamic-link.patch
 debianization.patch
