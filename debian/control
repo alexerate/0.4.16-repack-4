@@ -35,6 +35,9 @@ Conflicts:
  minetestc55,
 Suggests:
  minetest-server,
+ minetest-mod-moreblocks,
+ minetest-mod-moreores,
+ minetest-mod-pipeworks,
 Description: Multiplayer infinite-world block sandbox
  Minetest is a minecraft-inspired game written from scratch and licensed
  under the LGPL (version 2.1 or later). It supports both survival and creative

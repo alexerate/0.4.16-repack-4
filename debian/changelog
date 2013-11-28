@@ -1,12 +1,13 @@
 minetest (0.4.8+repack2-1) unstable; urgency=low
 
-  * New upstream release.
+  * New upstream release (closes: #730554).
     - Upstream changes to their embeeded jthread library become
       intractable with our system-wide version. So switch to their
       version, even if it's a bad habit to embeed other libraries.
     - Refresh our patches (no big change beside of jthread).
+  * Suggests the existing mod packages: moreblocks, moreores, pipeworks.
 
- -- Martin Quinson <mquinson@debian.org>  Thu, 28 Nov 2013 12:12:24 +0100
+ -- Martin Quinson <mquinson@debian.org>  Thu, 28 Nov 2013 23:20:35 +0100
 
 minetest (0.4.7+repack-3) unstable; urgency=low
 
