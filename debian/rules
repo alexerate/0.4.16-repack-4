@@ -60,6 +60,7 @@ override_dh_auto_configure:
 	    cmake -DRUN_IN_PLACE=0 \
 	          -DENABLE_GETTEXT=1 \
 		  -DENABLE_FREETYPE=1 \
+		  -DFREETYPE_INCLUDE_DIRS=/usr/share/freetype2 \
 		  -DCUSTOM_LOCALEDIR=/usr/share/locale \
 		  -DCUSTOM_SHAREDIR=/usr/share/games/minetest \
 		  -DCMAKE_INSTALL_PREFIX=/usr .
