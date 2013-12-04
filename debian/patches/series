@@ -8,3 +8,4 @@ dynamic-link.patch
 debianization.patch
 gcc47.patch
 mapper.patch
+shared_mods

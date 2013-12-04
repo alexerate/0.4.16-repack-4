@@ -1,0 +1,18 @@
+Also look under /usr/share/games/minetest for mods, so that minetest-mod-* packages actually work
+
+---
+ builtin/modmgr.lua |    1 +
+ 1 file changed, 1 insertion(+)
+
+Index: b/builtin/modmgr.lua
+===================================================================
+--- a/builtin/modmgr.lua
++++ b/builtin/modmgr.lua
+@@ -898,6 +898,7 @@
+ 		modpath ~= "" then
+ 		get_mods(modpath,global_mods)
+ 	end
++	get_mods("/usr/share/games/minetest/mods",global_mods)
+ 	
+ 	for i=1,#global_mods,1 do
+ 		global_mods[i].typ = "global_mod"

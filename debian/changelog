@@ -1,3 +1,10 @@
+minetest (0.4.8+repack2-2) UNRELEASED; urgency=low
+
+  * Also look under /usr/share/games/minetest for mods, so that
+    minetest-mod-* packages actually work
+
+ -- Martin Quinson <mquinson@debian.org>  Wed, 04 Dec 2013 22:56:41 +0100
+
 minetest (0.4.8+repack2-1) unstable; urgency=low
 
   * New upstream release (closes: #730554).
