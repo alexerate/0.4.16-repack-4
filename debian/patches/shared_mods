@@ -8,11 +8,11 @@ Index: b/builtin/modmgr.lua
 ===================================================================
 --- a/builtin/modmgr.lua
 +++ b/builtin/modmgr.lua
-@@ -898,6 +898,7 @@
+@@ -900,6 +900,7 @@
  		modpath ~= "" then
  		get_mods(modpath,global_mods)
  	end
 +	get_mods("/usr/share/games/minetest/mods",global_mods)
- 	
+ 
  	for i=1,#global_mods,1 do
  		global_mods[i].typ = "global_mod"

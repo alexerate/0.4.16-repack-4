@@ -3,8 +3,8 @@ Author: Matthew Bekkema <mat8913ftw@gmail.com>
 
 ---
  cmake/Modules/FindJson.cmake |   24 +++++++++++-------------
- src/CMakeLists.txt           |    4 ----
- 2 files changed, 11 insertions(+), 17 deletions(-)
+ src/CMakeLists.txt           |    3 ---
+ 2 files changed, 11 insertions(+), 16 deletions(-)
 
 Index: b/src/CMakeLists.txt
 ===================================================================
@@ -18,7 +18,7 @@ Index: b/src/CMakeLists.txt
  endif(LUA_LIBRARY AND LUA_INCLUDE_DIR)
  
  mark_as_advanced(LUA_LIBRARY)
-@@ -631,7 +629,6 @@
+@@ -633,7 +632,6 @@
  
  if (SQLITE3_FOUND)
  else (SQLITE3_FOUND)
@@ -26,7 +26,7 @@ Index: b/src/CMakeLists.txt
  endif (SQLITE3_FOUND)
  
  if (BUILD_CLIENT AND USE_FREETYPE)
-@@ -640,7 +637,6 @@
+@@ -642,7 +640,6 @@
  
  if (JSON_FOUND)
  else (JSON_FOUND)
