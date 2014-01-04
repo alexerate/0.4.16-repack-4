@@ -20,6 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "lua_api/l_mainmenu.h"
 #include "lua_api/l_internal.h"
 #include "common/c_content.h"
+#include "lua_api/l_async_events.h"
 #include "guiEngine.h"
 #include "guiMainMenu.h"
 #include "guiKeyChangeMenu.h"
@@ -200,9 +201,6 @@ int ModApiMainMenu::l_get_textlist_index(lua_State *L)
 /******************************************************************************/
 int ModApiMainMenu::l_get_worlds(lua_State *L)
 {
-	GUIEngine* engine = getGuiEngine(L);
-	assert(engine != 0);
-
 	std::vector<WorldSpec> worlds = getAvailableWorlds();
 
 	lua_newtable(L);
@@ -237,9 +235,6 @@ int ModApiMainMenu::l_get_worlds(lua_State *L)
 /******************************************************************************/
 int ModApiMainMenu::l_get_games(lua_State *L)
 {
-	GUIEngine* engine = getGuiEngine(L);
-	assert(engine != 0);
-
 	std::vector<SubgameSpec> games = getAvailableGames();
 
 	lua_newtable(L);
@@ -341,6 +336,26 @@ int ModApiMainMenu::l_get_modstore_details(lua_State *L)
 			lua_pushstring(L,current_mod.versions[0].file.c_str());
 			lua_settable(L, top);
 
+			lua_pushstring(L,"versions");
+			lua_newtable(L);
+			int versionstop = lua_gettop(L);
+			for (unsigned int i=0;i < current_mod.versions.size(); i++) {
+				lua_pushnumber(L,i+1);
+				lua_newtable(L);
+				int current_element = lua_gettop(L);
+
+				lua_pushstring(L,"date");
+				lua_pushstring(L,current_mod.versions[i].date.c_str());
+				lua_settable(L,current_element);
+
+				lua_pushstring(L,"download_url");
+				lua_pushstring(L,current_mod.versions[i].file.c_str());
+				lua_settable(L,current_element);
+
+				lua_settable(L,versionstop);
+			}
+			lua_settable(L, top);
+
 			lua_pushstring(L,"screenshot_url");
 			lua_pushstring(L,current_mod.titlepic.file.c_str());
 			lua_settable(L, top);
@@ -365,9 +380,6 @@ int ModApiMainMenu::l_get_modstore_details(lua_State *L)
 /******************************************************************************/
 int ModApiMainMenu::l_get_modstore_list(lua_State *L)
 {
-	GUIEngine* engine = getGuiEngine(L);
-	assert(engine != 0);
-
 	std::string listtype = "local";
 
 	if (!lua_isnone(L,1)) {
@@ -421,9 +433,6 @@ int ModApiMainMenu::l_get_modstore_list(lua_State *L)
 /******************************************************************************/
 int ModApiMainMenu::l_get_favorites(lua_State *L)
 {
-	GUIEngine* engine = getGuiEngine(L);
-	assert(engine != 0);
-
 	std::string listtype = "local";
 
 	if (!lua_isnone(L,1)) {
@@ -545,9 +554,6 @@ int ModApiMainMenu::l_get_favorites(lua_State *L)
 /******************************************************************************/
 int ModApiMainMenu::l_delete_favorite(lua_State *L)
 {
-	GUIEngine* engine = getGuiEngine(L);
-	assert(engine != 0);
-
 	std::vector<ServerListSpec> servers;
 
 	std::string listtype = "local";
@@ -599,9 +605,6 @@ int ModApiMainMenu::l_show_keys_menu(lua_State *L)
 /******************************************************************************/
 int ModApiMainMenu::l_create_world(lua_State *L)
 {
-	GUIEngine* engine = getGuiEngine(L);
-	assert(engine != 0);
-
 	const char *name	= luaL_checkstring(L, 1);
 	int gameidx			= luaL_checkinteger(L,2) -1;
 
@@ -632,9 +635,6 @@ int ModApiMainMenu::l_create_world(lua_State *L)
 /******************************************************************************/
 int ModApiMainMenu::l_delete_world(lua_State *L)
 {
-	GUIEngine* engine = getGuiEngine(L);
-	assert(engine != 0);
-
 	int worldidx	= luaL_checkinteger(L,1) -1;
 
 	std::vector<WorldSpec> worlds = getAvailableWorlds();
@@ -802,7 +802,10 @@ int ModApiMainMenu::l_extract_zip(lua_State *L)
 
 		io::IFileSystem* fs = engine->m_device->getFileSystem();
 
-		fs->addFileArchive(zipfile,true,false,io::EFAT_ZIP);
+		if (!fs->addFileArchive(zipfile,true,false,io::EFAT_ZIP)) {
+			lua_pushboolean(L,false);
+			return 1;
+		}
 
 		assert(fs->getFileArchiveCount() > 0);
 
@@ -962,9 +965,6 @@ int ModApiMainMenu::l_sound_stop(lua_State *L)
 /******************************************************************************/
 int ModApiMainMenu::l_download_file(lua_State *L)
 {
-	GUIEngine* engine = getGuiEngine(L);
-	assert(engine != 0);
-
 	const char *url    = luaL_checkstring(L, 1);
 	const char *target = luaL_checkstring(L, 2);
 
@@ -972,7 +972,7 @@ int ModApiMainMenu::l_download_file(lua_State *L)
 	std::string absolute_destination = fs::RemoveRelativePathComponents(target);
 
 	if (ModApiMainMenu::isMinetestPath(absolute_destination)) {
-		if (engine->downloadFile(url,absolute_destination)) {
+		if (GUIEngine::downloadFile(url,absolute_destination)) {
 			lua_pushboolean(L,true);
 			return 1;
 		}
@@ -986,6 +986,28 @@ int ModApiMainMenu::l_gettext(lua_State *L)
 {
 	std::wstring wtext = wstrgettext((std::string) luaL_checkstring(L, 1));
 	lua_pushstring(L, wide_to_narrow(wtext).c_str());
+
+	return 1;
+}
+
+/******************************************************************************/
+int ModApiMainMenu::l_do_async_callback(lua_State *L)
+{
+	GUIEngine* engine = getGuiEngine(L);
+
+	const char* serialized_fct_raw = luaL_checkstring(L, 1);
+	unsigned int lenght_fct = luaL_checkint(L, 2);
+
+	const char* serialized_params_raw = luaL_checkstring(L, 3);
+	unsigned int lenght_params = luaL_checkint(L, 4);
+
+	assert(serialized_fct_raw != 0);
+	assert(serialized_params_raw != 0);
+
+	std::string serialized_fct = std::string(serialized_fct_raw,lenght_fct);
+	std::string serialized_params = std::string(serialized_params_raw,lenght_params);
+
+	lua_pushinteger(L,engine->DoAsync(serialized_fct,serialized_params));
 
 	return 1;
 }
@@ -1024,4 +1046,27 @@ void ModApiMainMenu::Initialize(lua_State *L, int top)
 	API_FCT(sound_play);
 	API_FCT(sound_stop);
 	API_FCT(gettext);
+	API_FCT(do_async_callback);
+}
+
+/******************************************************************************/
+void ModApiMainMenu::InitializeAsync(AsyncEngine& engine)
+{
+
+	ASYNC_API_FCT(get_worlds);
+	ASYNC_API_FCT(get_games);
+	ASYNC_API_FCT(get_favorites);
+	ASYNC_API_FCT(get_modpath);
+	ASYNC_API_FCT(get_gamepath);
+	ASYNC_API_FCT(get_texturepath);
+	ASYNC_API_FCT(get_dirlist);
+	ASYNC_API_FCT(create_dir);
+	ASYNC_API_FCT(delete_dir);
+	ASYNC_API_FCT(copy_dir);
+	//ASYNC_API_FCT(extract_zip); //TODO remove dependency to GuiEngine
+	ASYNC_API_FCT(get_version);
+	ASYNC_API_FCT(download_file);
+	ASYNC_API_FCT(get_modstore_details);
+	ASYNC_API_FCT(get_modstore_list);
+	//ASYNC_API_FCT(gettext); (gettext lib isn't threadsafe)
 }

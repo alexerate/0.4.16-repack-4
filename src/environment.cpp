@@ -354,7 +354,7 @@ ServerMap & ServerEnvironment::getServerMap()
 	return *m_map;
 }
 
-bool ServerEnvironment::line_of_sight(v3f pos1, v3f pos2, float stepsize)
+bool ServerEnvironment::line_of_sight(v3f pos1, v3f pos2, float stepsize, v3s16 *p)
 {
 	float distance = pos1.getDistanceFrom(pos2);
 
@@ -372,6 +372,9 @@ bool ServerEnvironment::line_of_sight(v3f pos1, v3f pos2, float stepsize)
 		MapNode n = getMap().getNodeNoEx(pos);
 
 		if(n.param0 != CONTENT_AIR) {
+			if (p) {
+				*p = pos;
+			}
 			return false;
 		}
 	}
@@ -872,6 +875,11 @@ bool ServerEnvironment::removeNode(v3s16 p)
 		m_script->node_after_destruct(p, n_old);
 	// Air doesn't require constructor
 	return true;
+}
+
+bool ServerEnvironment::swapNode(v3s16 p, const MapNode &n)
+{
+	return m_map->addNodeWithEvent(p, n, false);
 }
 
 std::set<u16> ServerEnvironment::getObjectsInsideRadius(v3f pos, float radius)

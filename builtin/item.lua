@@ -98,7 +98,7 @@ function minetest.facedir_to_dir(facedir)
 
 					--indexed into by a table of correlating facedirs
 					[({[0]=1, 2, 3, 4, 
-						5, 4, 6, 2,
+						5, 2, 6, 4,
 						6, 2, 5, 4,
 						1, 5, 3, 6,
 						1, 6, 3, 5,
@@ -501,7 +501,7 @@ minetest.nodedef_default = {
 	post_effect_color = {a=0, r=0, g=0, b=0},
 	paramtype = "none",
 	paramtype2 = "none",
-	is_ground_content = false,
+	is_ground_content = true,
 	sunlight_propagates = false,
 	walkable = true,
 	pointable = true,

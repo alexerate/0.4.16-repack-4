@@ -25,11 +25,10 @@ void set_default_settings(Settings *settings)
 {
 	// Client and server
 
-	settings->setDefault("port", "");
 	settings->setDefault("name", "");
 
 	// Client stuff
-
+	settings->setDefault("remote_port", "30000");
 	settings->setDefault("keymap_forward", "KEY_KEY_W");
 	settings->setDefault("keymap_backward", "KEY_KEY_S");
 	settings->setDefault("keymap_left", "KEY_KEY_A");
@@ -60,6 +59,7 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("aux1_descends", "false");
 	settings->setDefault("doubletap_jump", "false");
 	settings->setDefault("always_fly_fast", "true");
+	settings->setDefault("directional_colored_fog", "true");
 
 	// Some (temporary) keys for debugging
 	settings->setDefault("keymap_print_debug_stacks", "KEY_KEY_P");
@@ -127,11 +127,21 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("trilinear_filter", "false");
 	settings->setDefault("preload_item_visuals", "true");
 	settings->setDefault("enable_bumpmapping", "false");
+	settings->setDefault("enable_parallax_occlusion", "false");
+	settings->setDefault("parallax_occlusion_scale", "0.08");
+	settings->setDefault("parallax_occlusion_bias", "0.04");
+	settings->setDefault("enable_waving_water", "false");
+	settings->setDefault("water_wave_height", "1.0");
+	settings->setDefault("water_wave_length", "20.0");
+	settings->setDefault("water_wave_speed", "5.0");
+	settings->setDefault("enable_waving_leaves", "false");
+	settings->setDefault("enable_waving_plants", "false");
 	settings->setDefault("enable_shaders", "true");
 	settings->setDefault("repeat_rightclick_time", "0.25");
 	settings->setDefault("enable_particles", "true");
 
-	settings->setDefault("media_fetch_threads", "8");
+	settings->setDefault("curl_timeout", "5000");
+	settings->setDefault("curl_parallel_limit", "8");
 
 	settings->setDefault("serverlist_url", "servers.minetest.net");
 	settings->setDefault("serverlist_file", "favoriteservers.txt");
@@ -145,10 +155,14 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("freetype", "true");
 	settings->setDefault("font_path", porting::getDataPath("fonts" DIR_DELIM "liberationsans.ttf"));
 	settings->setDefault("font_size", "13");
+	settings->setDefault("font_shadow", "1");
+	settings->setDefault("font_shadow_alpha", "128");
 	settings->setDefault("mono_font_path", porting::getDataPath("fonts" DIR_DELIM "liberationmono.ttf"));
 	settings->setDefault("mono_font_size", "13");
 	settings->setDefault("fallback_font_path", porting::getDataPath("fonts" DIR_DELIM "DroidSansFallbackFull.ttf"));
 	settings->setDefault("fallback_font_size", "13");
+	settings->setDefault("fallback_font_shadow", "1");
+	settings->setDefault("fallback_font_shadow_alpha", "128");
 #else
 	settings->setDefault("freetype", "false");
 	settings->setDefault("font_path", porting::getDataPath("fonts" DIR_DELIM "fontlucida.png"));
@@ -157,6 +171,7 @@ void set_default_settings(Settings *settings)
 
 	// Server stuff
 	// "map-dir" doesn't exist by default.
+	settings->setDefault("port", "30000");
 	settings->setDefault("default_game", "minetest");
 	settings->setDefault("motd", "");
 	settings->setDefault("max_users", "15");
@@ -173,6 +188,8 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("disallow_empty_password", "false");
 	settings->setDefault("disable_anticheat", "false");
 	settings->setDefault("enable_rollback_recording", "false");
+	settings->setDefault("cache_block_before_spawn", "true");
+	settings->setDefault("max_spawn_height", "50");
 
 	settings->setDefault("profiler_print_interval", "0");
 	settings->setDefault("enable_mapgen_debug_info", "false");
@@ -252,7 +269,7 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("mgv7_np_terrain_alt",      "4, 25, (600, 600, 600), 5934, 5, 0.6");
 	settings->setDefault("mgv7_np_terrain_persist",  "0.6, 0.1, (500, 500, 500), 539, 3, 0.6");
 	settings->setDefault("mgv7_np_height_select",    "-0.5, 1, (250, 250, 250), 4213, 5, 0.69");
-	settings->setDefault("mgv7_np_filler_depth",     "0, 1.2, (150, 150, 150), 261, 4, 0.7");	
+	settings->setDefault("mgv7_np_filler_depth",     "0, 1.2, (150, 150, 150), 261, 4, 0.7");
 	settings->setDefault("mgv7_np_mount_height",     "100, 30, (500, 500, 500), 72449, 4, 0.6");
 	settings->setDefault("mgv7_np_ridge_uwater",     "0, 1, (500, 500, 500), 85039, 4, 0.6");
 	settings->setDefault("mgv7_np_mountain",         "0, 1, (250, 350, 250), 5333, 5, 0.68");
@@ -270,7 +287,6 @@ void set_default_settings(Settings *settings)
 
 	settings->setDefault("mgmath_generator", "mandelbox");
 
-	settings->setDefault("curl_timeout", "5000");
 
 	// IPv6
 	settings->setDefault("enable_ipv6", "true");
