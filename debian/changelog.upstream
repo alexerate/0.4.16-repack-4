@@ -1,5 +1,48 @@
+minetest (version 0.4.9 -- January 1, 2014)
+===========================================
+
+ New Features: 
+
+ * Logistic changes
+   - SQLite rollback (Mario Barrera & ShadowNinja)
+   - Implement HTTPFetch (kahrl)
+   - Replace SimpleThread with JThread (sapier)
+   
+ * Visual changes
+   - Shaders rework (RealBadAngel)
+   - Add configurable font shadow (xyz)
+   - Directional fog + horizon colors (Taoki)
+   
+ * Other things
+   - Implement modstore search tab and version picker (sapier) 
+
+ Bug Fixes:
+   - Fix line_of_sight() (sapier)
+   - Fix modstore/favourites hang by adding asynchronous Lua (sapier)
+   - Fix LevelDB maps (sfan5)
+   - Fix Lua mapgen override param handling (kwolekr)
+   - Fix leak and possible segfault in minetest.set_mapgen_params (kwolekr)
+   - Fix segfault in indev cave generation due to uninitialized variable (kwolekr)
+   - Check if width, height or start index of a list[] is negative (PilzAdam)
+   - Fix single character formspec field labels (BlockMen)
+   - Handle Lua errors in on_generate callbacks instead of throwing SIGABRT (kwolekr)
+   - Update mapgen params in ServerMap after Mapgen init (kwolekr) 
+
+ Modding-related Changes:
+   - Add area parameters back to calc_lighting() and set_lighting() (kwolekr)
+   - Add get_light_data() and set_light_data() to LuaVoxelManip (kwolekr)
+   - Add minetest.swap_node (Novatux)
+   - Assume a selection box for fences (0gb.us)
+   - Decoration: Add schematic Y-slice probability support (kwolekr)
+   - Add sneak and sneak_glitch in set_physics_override() (PilzAdam)
+   - Use a table in set_physics_override() (PilzAdam)
+   - Add 'on_prejoinplayer' callback (kaeza)
+   - Make line_of_sight return blocking node position (stujones11)
+   - Remove support for optdepends.txt (ShadowNinja)
+   - Add map feature generation notify Lua API (kwolekr) 
+
 minetest (version 0.4.8 -- November 24, 2013)
-=========================================
+=============================================
 
  New Features:
  
