@@ -2,6 +2,7 @@ minetest (0.4.9+repack-1) unstable; urgency=medium
 
   * New upstream release.
     - drop d/p/blinking_furnaces that were picked from upstream.
+  * Bump Standards-Version to 3.9.5 (no change needed)
 
  -- Martin Quinson <mquinson@debian.org>  Sat, 04 Jan 2014 20:52:19 +0100
 
