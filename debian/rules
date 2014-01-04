@@ -5,9 +5,6 @@ version=$(shell uscan --report-status | head -2 | tail -1 | cut -d' ' -f7 | cut 
 tmpdir:=$(shell mktemp -d)
 wrkdir:=$(shell pwd)
 
-# parallel building
-parallel=$(shell echo $$DEB_BUILD_OPTIONS | grep parallel > /dev/null && echo -j$$(test -f /proc/cpuinfo && cat /proc/cpuinfo | (grep ^processor || echo 1) | wc -l))
-
 # build-hardening flags
 export DEB_BUILD_MAINT_OPTIONS="hardening=+all"
 
@@ -67,7 +64,7 @@ override_dh_auto_configure:
 		  -DCMAKE_INSTALL_PREFIX=/usr .
 
 override_dh_auto_build:
-	make VERBOSE=1 ${parallel}
+	dh_auto_build --parallel
 	
 override_dh_install:
 	dh_install --list-missing -X.gitignore
