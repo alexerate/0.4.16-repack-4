@@ -1,3 +1,10 @@
+minetest (0.4.9+repack-5) UNRELEASED; urgency=medium
+
+  * Simplify the architecture-dependent Build-dep so that it work on
+    unknown archs (using lua as a fallback for luajit).
+
+ -- Martin Quinson <mquinson@debian.org>  Thu, 09 Jan 2014 17:44:34 +0100
+
 minetest (0.4.9+repack-4) unstable; urgency=medium
 
   * luajit is available on powerpcspe, too (Closes: #734730).
