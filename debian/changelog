@@ -1,3 +1,12 @@
+minetest (0.4.9+repack-4) unstable; urgency=medium
+
+  * luajit is available on powerpcspe, too (Closes: #734730).
+  * Use lua on all other debian-port strange architectures where
+    luajit is not avail. I don't really like to hardcode this list of
+    architectures this way: if luajit is ported, I will not notice it.
+
+ -- Martin Quinson <mquinson@debian.org>  Thu, 09 Jan 2014 14:22:20 +0100
+
 minetest (0.4.9+repack-3) unstable; urgency=medium
 
   * Mipsel don't have luajit either, actually. Bummer.
