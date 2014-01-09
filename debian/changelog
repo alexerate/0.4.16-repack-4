@@ -1,3 +1,9 @@
+minetest (0.4.9+repack-3) unstable; urgency=medium
+
+  * Mipsel don't have luajit either, actually. Bummer.
+
+ -- Martin Quinson <mquinson@debian.org>  Thu, 09 Jan 2014 02:40:17 +0100
+
 minetest (0.4.9+repack-2) unstable; urgency=medium
 
   * Do not try to use luajit on architectures that don't provide it.
