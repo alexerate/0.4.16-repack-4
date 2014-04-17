@@ -2,6 +2,7 @@ minetest (0.4.9+repack-5) UNRELEASED; urgency=medium
 
   * Simplify the architecture-dependent Build-dep so that it work on
     unknown archs (using lua as a fallback for luajit).
+    (Closes: #745059, which was about ppc64el not getting any lua)
 
  -- Martin Quinson <mquinson@debian.org>  Thu, 09 Jan 2014 17:44:34 +0100
 
