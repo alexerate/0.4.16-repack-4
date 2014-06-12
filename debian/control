@@ -13,6 +13,7 @@ Build-Depends:
  libcurl4-gnutls-dev,
  libfreetype6-dev,
  libirrlicht-dev (>= 1.7.0),
+ libleveldb-dev,
  libluajit-5.1-dev [i386 amd64 kfreebsd-i386 armel armhf powerpc powerpcspe mips] | liblua5.1-dev,
  zlib1g-dev,
  libsqlite3-dev,
