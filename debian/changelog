@@ -1,9 +1,9 @@
-minetest (0.4.9+repack-6) UNRELEASED; urgency=medium
+minetest (0.4.9+repack-6) unstable; urgency=medium
 
   * Enable LevelDB backend (Closes: #751198). 
     Many thanks to Eric Monson for the report and patch.
 
- -- Martin Quinson <mquinson@debian.org>  Thu, 12 Jun 2014 13:56:18 +0200
+ -- Martin Quinson <mquinson@debian.org>  Thu, 12 Jun 2014 16:39:16 +0200
 
 minetest (0.4.9+repack-5) unstable; urgency=medium
 
