@@ -5,6 +5,7 @@ minetest (0.4.10+repack-1) UNRELEASED; urgency=medium
     - Many bug fixes, performance tweaks, memory usage reductions and
       internal improvements, as well as many translation improvements.
     - Added extended door mod; rework farming mod; added TNT.
+  * d/p/powerpc.patch: drop patch integrated upstream
   * d/control:VCS-git: Prefer anonscm.debian.org to deprecated urls
 
  -- Martin Quinson <mquinson@debian.org>  Tue, 15 Jul 2014 20:06:39 +0200
