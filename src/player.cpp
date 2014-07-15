@@ -47,7 +47,7 @@ Player::Player(IGameDef *gamedef):
 	m_yaw(0),
 	m_speed(0,0,0),
 	m_position(0,0,0),
-	m_collisionbox(-BS*0.30,0.0,-BS*0.30,BS*0.30,BS*1.55,BS*0.30),
+	m_collisionbox(-BS*0.30,0.0,-BS*0.30,BS*0.30,BS*1.75,BS*0.30),
 	m_last_pitch(0),
 	m_last_yaw(0),
 	m_last_pos(0,0,0),
@@ -100,6 +100,7 @@ Player::Player(IGameDef *gamedef):
 
 Player::~Player()
 {
+	clearHud();
 }
 
 // Horizontal acceleration (X and Z), Y direction is ignored
@@ -216,19 +217,18 @@ void Player::deSerialize(std::istream &is, std::string playername)
 	setPosition(args.getV3F("position"));
 	try{
 		hp = args.getS32("hp");
-	}catch(SettingNotFoundException &e){
+	}catch(SettingNotFoundException &e) {
 		hp = 20;
 	}
 	try{
 		m_breath = args.getS32("breath");
-	}catch(SettingNotFoundException &e){
+	}catch(SettingNotFoundException &e) {
 		m_breath = 11;
 	}
 
 	inventory.deSerialize(is);
 
-	if(inventory.getList("craftpreview") == NULL)
-	{
+	if(inventory.getList("craftpreview") == NULL) {
 		// Convert players without craftpreview
 		inventory.addList("craftpreview", 1);
 
@@ -246,17 +246,99 @@ void Player::deSerialize(std::istream &is, std::string playername)
 	checkModified();
 }
 
+u32 Player::addHud(HudElement *toadd)
+{
+	u32 id = getFreeHudID();
+
+	if (id < hud.size())
+		hud[id] = toadd;
+	else
+		hud.push_back(toadd);
+
+	return id;
+}
+
+HudElement* Player::getHud(u32 id)
+{
+	if (id < hud.size())
+		return hud[id];
+
+	return NULL;
+}
+
+HudElement* Player::removeHud(u32 id)
+{
+	HudElement* retval = NULL;
+	if (id < hud.size()) {
+		retval = hud[id];
+		hud[id] = NULL;
+	}
+	return retval;
+}
+
+void Player::clearHud()
+{
+	while(!hud.empty()) {
+		delete hud.back();
+		hud.pop_back();
+	}
+}
+
+
+void RemotePlayer::save(std::string savedir)
+{
+	/*
+	 * We have to open all possible player files in the players directory
+	 * and check their player names because some file systems are not
+	 * case-sensitive and player names are case-sensitive.
+	 */
+
+	// A player to deserialize files into to check their names
+	RemotePlayer testplayer(m_gamedef);
+
+	savedir += DIR_DELIM;
+	std::string path = savedir + m_name;
+	for (u32 i = 0; i < PLAYER_FILE_ALTERNATE_TRIES; i++) {
+		if (!fs::PathExists(path)) {
+			// Open file and serialize
+			std::ostringstream ss(std::ios_base::binary);
+			serialize(ss);
+			if (!fs::safeWriteToFile(path, ss.str())) {
+				infostream << "Failed to write " << path << std::endl;
+			}
+			return;
+		}
+		// Open file and deserialize
+		std::ifstream is(path.c_str(), std::ios_base::binary);
+		if (!is.good()) {
+			infostream << "Failed to open " << path << std::endl;
+			return;
+		}
+		testplayer.deSerialize(is, path);
+		is.close();
+		if (strcmp(testplayer.getName(), m_name) == 0) {
+			// Open file and serialize
+			std::ostringstream ss(std::ios_base::binary);
+			serialize(ss);
+			if (!fs::safeWriteToFile(path, ss.str())) {
+				infostream << "Failed to write " << path << std::endl;
+			}
+			return;
+		}
+		path = savedir + m_name + itos(i);
+	}
+
+	infostream << "Didn't find free file for player " << m_name << std::endl;
+	return;
+}
+
 /*
 	RemotePlayer
 */
-
-
-
-
-
 void RemotePlayer::setPosition(const v3f &position)
 {
 	Player::setPosition(position);
 	if(m_sao)
 		m_sao->setBasePosition(position);
 }
+

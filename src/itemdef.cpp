@@ -38,6 +38,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <map>
 #include <set>
 
+#ifdef __ANDROID__
+#include <GLES/gl.h>
+#endif
+
 /*
 	ItemDefinition
 */
@@ -398,7 +402,7 @@ public:
 			MeshMakeData mesh_make_data(gamedef);
 			MapNode mesh_make_node(id, param1, 0);
 			mesh_make_data.fillSingleNode(&mesh_make_node);
-			MapBlockMesh mapblock_mesh(&mesh_make_data);
+			MapBlockMesh mapblock_mesh(&mesh_make_data, v3s16(0, 0, 0));
 			scene::IMesh *node_mesh = mapblock_mesh.getMesh();
 			assert(node_mesh);
 			video::SColor c(255, 255, 255, 255);
@@ -433,6 +437,11 @@ public:
 				params.light_color.set(1.0, 0.5, 0.5, 0.5);
 				params.light_radius = 1000;
 
+#ifdef __ANDROID__
+				params.camera_position.set(0, -1.0, -1.5);
+				params.camera_position.rotateXZBy(45);
+				params.light_position.set(10, -100, -50);
+#endif
 				cc->inventory_texture =
 					tsrc->generateTextureFromMesh(params);
 
@@ -642,6 +651,7 @@ public:
 	void processQueue(IGameDef *gamedef)
 	{
 #ifndef SERVER
+		//NOTE this is only thread safe for ONE consumer thread!
 		while(!m_get_clientcached_queue.empty())
 		{
 			GetRequest<std::string, ClientCached*, u8, u8>

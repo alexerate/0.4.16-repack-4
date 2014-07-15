@@ -39,15 +39,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "util/serialize.h"
 #include "filesys.h"
 
+
 FlagDesc flagdesc_mapgen[] = {
-	{"trees",          MG_TREES},
-	{"caves",          MG_CAVES},
-	{"dungeons",       MG_DUNGEONS},
-	{"v6_jungles",     MGV6_JUNGLES},
-	{"v6_biome_blend", MGV6_BIOME_BLEND},
-	{"flat",           MG_FLAT},
-	{"nolight",        MG_NOLIGHT},
-	{NULL,             0}
+	{"trees",    MG_TREES},
+	{"caves",    MG_CAVES},
+	{"dungeons", MG_DUNGEONS},
+	{"flat",     MG_FLAT},
+	{"light",    MG_LIGHT},
+	{NULL,       0}
 };
 
 FlagDesc flagdesc_ore[] = {
@@ -653,7 +652,7 @@ void DecoSchematic::blitToVManip(v3s16 p, ManualMapVoxelManipulator *vm,
 }
 
 
-void DecoSchematic::placeStructure(Map *map, v3s16 p) {
+void DecoSchematic::placeStructure(Map *map, v3s16 p, bool force_placement) {
 	assert(schematic != NULL);
 	ManualMapVoxelManipulator *vm = new ManualMapVoxelManipulator(map);
 
@@ -674,7 +673,7 @@ void DecoSchematic::placeStructure(Map *map, v3s16 p) {
 	v3s16 bp2 = getNodeBlockPos(p + s - v3s16(1,1,1));
 	vm->initialEmerge(bp1, bp2);
 
-	blitToVManip(p, vm, rot, true);
+	blitToVManip(p, vm, rot, force_placement);
 
 	std::map<v3s16, MapBlock *> lighting_modified_blocks;
 	std::map<v3s16, MapBlock *> modified_blocks;
@@ -788,6 +787,7 @@ bool DecoSchematic::loadSchematicFile() {
 	Version changes:
 	1 - Initial version
 	2 - Fixed messy never/always place; 0 probability is now never, 0xFF is always
+	3 - Added y-slice probabilities; this allows for variable height structures
 */
 void DecoSchematic::saveSchematicFile(INodeDefManager *ndef) {
 	std::ostringstream ss(std::ios_base::binary);
@@ -977,10 +977,8 @@ void Mapgen::updateHeightmap(v3s16 nmin, v3s16 nmax) {
 
 
 void Mapgen::updateLiquid(UniqueQueue<v3s16> *trans_liquid, v3s16 nmin, v3s16 nmax) {
-	bool isliquid, wasliquid, rare;
+	bool isliquid, wasliquid;
 	v3s16 em  = vm->m_area.getExtent();
-	rare = g_settings->getBool("liquid_finite");
-	int rarecnt = 0;
 
 	for (s16 z = nmin.Z; z <= nmax.Z; z++) {
 		for (s16 x = nmin.X; x <= nmax.X; x++) {
@@ -990,8 +988,8 @@ void Mapgen::updateLiquid(UniqueQueue<v3s16> *trans_liquid, v3s16 nmin, v3s16 nm
 			for (s16 y = nmax.Y; y >= nmin.Y; y--) {
 				isliquid = ndef->get(vm->m_data[i]).isLiquid();
 
-				// there was a change between liquid and nonliquid, add to queue. no need to add every with liquid_finite
-				if (isliquid != wasliquid && (!rare || !(rarecnt++ % 36)))
+				// there was a change between liquid and nonliquid, add to queue.
+				if (isliquid != wasliquid)
 					trans_liquid->push_back(v3s16(x, y, z));
 
 				wasliquid = isliquid;
@@ -1121,72 +1119,4 @@ void Mapgen::calcLightingOld(v3s16 nmin, v3s16 nmax) {
 		vm->unspreadLight(bank, unlight_from, light_sources, ndef);
 		vm->spreadLight(bank, light_sources, ndef);
 	}
-}
-
-
-//////////////////////// Mapgen V6 parameter read/write
-
-bool MapgenV6Params::readParams(Settings *settings) {
-	freq_desert = settings->getFloat("mgv6_freq_desert");
-	freq_beach  = settings->getFloat("mgv6_freq_beach");
-
-	bool success =
-		settings->getNoiseParams("mgv6_np_terrain_base",   np_terrain_base)   &&
-		settings->getNoiseParams("mgv6_np_terrain_higher", np_terrain_higher) &&
-		settings->getNoiseParams("mgv6_np_steepness",      np_steepness)      &&
-		settings->getNoiseParams("mgv6_np_height_select",  np_height_select)  &&
-		settings->getNoiseParams("mgv6_np_mud",            np_mud)            &&
-		settings->getNoiseParams("mgv6_np_beach",          np_beach)          &&
-		settings->getNoiseParams("mgv6_np_biome",          np_biome)          &&
-		settings->getNoiseParams("mgv6_np_cave",           np_cave)           &&
-		settings->getNoiseParams("mgv6_np_humidity",       np_humidity)       &&
-		settings->getNoiseParams("mgv6_np_trees",          np_trees)          &&
-		settings->getNoiseParams("mgv6_np_apple_trees",    np_apple_trees);
-	return success;
-}
-
-
-void MapgenV6Params::writeParams(Settings *settings) {
-	settings->setFloat("mgv6_freq_desert", freq_desert);
-	settings->setFloat("mgv6_freq_beach",  freq_beach);
-
-	settings->setNoiseParams("mgv6_np_terrain_base",   np_terrain_base);
-	settings->setNoiseParams("mgv6_np_terrain_higher", np_terrain_higher);
-	settings->setNoiseParams("mgv6_np_steepness",      np_steepness);
-	settings->setNoiseParams("mgv6_np_height_select",  np_height_select);
-	settings->setNoiseParams("mgv6_np_mud",            np_mud);
-	settings->setNoiseParams("mgv6_np_beach",          np_beach);
-	settings->setNoiseParams("mgv6_np_biome",          np_biome);
-	settings->setNoiseParams("mgv6_np_cave",           np_cave);
-	settings->setNoiseParams("mgv6_np_humidity",       np_humidity);
-	settings->setNoiseParams("mgv6_np_trees",          np_trees);
-	settings->setNoiseParams("mgv6_np_apple_trees",    np_apple_trees);
-}
-
-
-bool MapgenV7Params::readParams(Settings *settings) {
-	bool success =
-		settings->getNoiseParams("mgv7_np_terrain_base",    np_terrain_base)    &&
-		settings->getNoiseParams("mgv7_np_terrain_alt",     np_terrain_alt)     &&
-		settings->getNoiseParams("mgv7_np_terrain_persist", np_terrain_persist) &&
-		settings->getNoiseParams("mgv7_np_height_select",   np_height_select)   &&
-		settings->getNoiseParams("mgv7_np_filler_depth",    np_filler_depth)    &&
-		settings->getNoiseParams("mgv7_np_mount_height",    np_mount_height)    &&
-		settings->getNoiseParams("mgv7_np_ridge_uwater",    np_ridge_uwater)    &&
-		settings->getNoiseParams("mgv7_np_mountain",        np_mountain)        &&
-		settings->getNoiseParams("mgv7_np_ridge",           np_ridge);
-	return success;
-}
-
-
-void MapgenV7Params::writeParams(Settings *settings) {
-	settings->setNoiseParams("mgv7_np_terrain_base",    np_terrain_base);
-	settings->setNoiseParams("mgv7_np_terrain_alt",     np_terrain_alt);
-	settings->setNoiseParams("mgv7_np_terrain_persist", np_terrain_persist);
-	settings->setNoiseParams("mgv7_np_height_select",   np_height_select);
-	settings->setNoiseParams("mgv7_np_filler_depth",    np_filler_depth);
-	settings->setNoiseParams("mgv7_np_mount_height",    np_mount_height);
-	settings->setNoiseParams("mgv7_np_ridge_uwater",    np_ridge_uwater);
-	settings->setNoiseParams("mgv7_np_mountain",        np_mountain);
-	settings->setNoiseParams("mgv7_np_ridge",           np_ridge);
 }

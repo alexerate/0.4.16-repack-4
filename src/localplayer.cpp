@@ -43,6 +43,9 @@ LocalPlayer::LocalPlayer(IGameDef *gamedef):
 	last_pitch(0),
 	last_yaw(0),
 	last_keyPressed(0),
+	eye_offset_first(v3f(0,0,0)),
+	eye_offset_third(v3f(0,0,0)),
+	last_animation(NO_ANIM),
 	hotbar_image(""),
 	hotbar_selected_image(""),
 	m_sneak_node(32767,32767,32767),
@@ -50,7 +53,8 @@ LocalPlayer::LocalPlayer(IGameDef *gamedef):
 	m_old_node_below(32767,32767,32767),
 	m_old_node_below_type("air"),
 	m_need_to_get_new_sneak_node(true),
-	m_can_jump(false)
+	m_can_jump(false),
+	m_cao(NULL)
 {
 	// Initialize hp to 0, so that no hearts will be shown if server
 	// doesn't support health points
@@ -61,7 +65,7 @@ LocalPlayer::~LocalPlayer()
 {
 }
 
-void LocalPlayer::move(f32 dtime, ClientEnvironment *env, f32 pos_max_d,
+void LocalPlayer::move(f32 dtime, Environment *env, f32 pos_max_d,
 		std::list<CollisionInfo> *collision_info)
 {
 	Map *map = &env->getMap();
@@ -264,8 +268,9 @@ void LocalPlayer::move(f32 dtime, ClientEnvironment *env, f32 pos_max_d,
 				if(nodemgr->get(map->getNode(p)).walkable == false)
 					continue;
 				// And the node above it has to be nonwalkable
-				if(nodemgr->get(map->getNode(p+v3s16(0,1,0))).walkable == true)
+				if(nodemgr->get(map->getNode(p+v3s16(0,1,0))).walkable == true) {
 					continue;
+				}
 				if (!physics_override_sneak_glitch) {
 					if (nodemgr->get(map->getNode(p+v3s16(0,2,0))).walkable)
 						continue;
@@ -356,7 +361,7 @@ void LocalPlayer::move(f32 dtime, ClientEnvironment *env, f32 pos_max_d,
 		m_can_jump = false;
 }
 
-void LocalPlayer::move(f32 dtime, ClientEnvironment *env, f32 pos_max_d)
+void LocalPlayer::move(f32 dtime, Environment *env, f32 pos_max_d)
 {
 	move(dtime, env, pos_max_d, NULL);
 }
@@ -500,7 +505,7 @@ void LocalPlayer::applyControl(float dtime)
 	if(control.jump)
 	{
 		if(free_move)
-		{			
+		{
 			if(g_settings->getBool("aux1_descends") || g_settings->getBool("always_fly_fast"))
 			{
 				if(fast_move)

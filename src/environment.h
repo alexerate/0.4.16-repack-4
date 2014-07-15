@@ -38,13 +38,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "util/numeric.h"
 #include "mapnode.h"
 #include "mapblock.h"
+#include "jthread/jmutex.h"
 
 class ServerEnvironment;
 class ActiveBlockModifier;
 class ServerActiveObject;
 class ITextureSource;
 class IGameDef;
-class IBackgroundBlockEmerger;
 class Map;
 class ServerMap;
 class ClientMap;
@@ -70,6 +70,7 @@ public:
 
 	virtual void addPlayer(Player *player);
 	void removePlayer(u16 peer_id);
+	void removePlayer(const char *name);
 	Player * getPlayer(u16 peer_id);
 	Player * getPlayer(const char *name);
 	Player * getRandomConnectedPlayer();
@@ -78,7 +79,7 @@ public:
 	std::list<Player*> getPlayers(bool ignore_disconnected);
 	
 	u32 getDayNightRatio();
-	
+
 	// 0-23999
 	virtual void setTimeOfDay(u32 time)
 	{
@@ -94,11 +95,18 @@ public:
 
 	void stepTimeOfDay(float dtime);
 
-	void setTimeOfDaySpeed(float speed)
-	{ m_time_of_day_speed = speed; }
+	void setTimeOfDaySpeed(float speed);
 	
-	float getTimeOfDaySpeed()
-	{ return m_time_of_day_speed; }
+	float getTimeOfDaySpeed();
+
+	void setDayNightRatioOverride(bool enable, u32 value)
+	{
+		m_enable_day_night_ratio_override = enable;
+		m_day_night_ratio_override = value;
+	}
+
+	// counter used internally when triggering ABMs
+	u32 m_added_objects;
 
 protected:
 	// peer_ids in here should be unique, except that there may be many 0s
@@ -110,6 +118,13 @@ protected:
 	float m_time_of_day_speed;
 	// Used to buffer dtime for adding to m_time_of_day
 	float m_time_counter;
+	// Overriding the day-night ratio is useful for custom sky visuals
+	bool m_enable_day_night_ratio_override;
+	u32 m_day_night_ratio_override;
+	
+private:
+	JMutex m_lock;
+
 };
 
 /*
@@ -170,6 +185,7 @@ public:
 	}
 
 	std::set<v3s16> m_list;
+	std::set<v3s16> m_forceloaded_list;
 
 private:
 };
@@ -184,8 +200,7 @@ class ServerEnvironment : public Environment
 {
 public:
 	ServerEnvironment(ServerMap *map, GameScripting *scriptIface,
-			IGameDef *gamedef,
-			IBackgroundBlockEmerger *emerger);
+			IGameDef *gamedef, const std::string &path_world);
 	~ServerEnvironment();
 
 	Map & getMap();
@@ -202,17 +217,16 @@ public:
 	float getSendRecommendedInterval()
 		{ return m_recommended_send_interval; }
 
-	/*
-		Save players
-	*/
-	void serializePlayers(const std::string &savedir);
-	void deSerializePlayers(const std::string &savedir);
+	// Save players
+	void saveLoadedPlayers();
+	void savePlayer(const std::string &playername);
+	Player *loadPlayer(const std::string &playername);
 
 	/*
 		Save and load time of day and game timer
 	*/
-	void saveMeta(const std::string &savedir);
-	void loadMeta(const std::string &savedir);
+	void saveMeta();
+	void loadMeta();
 
 	/*
 		External ActiveObject interface
@@ -302,8 +316,7 @@ public:
 	void reportMaxLagEstimate(float f) { m_max_lag_estimate = f; }
 	float getMaxLagEstimate() { return m_max_lag_estimate; }
 	
-	// is weather active in this environment?
-	bool m_use_weather;
+	std::set<v3s16>* getForceloadedBlocks() { return &m_active_blocks.m_forceloaded_list; };
 	
 private:
 
@@ -355,14 +368,13 @@ private:
 	GameScripting* m_script;
 	// Game definition
 	IGameDef *m_gamedef;
-	// Background block emerger (the EmergeManager, in practice)
-	IBackgroundBlockEmerger *m_emerger;
+	// World path
+	const std::string m_path_world;
 	// Active object list
 	std::map<u16, ServerActiveObject*> m_active_objects;
 	// Outgoing network message buffer for active objects
 	std::list<ActiveObjectMessage> m_active_object_messages;
 	// Some timers
-	float m_random_spawn_timer; // used for experimental code
 	float m_send_recommended_timer;
 	IntervalLimiter m_object_management_interval;
 	// List of active blocks
@@ -484,7 +496,7 @@ public:
 	// Get event from queue. CEE_NONE is returned if queue is empty.
 	ClientEnvEvent getClientEvent();
 
-	std::vector<core::vector2d<int> > attachment_list; // X is child ID, Y is parent ID
+	u16 m_attachements[USHRT_MAX];
 
 	std::list<std::string> getPlayerNames()
 	{ return m_player_names; }
@@ -492,6 +504,10 @@ public:
 	{ m_player_names.push_back(name); }
 	void removePlayerName(std::string name)
 	{ m_player_names.remove(name); }
+	void updateCameraOffset(v3s16 camera_offset)
+	{ m_camera_offset = camera_offset; }
+	v3s16 getCameraOffset()
+	{ return m_camera_offset; }
 	
 private:
 	ClientMap *m_map;
@@ -507,6 +523,7 @@ private:
 	IntervalLimiter m_drowning_interval;
 	IntervalLimiter m_breathing_interval;
 	std::list<std::string> m_player_names;
+	v3s16 m_camera_offset;
 };
 
 #endif

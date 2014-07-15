@@ -18,8 +18,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "settings.h"
+#include "porting.h"
 #include "filesys.h"
 #include "config.h"
+#include "constants.h"
+#include "porting.h"
 
 void set_default_settings(Settings *settings)
 {
@@ -52,14 +55,16 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("keymap_toggle_update_camera", "KEY_F4");
 	settings->setDefault("keymap_toggle_debug", "KEY_F5");
 	settings->setDefault("keymap_toggle_profiler", "KEY_F6");
+	settings->setDefault("keymap_camera_mode", "KEY_F7");
 	settings->setDefault("keymap_increase_viewing_range_min", "+");
 	settings->setDefault("keymap_decrease_viewing_range_min", "-");
-	settings->setDefault("anaglyph", "false");
-	settings->setDefault("anaglyph_strength", "0.1");
+	settings->setDefault("3d_mode", "none");
+	settings->setDefault("3d_paralax_strength", "0.025");
 	settings->setDefault("aux1_descends", "false");
 	settings->setDefault("doubletap_jump", "false");
 	settings->setDefault("always_fly_fast", "true");
 	settings->setDefault("directional_colored_fog", "true");
+	settings->setDefault("tooltip_show_delay", "400");
 
 	// Some (temporary) keys for debugging
 	settings->setDefault("keymap_print_debug_stacks", "KEY_KEY_P");
@@ -77,6 +82,7 @@ void set_default_settings(Settings *settings)
 
 	settings->setDefault("wanted_fps", "30");
 	settings->setDefault("fps_max", "60");
+	settings->setDefault("pause_fps_max", "20");
 	// A bit more than the server will send around the player, to make fog blend well
 	settings->setDefault("viewing_range_nodes_max", "240");
 	settings->setDefault("viewing_range_nodes_min", "35");
@@ -116,10 +122,12 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("selectionbox_color", "(0,0,0)");
 	settings->setDefault("crosshair_color", "(255,255,255)");
 	settings->setDefault("crosshair_alpha", "255");
+	settings->setDefault("gui_scaling", "1.0");
 	settings->setDefault("mouse_sensitivity", "0.2");
 	settings->setDefault("enable_sound", "true");
 	settings->setDefault("sound_volume", "0.8");
 	settings->setDefault("desynchronize_mapblock_texture_animation", "true");
+	settings->setDefault("hud_hotbar_max_width","1.0");
 
 	settings->setDefault("mip_map", "false");
 	settings->setDefault("anisotropic_filter", "false");
@@ -128,8 +136,11 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("preload_item_visuals", "true");
 	settings->setDefault("enable_bumpmapping", "false");
 	settings->setDefault("enable_parallax_occlusion", "false");
-	settings->setDefault("parallax_occlusion_scale", "0.08");
-	settings->setDefault("parallax_occlusion_bias", "0.04");
+	settings->setDefault("generate_normalmaps", "false");
+	settings->setDefault("normalmaps_strength", "0.6");
+	settings->setDefault("normalmaps_smooth", "1");
+	settings->setDefault("parallax_occlusion_scale", "0.06");
+	settings->setDefault("parallax_occlusion_bias", "0.03");
 	settings->setDefault("enable_waving_water", "false");
 	settings->setDefault("water_wave_height", "1.0");
 	settings->setDefault("water_wave_length", "20.0");
@@ -142,6 +153,10 @@ void set_default_settings(Settings *settings)
 
 	settings->setDefault("curl_timeout", "5000");
 	settings->setDefault("curl_parallel_limit", "8");
+	settings->setDefault("curl_file_download_timeout", "300000");
+	settings->setDefault("curl_verify_cert", "true");
+
+	settings->setDefault("enable_remote_media_server", "true");
 
 	settings->setDefault("serverlist_url", "servers.minetest.net");
 	settings->setDefault("serverlist_file", "favoriteservers.txt");
@@ -154,13 +169,11 @@ void set_default_settings(Settings *settings)
 #if USE_FREETYPE
 	settings->setDefault("freetype", "true");
 	settings->setDefault("font_path", porting::getDataPath("fonts" DIR_DELIM "liberationsans.ttf"));
-	settings->setDefault("font_size", "13");
 	settings->setDefault("font_shadow", "1");
 	settings->setDefault("font_shadow_alpha", "128");
 	settings->setDefault("mono_font_path", porting::getDataPath("fonts" DIR_DELIM "liberationmono.ttf"));
-	settings->setDefault("mono_font_size", "13");
 	settings->setDefault("fallback_font_path", porting::getDataPath("fonts" DIR_DELIM "DroidSansFallbackFull.ttf"));
-	settings->setDefault("fallback_font_size", "13");
+
 	settings->setDefault("fallback_font_shadow", "1");
 	settings->setDefault("fallback_font_shadow_alpha", "128");
 #else
@@ -171,7 +184,10 @@ void set_default_settings(Settings *settings)
 
 	// Server stuff
 	// "map-dir" doesn't exist by default.
+	settings->setDefault("workaround_window_size","5");
+	settings->setDefault("max_packets_per_iteration","1024");
 	settings->setDefault("port", "30000");
+	settings->setDefault("bind_address","");
 	settings->setDefault("default_game", "minetest");
 	settings->setDefault("motd", "");
 	settings->setDefault("max_users", "15");
@@ -188,8 +204,11 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("disallow_empty_password", "false");
 	settings->setDefault("disable_anticheat", "false");
 	settings->setDefault("enable_rollback_recording", "false");
-	settings->setDefault("cache_block_before_spawn", "true");
-	settings->setDefault("max_spawn_height", "50");
+#ifdef NDEBUG
+	settings->setDefault("deprecated_lua_api_handling", "legacy");
+#else
+	settings->setDefault("deprecated_lua_api_handling", "log");
+#endif
 
 	settings->setDefault("profiler_print_interval", "0");
 	settings->setDefault("enable_mapgen_debug_info", "false");
@@ -197,8 +216,8 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("active_block_range", "2");
 	//settings->setDefault("max_simultaneous_block_sends_per_client", "1");
 	// This causes frametime jitter on client side, or does it?
-	settings->setDefault("max_simultaneous_block_sends_per_client", "4");
-	settings->setDefault("max_simultaneous_block_sends_server_total", "20");
+	settings->setDefault("max_simultaneous_block_sends_per_client", "10");
+	settings->setDefault("max_simultaneous_block_sends_server_total", "40");
 	settings->setDefault("max_block_send_distance", "9");
 	settings->setDefault("max_block_generate_distance", "7");
 	settings->setDefault("max_clearobjects_extra_loaded_blocks", "4096");
@@ -212,16 +231,13 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("full_block_send_enable_min_time_from_building", "2.0");
 	settings->setDefault("dedicated_server_step", "0.1");
 	settings->setDefault("ignore_world_load_errors", "false");
-	settings->setDefault("congestion_control_aim_rtt", "0.2");
-	settings->setDefault("congestion_control_max_rate", "400");
-	settings->setDefault("congestion_control_min_rate", "10");
 	settings->setDefault("remote_media", "");
 	settings->setDefault("debug_log_level", "2");
 	settings->setDefault("emergequeue_limit_total", "256");
-	settings->setDefault("emergequeue_limit_diskonly", "");
-	settings->setDefault("emergequeue_limit_generate", "");
+	settings->setDefault("emergequeue_limit_diskonly", "32");
+	settings->setDefault("emergequeue_limit_generate", "32");
 	settings->setDefault("num_emerge_threads", "1");
-	
+
 	// physics stuff
 	settings->setDefault("movement_acceleration_default", "3");
 	settings->setDefault("movement_acceleration_air", "2");
@@ -237,53 +253,14 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("movement_gravity", "9.81");
 
 	//liquid stuff
-	settings->setDefault("liquid_finite", "false");
 	settings->setDefault("liquid_loop_max", "10000");
 	settings->setDefault("liquid_update", "1.0");
-	settings->setDefault("liquid_relax", "2");
-	settings->setDefault("liquid_fast_flood", "1");
-	settings->setDefault("underground_springs", "1");
-	settings->setDefault("weather", "false");
 
 	//mapgen stuff
 	settings->setDefault("mg_name", "v6");
 	settings->setDefault("water_level", "1");
 	settings->setDefault("chunksize", "5");
-	settings->setDefault("mg_flags", "trees, caves, v6_biome_blend");
-	settings->setDefault("mgv6_freq_desert", "0.45");
-	settings->setDefault("mgv6_freq_beach", "0.15");
-
-	settings->setDefault("mgv6_np_terrain_base",   "-4, 20, (250, 250, 250), 82341, 5, 0.6");
-	settings->setDefault("mgv6_np_terrain_higher", "20, 16, (500, 500, 500), 85039, 5, 0.6");
-	settings->setDefault("mgv6_np_steepness",      "0.85, 0.5, (125, 125, 125), -932, 5, 0.7");
-	settings->setDefault("mgv6_np_height_select",  "0.5, 1, (250, 250, 250), 4213, 5, 0.69");
-	settings->setDefault("mgv6_np_mud",            "4, 2, (200, 200, 200), 91013, 3, 0.55");
-	settings->setDefault("mgv6_np_beach",          "0, 1, (250, 250, 250), 59420, 3, 0.50");
-	settings->setDefault("mgv6_np_biome",          "0, 1, (250, 250, 250), 9130, 3, 0.50");
-	settings->setDefault("mgv6_np_cave",           "6, 6, (250, 250, 250), 34329, 3, 0.50");
-	settings->setDefault("mgv6_np_humidity",       "0.5, 0.5, (500, 500, 500), 72384, 4, 0.66");
-	settings->setDefault("mgv6_np_trees",          "0, 1, (125, 125, 125), 2, 4, 0.66");
-	settings->setDefault("mgv6_np_apple_trees",    "0, 1, (100, 100, 100), 342902, 3, 0.45");
-
-	settings->setDefault("mgv7_np_terrain_base",     "4, 70, (300, 300, 300), 82341, 6, 0.7");
-	settings->setDefault("mgv7_np_terrain_alt",      "4, 25, (600, 600, 600), 5934, 5, 0.6");
-	settings->setDefault("mgv7_np_terrain_persist",  "0.6, 0.1, (500, 500, 500), 539, 3, 0.6");
-	settings->setDefault("mgv7_np_height_select",    "-0.5, 1, (250, 250, 250), 4213, 5, 0.69");
-	settings->setDefault("mgv7_np_filler_depth",     "0, 1.2, (150, 150, 150), 261, 4, 0.7");
-	settings->setDefault("mgv7_np_mount_height",     "100, 30, (500, 500, 500), 72449, 4, 0.6");
-	settings->setDefault("mgv7_np_ridge_uwater",     "0, 1, (500, 500, 500), 85039, 4, 0.6");
-	settings->setDefault("mgv7_np_mountain",         "0, 1, (250, 350, 250), 5333, 5, 0.68");
-	settings->setDefault("mgv7_np_ridge",            "0, 1, (100, 120, 100), 6467, 4, 0.75");
-
-	settings->setDefault("mgindev_np_terrain_base",   "-4,   20,  (250, 250, 250), 82341, 5, 0.6,  10,  10");
-	settings->setDefault("mgindev_np_terrain_higher", "20,   16,  (500, 500, 500), 85039, 5, 0.6,  10,  10");
-	settings->setDefault("mgindev_np_steepness",      "0.85, 0.5, (125, 125, 125), -932,  5, 0.7,  2,   10");
-	settings->setDefault("mgindev_np_mud",            "4,    2,   (200, 200, 200), 91013, 3, 0.55, 1,   1");
-	settings->setDefault("mgindev_np_float_islands1", "0,    1,   (256, 256, 256), 3683,  6, 0.6,  1,   1.5");
-	settings->setDefault("mgindev_np_float_islands2", "0,    1,   (8,   8,   8  ), 9292,  2, 0.5,  1,   1.5");
-	settings->setDefault("mgindev_np_float_islands3", "0,    1,   (256, 256, 256), 6412,  2, 0.5,  1,   0.5");
-	settings->setDefault("mgindev_np_biome",          "0,    1,   (250, 250, 250), 9130,  3, 0.50, 1,   10");
-	settings->setDefault("mgindev_float_islands", "500");
+	settings->setDefault("mg_flags", "");
 
 	settings->setDefault("mgmath_generator", "mandelbox");
 
@@ -292,9 +269,9 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("enable_ipv6", "true");
 	settings->setDefault("ipv6_server", "false");
 
-	settings->setDefault("main_menu_script","");
-	settings->setDefault("main_menu_mod_mgr","1");
-	settings->setDefault("main_menu_game_mgr","0");
+	settings->setDefault("main_menu_path", "");
+	settings->setDefault("main_menu_mod_mgr", "1");
+	settings->setDefault("main_menu_game_mgr", "0");
 	settings->setDefault("modstore_download_url", "https://forum.minetest.net/media/");
 	settings->setDefault("modstore_listmods_url", "https://forum.minetest.net/mmdb/mods/");
 	settings->setDefault("modstore_details_url", "https://forum.minetest.net/mmdb/mod/*/");
@@ -302,6 +279,55 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("high_precision_fpu", "true");
 
 	settings->setDefault("language", "");
+
+#ifdef __ANDROID__
+	settings->setDefault("screenW", "0");
+	settings->setDefault("screenH", "0");
+	settings->setDefault("enable_shaders", "false");
+	settings->setDefault("fullscreen", "true");
+	settings->setDefault("enable_particles", "false");
+	settings->setDefault("video_driver", "ogles1");
+	settings->setDefault("touchtarget", "true");
+	settings->setDefault("main_menu_script","/sdcard/Minetest/builtin/mainmenu/init_android.lua");
+	settings->setDefault("TMPFolder","/sdcard/Minetest/tmp/");
+	settings->setDefault("touchscreen_threshold","20");
+	settings->setDefault("smooth_lighting", "false");
+	settings->setDefault("max_simultaneous_block_sends_per_client", "3");
+	settings->setDefault("emergequeue_limit_diskonly", "8");
+	settings->setDefault("emergequeue_limit_generate", "8");
+	settings->setDefault("preload_item_visuals", "false");
+
+	settings->setDefault("viewing_range_nodes_max", "50");
+	settings->setDefault("viewing_range_nodes_min", "20");
+	settings->setDefault("inventory_image_hack", "false");
+
+	//check for device with small screen
+	float x_inches = ((double) porting::getDisplaySize().X /
+			(160 * porting::getDisplayDensity()));
+	if (x_inches  < 3.5) {
+		settings->setDefault("gui_scaling", "0.6");
+	}
+	else if (x_inches < 4.5) {
+		settings->setDefault("gui_scaling", "0.7");
+	}
+	settings->setDefault("curl_verify_cert","false");
+#endif
+}
+
+void late_init_default_settings(Settings* settings)
+{
+#ifndef SERVER
+	std::stringstream fontsize;
+	fontsize << floor(
+			DEFAULT_FONT_SIZE *
+			porting::getDisplayDensity() *
+			settings->getFloat("gui_scaling")
+			);
+
+	settings->setDefault("font_size", fontsize.str());
+	settings->setDefault("mono_font_size", fontsize.str());
+	settings->setDefault("fallback_font_size", fontsize.str());
+#endif
 }
 
 void override_default_settings(Settings *settings, Settings *from)

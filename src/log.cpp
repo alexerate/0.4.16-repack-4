@@ -26,6 +26,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "threads.h"
 #include "debug.h"
 #include "gettime.h"
+#include "porting.h"
+#include "config.h"
 
 std::list<ILogOutput*> log_outputs[LMT_NUM_VALUES];
 std::map<threadid_t, std::string> log_threadnames;
@@ -93,6 +95,7 @@ static std::string get_lev_string(enum LogMessageLevel lev)
 
 void log_printline(enum LogMessageLevel lev, const std::string &text)
 {
+	log_threadnamemutex.Lock();
 	std::string threadname = "(unknown thread)";
 	std::map<threadid_t, std::string>::const_iterator i;
 	i = log_threadnames.find(get_current_thread_id());
@@ -108,6 +111,7 @@ void log_printline(enum LogMessageLevel lev, const std::string &text)
 		out->printLog(os.str(), lev);
 		out->printLog(lev, text);
 	}
+	log_threadnamemutex.Unlock();
 }
 
 class Logbuf : public std::streambuf
@@ -137,6 +141,9 @@ public:
 	void printbuf()
 	{
 		log_printline(m_lev, m_buf);
+#ifdef __ANDROID__
+		__android_log_print(ANDROID_LOG_ERROR, PROJECT_NAME, "%s", m_buf.c_str());
+#endif
 	}
 
 	void bufchar(char c)

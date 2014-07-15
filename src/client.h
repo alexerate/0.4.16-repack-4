@@ -57,6 +57,12 @@ struct QueuedMeshUpdate
 	~QueuedMeshUpdate();
 };
 
+enum LocalClientState {
+	LC_Created,
+	LC_Init,
+	LC_Ready
+};
+
 /*
 	A thread-safe queue of mesh update tasks
 */
@@ -119,6 +125,8 @@ public:
 	MutexedQueue<MeshUpdateResult> m_queue_out;
 
 	IGameDef *m_gamedef;
+	
+	v3s16 m_camera_offset;
 };
 
 enum ClientEventType
@@ -133,7 +141,9 @@ enum ClientEventType
 	CE_DELETE_PARTICLESPAWNER,
 	CE_HUDADD,
 	CE_HUDRM,
-	CE_HUDCHANGE
+	CE_HUDCHANGE,
+	CE_SET_SKY,
+	CE_OVERRIDE_DAY_NIGHT_RATIO,
 };
 
 struct ClientEvent
@@ -168,6 +178,7 @@ struct ClientEvent
 			f32 expirationtime;
 			f32 size;
 			bool collisiondetection;
+			bool vertical;
 			std::string *texture;
 		} spawn_particle;
 		struct{
@@ -184,6 +195,7 @@ struct ClientEvent
 			f32 minsize;
 			f32 maxsize;
 			bool collisiondetection;
+			bool vertical;
 			std::string *texture;
 			u32 id;
 		} add_particlespawner;
@@ -202,6 +214,8 @@ struct ClientEvent
 			u32 dir;
 			v2f *align;
 			v2f *offset;
+			v3f *world_pos;
+			v2s32 * size;
 		} hudadd;
 		struct{
 			u32 id;
@@ -212,7 +226,18 @@ struct ClientEvent
 			v2f *v2fdata;
 			std::string *sdata;
 			u32 data;
+			v3f *v3fdata;
+			v2s32 * v2s32data;
 		} hudchange;
+		struct{
+			video::SColor *bgcolor;
+			std::string *type;
+			std::vector<std::string> *params;
+		} set_sky;
+		struct{
+			bool do_override;
+			float ratio_f;
+		} override_day_night_ratio;
 	};
 };
 
@@ -289,19 +314,20 @@ public:
 	);
 	
 	~Client();
+
+	/*
+	 request all threads managed by client to be stopped
+	 */
+	void Stop();
+
+
+	bool isShutdown();
 	/*
 		The name of the local player should already be set when
 		calling this, as it is sent in the initialization.
 	*/
 	void connect(Address address);
-	/*
-		returns true when
-			m_con.Connected() == true
-			AND m_server_ser_ver != SER_FMT_VER_INVALID
-		throws con::PeerNotFoundException if connection has been deleted,
-		eg. timed out.
-	*/
-	bool connectedAndInitialized();
+
 	/*
 		Stuff that references the environment is valid only as
 		long as this is not called. (eg. Players)
@@ -324,11 +350,12 @@ public:
 			const std::map<std::string, std::string> &fields);
 	void sendInventoryAction(InventoryAction *a);
 	void sendChatMessage(const std::wstring &message);
-	void sendChangePassword(const std::wstring oldpassword,
-			const std::wstring newpassword);
+	void sendChangePassword(const std::wstring &oldpassword,
+	                        const std::wstring &newpassword);
 	void sendDamage(u8 damage);
 	void sendBreath(u16 breath);
 	void sendRespawn();
+	void sendReady();
 
 	ClientEnvironment& getEnv()
 	{ return m_env; }
@@ -361,9 +388,6 @@ public:
 			core::line3d<f32> shootline_on_map
 	);
 
-	// Prints a line or two of info
-	void printDebugInfo(std::ostream &os);
-
 	std::list<std::string> getConnectedPlayerNames();
 
 	float getAnimationTime();
@@ -386,6 +410,9 @@ public:
 	// Including blocks at appropriate edges
 	void addUpdateMeshTaskWithEdge(v3s16 blockpos, bool ack_to_server=false, bool urgent=false);
 	void addUpdateMeshTaskForNode(v3s16 nodepos, bool ack_to_server=false, bool urgent=false);
+	
+	void updateCameraOffset(v3s16 camera_offset)
+	{ m_mesh_update_thread.m_camera_offset = camera_offset; }
 
 	// Get event from queue. CE_NONE is returned if queue is empty.
 	ClientEvent getClientEvent();
@@ -408,6 +435,8 @@ public:
 	void afterContentReceived(IrrlichtDevice *device, gui::IGUIFont* font);
 
 	float getRTT(void);
+	float getCurRate(void);
+	float getAvgRate(void);
 
 	// IGameDef interface
 	virtual IItemDefManager* getItemDefManager();
@@ -420,6 +449,7 @@ public:
 	virtual MtEventManager* getEventManager();
 	virtual bool checkLocalPrivilege(const std::string &priv)
 	{ return checkPrivilege(priv); }
+	virtual scene::IAnimatedMesh* getMesh(const std::string &filename);
 
 	// The following set of functions is used by ClientMediaDownloader
 	// Insert a media file appropriately into the appropriate manager
@@ -428,6 +458,8 @@ public:
 	void request_media(const std::list<std::string> &file_requests);
 	// Send a notification that no conventional media transfer is needed
 	void received_media();
+
+	LocalClientState getState() { return m_state; }
 
 private:
 
@@ -509,6 +541,12 @@ private:
 	// Detached inventories
 	// key = name
 	std::map<std::string, Inventory*> m_detached_inventories;
+
+	// Storage for mesh data for creating multiple instances of the same mesh
+	std::map<std::string, std::string> m_mesh_data;
+
+	// own state
+	LocalClientState m_state;
 };
 
 #endif // !CLIENT_HEADER

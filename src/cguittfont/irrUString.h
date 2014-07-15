@@ -41,6 +41,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#ifdef _WIN32
+#define __BYTE_ORDER 0
+#define __LITTLE_ENDIAN 0
+#define __BIG_ENDIAN 1
+#elif __MACH__
+#include <machine/endian.h>
+#else
+#include <endian.h>
+#endif
 
 #ifdef USTRING_CPP0X
 #	include <utility>
@@ -806,7 +815,7 @@ public:
 	ustring16()
 	: array(0), allocated(1), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -820,7 +829,7 @@ public:
 	ustring16(const ustring16<TAlloc>& other)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -834,7 +843,7 @@ public:
 	ustring16(const string<B, A>& other)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -849,7 +858,7 @@ public:
 	ustring16(const std::basic_string<B, A, Alloc>& other)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -863,7 +872,7 @@ public:
 	ustring16(Itr first, Itr last)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -882,7 +891,7 @@ public:
 	ustring16(const char* const c)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -897,7 +906,7 @@ public:
 	ustring16(const char* const c, u32 length)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -912,7 +921,7 @@ public:
 	ustring16(const uchar8_t* const c)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -926,7 +935,7 @@ public:
 	ustring16(const char c)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -940,7 +949,7 @@ public:
 	ustring16(const uchar8_t* const c, u32 length)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -954,7 +963,7 @@ public:
 	ustring16(const uchar16_t* const c)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -968,7 +977,7 @@ public:
 	ustring16(const uchar16_t* const c, u32 length)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -982,7 +991,7 @@ public:
 	ustring16(const uchar32_t* const c)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -996,7 +1005,7 @@ public:
 	ustring16(const uchar32_t* const c, u32 length)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -1010,7 +1019,7 @@ public:
 	ustring16(const wchar_t* const c)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -1029,7 +1038,7 @@ public:
 	ustring16(const wchar_t* const c, u32 length)
 	: array(0), allocated(0), used(0)
 	{
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 		encoding = unicode::EUTFE_UTF16_BE;
 #else
 		encoding = unicode::EUTFE_UTF16_LE;
@@ -3395,7 +3404,7 @@ inline ustring16<TAlloc> operator+(const ustring16<TAlloc>& left, const short ri
 template <typename TAlloc>
 inline ustring16<TAlloc> operator+(const short left, const ustring16<TAlloc>& right)
 {
-	ustring16<TAlloc> ret(core::stringc(left));
+	ustring16<TAlloc> ret((core::stringc(left)));
 	ret += right;
 	return ret;
 }
@@ -3415,7 +3424,7 @@ inline ustring16<TAlloc> operator+(const ustring16<TAlloc>& left, const unsigned
 template <typename TAlloc>
 inline ustring16<TAlloc> operator+(const unsigned short left, const ustring16<TAlloc>& right)
 {
-	ustring16<TAlloc> ret(core::stringc(left));
+	ustring16<TAlloc> ret((core::stringc(left)));
 	ret += right;
 	return ret;
 }
@@ -3435,7 +3444,7 @@ inline ustring16<TAlloc> operator+(const ustring16<TAlloc>& left, const int righ
 template <typename TAlloc>
 inline ustring16<TAlloc> operator+(const int left, const ustring16<TAlloc>& right)
 {
-	ustring16<TAlloc> ret(core::stringc(left));
+	ustring16<TAlloc> ret((core::stringc(left)));
 	ret += right;
 	return ret;
 }
@@ -3455,7 +3464,7 @@ inline ustring16<TAlloc> operator+(const ustring16<TAlloc>& left, const unsigned
 template <typename TAlloc>
 inline ustring16<TAlloc> operator+(const unsigned int left, const ustring16<TAlloc>& right)
 {
-	ustring16<TAlloc> ret(core::stringc(left));
+	ustring16<TAlloc> ret((core::stringc(left)));
 	ret += right;
 	return ret;
 }
@@ -3475,7 +3484,7 @@ inline ustring16<TAlloc> operator+(const ustring16<TAlloc>& left, const long rig
 template <typename TAlloc>
 inline ustring16<TAlloc> operator+(const long left, const ustring16<TAlloc>& right)
 {
-	ustring16<TAlloc> ret(core::stringc(left));
+	ustring16<TAlloc> ret((core::stringc(left)));
 	ret += right;
 	return ret;
 }
@@ -3495,7 +3504,7 @@ inline ustring16<TAlloc> operator+(const ustring16<TAlloc>& left, const unsigned
 template <typename TAlloc>
 inline ustring16<TAlloc> operator+(const unsigned long left, const ustring16<TAlloc>& right)
 {
-	ustring16<TAlloc> ret(core::stringc(left));
+	ustring16<TAlloc> ret((core::stringc(left)));
 	ret += right;
 	return ret;
 }
@@ -3515,7 +3524,7 @@ inline ustring16<TAlloc> operator+(const ustring16<TAlloc>& left, const float ri
 template <typename TAlloc>
 inline ustring16<TAlloc> operator+(const float left, const ustring16<TAlloc>& right)
 {
-	ustring16<TAlloc> ret(core::stringc(left));
+	ustring16<TAlloc> ret((core::stringc(left)));
 	ret += right;
 	return ret;
 }
@@ -3535,7 +3544,7 @@ inline ustring16<TAlloc> operator+(const ustring16<TAlloc>& left, const double r
 template <typename TAlloc>
 inline ustring16<TAlloc> operator+(const double left, const ustring16<TAlloc>& right)
 {
-	ustring16<TAlloc> ret(core::stringc(left));
+	ustring16<TAlloc> ret((core::stringc(left)));
 	ret += right;
 	return ret;
 }

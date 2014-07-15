@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "irrlichttypes_bloated.h"
 #include "inventory.h"
 #include "constants.h" // BS
+#include <list>
 
 #define PLAYERNAME_SIZE 20
 
@@ -88,6 +89,7 @@ class IGameDef;
 struct CollisionInfo;
 class PlayerSAO;
 struct HudElement;
+class Environment;
 
 class Player
 {
@@ -96,7 +98,10 @@ public:
 	Player(IGameDef *gamedef);
 	virtual ~Player() = 0;
 
-	virtual void move(f32 dtime, Map &map, f32 pos_max_d)
+	virtual void move(f32 dtime, Environment *env, f32 pos_max_d)
+	{}
+	virtual void move(f32 dtime, Environment *env, f32 pos_max_d,
+			std::list<CollisionInfo> *collision_info)
 	{}
 
 	v3f getSpeed()
@@ -269,6 +274,9 @@ public:
 	bool physics_override_sneak;
 	bool physics_override_sneak_glitch;
 
+	v2s32 local_animations[4];
+	float local_animation_speed;
+
 	u16 hp;
 
 	float hurt_tilt_timer;
@@ -286,10 +294,17 @@ public:
 	
 	u32 keyPressed;
 	
-	std::vector<HudElement *> hud;
+
+	HudElement* getHud(u32 id);
+	u32         addHud(HudElement* hud);
+	HudElement* removeHud(u32 id);
+	void        clearHud();
+	u32         maxHudId() {
+		return hud.size();
+	}
+
 	u32 hud_flags;
 	s32 hud_hotbar_itemcount;
-
 protected:
 	IGameDef *m_gamedef;
 
@@ -306,6 +321,8 @@ protected:
 	v3f m_last_pos;
 	u16 m_last_hp;
 	Inventory m_last_inventory;
+
+	std::vector<HudElement *> hud;
 };
 
 
@@ -317,6 +334,8 @@ class RemotePlayer : public Player
 public:
 	RemotePlayer(IGameDef *gamedef): Player(gamedef), m_sao(0) {}
 	virtual ~RemotePlayer() {}
+
+	void save(std::string savedir);
 
 	PlayerSAO *getPlayerSAO()
 	{ return m_sao; }

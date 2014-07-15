@@ -110,14 +110,16 @@ void ClientMediaDownloader::addRemoteServer(std::string baseurl)
 
 	#ifdef USE_CURL
 
-	infostream << "Client: Adding remote server \""
-		<< baseurl << "\" for media download" << std::endl;
+	if (g_settings->getBool("enable_remote_media_server")) {
+		infostream << "Client: Adding remote server \""
+			<< baseurl << "\" for media download" << std::endl;
 
-	RemoteServerStatus *remote = new RemoteServerStatus;
-	remote->baseurl = baseurl;
-	remote->active_count = 0;
-	remote->request_by_filename = false;
-	m_remotes.push_back(remote);
+		RemoteServerStatus *remote = new RemoteServerStatus;
+		remote->baseurl = baseurl;
+		remote->active_count = 0;
+		remote->request_by_filename = false;
+		m_remotes.push_back(remote);
+	}
 
 	#else
 
@@ -264,7 +266,7 @@ void ClientMediaDownloader::initialStep(Client *client)
 			fetchrequest.request_id = m_httpfetch_next_id; // == i
 			fetchrequest.timeout = m_httpfetch_timeout;
 			fetchrequest.connect_timeout = m_httpfetch_timeout;
-			fetchrequest.post_fields = required_hash_set;
+			fetchrequest.post_data = required_hash_set;
 			fetchrequest.extra_headers.push_back(
 				"Content-Type: application/octet-stream");
 			httpfetch_async(fetchrequest);
@@ -315,8 +317,10 @@ void ClientMediaDownloader::remoteHashSetReceived(
 	// For compatibility: If index.mth is not found, assume that the
 	// server contains files named like the original files (not their sha1)
 
-	if (!fetchresult.succeeded && !fetchresult.timeout &&
-			fetchresult.response_code == 404) {
+	// Do NOT check for any particular response code (e.g. 404) here,
+	// because different servers respond differently
+
+	if (!fetchresult.succeeded && !fetchresult.timeout) {
 		infostream << "Client: Enabling compatibility mode for remote "
 			<< "server \"" << remote->baseurl << "\"" << std::endl;
 		remote->request_by_filename = true;
@@ -480,13 +484,7 @@ void ClientMediaDownloader::startConventionalTransfers(Client *client)
 {
 	assert(m_httpfetch_active == 0);
 
-	if (m_uncached_received_count == m_uncached_count) {
-		// In this case all media was found in the cache or
-		// has been downloaded from some remote server;
-		// report this fact to the server
-		client->received_media();
-	}
-	else {
+	if (m_uncached_received_count != m_uncached_count) {
 		// Some media files have not been received yet, use the
 		// conventional slow method (minetest protocol) to get them
 		std::list<std::string> file_requests;

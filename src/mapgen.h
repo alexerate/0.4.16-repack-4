@@ -28,16 +28,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "noise.h"
 #include "settings.h"
 
+#define DEFAULT_MAPGEN "v6"
+
 /////////////////// Mapgen flags
 #define MG_TREES         0x01
 #define MG_CAVES         0x02
 #define MG_DUNGEONS      0x04
-#define MGV6_JUNGLES     0x08
-#define MGV6_BIOME_BLEND 0x10
-#define MG_FLAT          0x20
-#define MG_NOLIGHT       0x40
-#define MGV7_MOUNTAINS   0x80
-#define MGV7_RIDGES      0x100
+#define MG_FLAT          0x08
+#define MG_LIGHT         0x10
 
 /////////////////// Ore generation flags
 // Use absolute value of height to determine ore placement
@@ -100,6 +98,12 @@ enum OreType {
 };
 
 
+struct MapgenSpecificParams {
+	virtual void readParams(Settings *settings) = 0;
+	virtual void writeParams(Settings *settings) = 0;
+	virtual ~MapgenSpecificParams() {}
+};
+
 struct MapgenParams {
 	std::string mg_name;
 	int chunksize;
@@ -107,17 +111,16 @@ struct MapgenParams {
 	int water_level;
 	u32 flags;
 
+	MapgenSpecificParams *sparams;
+
 	MapgenParams() {
-		mg_name     = "v6";
+		mg_name     = DEFAULT_MAPGEN;
 		seed        = 0;
 		water_level = 1;
 		chunksize   = 5;
-		flags       = MG_TREES | MG_CAVES | MGV6_BIOME_BLEND;
+		flags       = MG_TREES | MG_CAVES | MG_LIGHT;
+		sparams     = NULL;
 	}
-
-	virtual bool readParams(Settings *settings) { return true; }
-	virtual void writeParams(Settings *settings) {}
-	virtual ~MapgenParams() {}
 };
 
 class Mapgen {
@@ -155,7 +158,7 @@ public:
 struct MapgenFactory {
 	virtual Mapgen *createMapgen(int mgid, MapgenParams *params,
 								 EmergeManager *emerge) = 0;
-	virtual MapgenParams *createMapgenParams() = 0;
+	virtual MapgenSpecificParams *createMapgenParams() = 0;
 	virtual ~MapgenFactory() {}
 };
 
@@ -206,7 +209,7 @@ Ore *createOre(OreType type);
 
 
 enum DecorationType {
-	DECO_SIMPLE,
+	DECO_SIMPLE = 1,
 	DECO_SCHEMATIC,
 	DECO_LSYSTEM
 };
@@ -310,7 +313,7 @@ public:
 	void saveSchematicFile(INodeDefManager *ndef);
 
 	bool getSchematicFromMap(Map *map, v3s16 p1, v3s16 p2);
-	void placeStructure(Map *map, v3s16 p);
+	void placeStructure(Map *map, v3s16 p, bool force_placement);
 	void applyProbabilities(v3s16 p0,
 		std::vector<std::pair<v3s16, u8> > *plist,
 		std::vector<std::pair<s16, u8> > *splist);

@@ -92,24 +92,27 @@ void sockets_cleanup()
 Address::Address()
 {
 	m_addr_family = 0;
-	memset(&m_address, 0, sizeof m_address);
+	memset(&m_address, 0, sizeof(m_address));
 	m_port = 0;
 }
 
 Address::Address(u32 address, u16 port)
 {
+	memset(&m_address, 0, sizeof(m_address));
 	setAddress(address);
 	setPort(port);
 }
 
 Address::Address(u8 a, u8 b, u8 c, u8 d, u16 port)
 {
+	memset(&m_address, 0, sizeof(m_address));
 	setAddress(a, b, c, d);
 	setPort(port);
 }
 
 Address::Address(const IPv6AddressBytes * ipv6_bytes, u16 port)
 {
+	memset(&m_address, 0, sizeof(m_address));
 	setAddress(ipv6_bytes);
 	setPort(port);
 }
@@ -140,6 +143,15 @@ bool Address::operator!=(Address &address)
 
 void Address::Resolve(const char *name)
 {
+	if (!name || name[0] == 0) {
+		if (m_addr_family == AF_INET) {
+			setAddress((u32) 0);
+		} else if (m_addr_family == AF_INET6) {
+			setAddress((IPv6AddressBytes*) 0);
+		}
+		return;
+	}
+
 	struct addrinfo *resolved, hints;
 	memset(&hints, 0, sizeof(hints));
 	
@@ -190,7 +202,8 @@ std::string Address::serializeString() const
 #ifdef _WIN32
 	if(m_addr_family == AF_INET)
 	{
-		u8 a, b, c, d, addr;
+		u8 a, b, c, d;
+		u32 addr;
 		addr = ntohl(m_address.ipv4.sin_addr.s_addr);
 		a = (addr & 0xFF000000) >> 24;
 		b = (addr & 0x00FF0000) >> 16;
@@ -246,6 +259,18 @@ int Address::getFamily() const
 bool Address::isIPv6() const
 {
 	return m_addr_family == AF_INET6;
+}
+
+bool Address::isZero() const
+{
+	if (m_addr_family == AF_INET) {
+		return m_address.ipv4.sin_addr.s_addr == 0;
+	} else if (m_addr_family == AF_INET6) {
+		static const char zero[16] = {0};
+		return memcmp(m_address.ipv6.sin6_addr.s6_addr,
+		              zero, 16) == 0;
+	}
+	return false;
 }
 
 void Address::setAddress(u32 address)
@@ -334,12 +359,20 @@ UDPSocket::~UDPSocket()
 #endif
 }
 
-void UDPSocket::Bind(u16 port)
+void UDPSocket::Bind(Address addr)
 {
 	if(socket_enable_debug_output)
 	{
 		dstream << "UDPSocket(" << (int) m_handle << ")::Bind(): "
-		        << "port=" << port << std::endl;
+		        << addr.serializeString() << ":"
+		        << addr.getPort() << std::endl;
+	}
+
+	if (addr.getFamily() != m_addr_family)
+	{
+		char errmsg[] = "Socket and bind address families do not match";
+		errorstream << "Bind failed: " << errmsg << std::endl;
+		throw SocketException(errmsg);
 	}
 
 	if(m_addr_family == AF_INET6)
@@ -347,12 +380,12 @@ void UDPSocket::Bind(u16 port)
 		struct sockaddr_in6 address;
 		memset(&address, 0, sizeof(address));
 
+		address             = addr.getAddress6();
 		address.sin6_family = AF_INET6;
-		address.sin6_addr   = in6addr_any;
-		address.sin6_port   = htons(port);
+		address.sin6_port   = htons(addr.getPort());
 
 		if(bind(m_handle, (const struct sockaddr *) &address,
-		        sizeof(struct sockaddr_in6)) < 0)
+				sizeof(struct sockaddr_in6)) < 0)
 		{
 			dstream << (int) m_handle << ": Bind failed: "
 			        << strerror(errno) << std::endl;
@@ -364,9 +397,9 @@ void UDPSocket::Bind(u16 port)
 		struct sockaddr_in address;
 		memset(&address, 0, sizeof(address));
 
+		address                 = addr.getAddress();
 		address.sin_family      = AF_INET;
-		address.sin_addr.s_addr = INADDR_ANY;
-		address.sin_port        = htons(port);
+		address.sin_port        = htons(addr.getPort());
 
 		if(bind(m_handle, (const struct sockaddr *) &address,
 		        sizeof(struct sockaddr_in)) < 0)

@@ -30,10 +30,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "json/json.h"
 #include "config.h"
 
-#if USE_CURL
-#include <curl/curl.h>
-#endif
-
 #define MODNAME_ALLOWED_CHARS "abcdefghijklmnopqrstuvwxyz0123456789_"
 
 class ModError : public std::exception
@@ -66,7 +62,7 @@ struct ModSpec
 	bool is_modpack;
 	// if modpack:
 	std::map<std::string,ModSpec> modpack_content;
-	ModSpec(const std::string name_="", const std::string path_=""):
+	ModSpec(const std::string &name_="", const std::string &path_=""):
 		name(name_),
 		path(path_),
 		depends(),
@@ -104,7 +100,7 @@ public:
 		m_name_conflicts()
 	{}
 
-		
+
 	ModConfiguration(std::string worldpath);
 
 	// checks if all dependencies are fullfilled.

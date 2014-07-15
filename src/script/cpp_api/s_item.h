@@ -30,7 +30,7 @@ struct ItemDefinition;
 class LuaItemStack;
 class ModApiItemMod;
 class InventoryList;
-class InventoryLocation;
+struct InventoryLocation;
 
 class ScriptApiItem
 : virtual public ScriptApiBase
@@ -52,7 +52,6 @@ protected:
 	friend class ModApiItemMod;
 
 	bool getItemCallback(const char *name, const char *callbackname);
-private:
 	void pushPointedThing(const PointedThing& pointed);
 
 };

@@ -26,6 +26,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <cstring>
 #include <vector>
 #include <sstream>
+#include <cctype>
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
 
 struct FlagDesc {
 	const char *name;
@@ -165,7 +169,7 @@ inline s32 mystoi(const std::string &s, s32 min, s32 max)
 
 inline s64 stoi64(const std::string &s) {
 	std::stringstream tmp(s);
-	long long t;
+	s64 t;
 	tmp >> t;
 	return t;
 }
@@ -316,11 +320,23 @@ inline std::string unescape_string(std::string &s)
 	return res;
 }
 
+inline bool is_number(const std::string& tocheck)
+{
+	std::string::const_iterator iter = tocheck.begin();
+
+	while (iter != tocheck.end() && std::isdigit(*iter)) {
+		++iter;
+	}
+
+	return ((!tocheck.empty()) && (iter == tocheck.end()));
+}
+
 std::string translatePassword(std::string playername, std::wstring password);
 std::string urlencode(std::string str);
 std::string urldecode(std::string str);
-u32 readFlagString(std::string str, FlagDesc *flagdesc);
-std::string writeFlagString(u32 flags, FlagDesc *flagdesc);
+u32 readFlagString(std::string str, FlagDesc *flagdesc, u32 *flagmask);
+std::string writeFlagString(u32 flags, FlagDesc *flagdesc, u32 flagmask);
+size_t mystrlcpy(char *dst, const char *src, size_t size);
 char *mystrtok_r(char *s, const char *sep, char **lasts);
 u64 read_seed(const char *str);
 

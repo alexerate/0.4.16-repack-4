@@ -21,6 +21,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define MODALMENU_HEADER
 
 #include "irrlichttypes_extrabloated.h"
+#ifdef HAVE_TOUCHSCREENGUI
+#include "touchscreengui.h"
+#endif
 
 class GUIModalMenu;
 
@@ -101,6 +104,10 @@ public:
 		Environment->removeFocus(this);
 		m_menumgr->deletingMenu(this);
 		this->remove();
+#ifdef HAVE_TOUCHSCREENGUI
+		if (g_touchscreengui)
+			g_touchscreengui->Show();
+#endif
 	}
 
 	void removeChildren()
@@ -124,6 +131,7 @@ public:
 	virtual void drawMenu() = 0;
 	virtual bool preprocessEvent(const SEvent& event) { return false; };
 	virtual bool OnEvent(const SEvent& event) { return false; };
+	virtual bool pausesGame(){ return false; } // Used for pause menu
 
 protected:
 	//bool m_force_regenerate_gui;

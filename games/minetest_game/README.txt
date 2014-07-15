@@ -1,7 +1,7 @@
 The main game for the Minetest game engine [minetest_game]
 ==========================================================
 
-To build the wholeness of the Minetest project, insert this repository as
+To use this game with Minetest, insert this repository as
   /games/minetest_game
 in the Minetest Engine.
 
@@ -14,7 +14,7 @@ The minetest_game github master HEAD is generally compatible with the github
 master HEAD of minetest.
 
 Additionally, when the minetest engine is tagged to be a certain version (eg.
-0.4.dev-20120326), minetest_game is tagged with the version too.
+0.4.10), minetest_game is tagged with the version too.
 
 When stable releases are made, minetest_game is packaged and made available in
   http://minetest.net/download.php
@@ -50,4 +50,3 @@ http://creativecommons.org/licenses/by-sa/3.0/
 
 License of menu/header.png
 Copyright (C) 2013 BlockMen CC BY-3.0
-
