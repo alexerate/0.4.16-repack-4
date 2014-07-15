@@ -24,14 +24,15 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "environment.h"
 #include "mapgen.h"
 #include "lua_api/l_env.h"
+#include "server.h"
 
 void ScriptApiEnv::environment_OnGenerated(v3s16 minp, v3s16 maxp,
 		u32 blockseed)
 {
 	SCRIPTAPI_PRECHECKHEADER
 
-	// Get minetest.registered_on_generateds
-	lua_getglobal(L, "minetest");
+	// Get core.registered_on_generateds
+	lua_getglobal(L, "core");
 	lua_getfield(L, -1, "registered_on_generateds");
 	// Call callbacks
 	push_v3s16(L, minp);
@@ -45,20 +46,42 @@ void ScriptApiEnv::environment_Step(float dtime)
 	SCRIPTAPI_PRECHECKHEADER
 	//infostream<<"scriptapi_environment_step"<<std::endl;
 
-	// Get minetest.registered_globalsteps
-	lua_getglobal(L, "minetest");
+	// Get core.registered_globalsteps
+	lua_getglobal(L, "core");
 	lua_getfield(L, -1, "registered_globalsteps");
 	// Call callbacks
 	lua_pushnumber(L, dtime);
-	script_run_callbacks(L, 1, RUN_CALLBACKS_MODE_FIRST);
+	try {
+		script_run_callbacks(L, 1, RUN_CALLBACKS_MODE_FIRST);
+	} catch (LuaError &e) {
+		getServer()->setAsyncFatalError(e.what());
+	}
+}
+
+void ScriptApiEnv::player_event(ServerActiveObject* player, std::string type)
+{
+	SCRIPTAPI_PRECHECKHEADER
+
+	// Get minetest.registered_playerevents
+	lua_getglobal(L, "minetest");
+	lua_getfield(L, -1, "registered_playerevents");
+
+	// Call callbacks
+	objectrefGetOrCreate(player);   // player
+	lua_pushstring(L,type.c_str()); // event type
+	try {
+		script_run_callbacks(L, 2, RUN_CALLBACKS_MODE_FIRST);
+	} catch (LuaError &e) {
+		getServer()->setAsyncFatalError(e.what());
+	}
 }
 
 void ScriptApiEnv::environment_OnMapgenInit(MapgenParams *mgparams)
 {
 	SCRIPTAPI_PRECHECKHEADER
 	
-	// Get minetest.registered_on_mapgen_inits
-	lua_getglobal(L, "minetest");
+	// Get core.registered_on_mapgen_inits
+	lua_getglobal(L, "core");
 	lua_getfield(L, -1, "registered_on_mapgen_inits");
 
 	// Call callbacks
@@ -73,7 +96,8 @@ void ScriptApiEnv::environment_OnMapgenInit(MapgenParams *mgparams)
 	lua_pushinteger(L, mgparams->water_level);
 	lua_setfield(L, -2, "water_level");
 	
-	std::string flagstr = writeFlagString(mgparams->flags, flagdesc_mapgen);
+	std::string flagstr = writeFlagString(mgparams->flags,
+		flagdesc_mapgen, (u32)-1);
 	lua_pushstring(L, flagstr.c_str());
 	lua_setfield(L, -2, "flags");
 	
@@ -90,8 +114,8 @@ void ScriptApiEnv::initializeEnvironment(ServerEnvironment *env)
 		Add ActiveBlockModifiers to environment
 	*/
 
-	// Get minetest.registered_abms
-	lua_getglobal(L, "minetest");
+	// Get core.registered_abms
+	lua_getglobal(L, "core");
 	lua_getfield(L, -1, "registered_abms");
 	luaL_checktype(L, -1, LUA_TTABLE);
 	int registered_abms = lua_gettop(L);

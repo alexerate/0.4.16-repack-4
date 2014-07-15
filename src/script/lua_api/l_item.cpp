@@ -234,7 +234,7 @@ int LuaItemStack::l_is_known(lua_State *L)
 }
 
 // get_definition(self) -> table
-// Returns the item definition table from minetest.registered_items,
+// Returns the item definition table from registered_items,
 // or a fallback one (name="unknown")
 int LuaItemStack::l_get_definition(lua_State *L)
 {
@@ -242,8 +242,8 @@ int LuaItemStack::l_get_definition(lua_State *L)
 	LuaItemStack *o = checkobject(L, 1);
 	ItemStack &item = o->m_stack;
 
-	// Get minetest.registered_items[name]
-	lua_getglobal(L, "minetest");
+	// Get registered_items[name]
+	lua_getglobal(L, "core");
 	lua_getfield(L, -1, "registered_items");
 	luaL_checktype(L, -1, LUA_TTABLE);
 	lua_getfield(L, -1, item.name.c_str());
@@ -470,7 +470,7 @@ int ModApiItemMod::l_register_item_raw(lua_State *L)
 		name = lua_tostring(L, -1);
 		verbosestream<<"register_item_raw: "<<name<<std::endl;
 	} else {
-		throw LuaError(NULL, "register_item_raw: name is not defined or not a string");
+		throw LuaError("register_item_raw: name is not defined or not a string");
 	}
 
 	// Check if on_use is defined
@@ -500,7 +500,7 @@ int ModApiItemMod::l_register_item_raw(lua_State *L)
 		content_t id = ndef->set(f.name, f);
 
 		if(id > MAX_REGISTERED_CONTENT){
-			throw LuaError(NULL, "Number of registerable nodes ("
+			throw LuaError("Number of registerable nodes ("
 					+ itos(MAX_REGISTERED_CONTENT+1)
 					+ ") exceeded (" + name + ")");
 		}

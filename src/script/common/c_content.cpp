@@ -30,6 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "log.h"
 #include "tool.h"
 #include "serverobject.h"
+#include "porting.h"
 #include "mapgen.h"
 #include "json/json.h"
 
@@ -653,7 +654,7 @@ ItemStack read_item(lua_State* L, int index,Server* srv)
 	}
 	else
 	{
-		throw LuaError(NULL, "Expecting itemstack, itemstring, table or nil");
+		throw LuaError("Expecting itemstack, itemstring, table or nil");
 	}
 }
 
@@ -839,12 +840,57 @@ void push_hit_params(lua_State *L,const HitParams &params)
 }
 
 /******************************************************************************/
-u32 getflagsfield(lua_State *L, int table,
-	const char *fieldname, FlagDesc *flagdesc) {
-	std::string flagstring;
 
-	flagstring = getstringfield_default(L, table, fieldname, "");
-	return readFlagString(flagstring, flagdesc);
+bool getflagsfield(lua_State *L, int table, const char *fieldname,
+	FlagDesc *flagdesc, u32 *flags, u32 *flagmask)
+{
+	lua_getfield(L, table, fieldname);
+
+	bool success = read_flags(L, -1, flagdesc, flags, flagmask);
+
+	lua_pop(L, 1);
+
+	return success;
+}
+
+bool read_flags(lua_State *L, int index, FlagDesc *flagdesc,
+	u32 *flags, u32 *flagmask)
+{
+	if (lua_isstring(L, index)) {
+		std::string flagstr = lua_tostring(L, index);
+		*flags = readFlagString(flagstr, flagdesc, flagmask);
+	} else if (lua_istable(L, index)) {
+		*flags = read_flags_table(L, index, flagdesc, flagmask);
+	} else {
+		return false;
+	}
+
+	return true;
+}
+
+u32 read_flags_table(lua_State *L, int table, FlagDesc *flagdesc, u32 *flagmask)
+{
+	u32 flags = 0, mask = 0;
+	char fnamebuf[64] = "no";
+
+	for (int i = 0; flagdesc[i].name; i++) {
+		bool result;
+
+		if (getboolfield(L, table, flagdesc[i].name, result)) {
+			mask |= flagdesc[i].flag;
+			if (result)
+				flags |= flagdesc[i].flag;
+		}
+
+		strlcpy(fnamebuf + 2, flagdesc[i].name, sizeof(fnamebuf) - 2);
+		if (getboolfield(L, table, fnamebuf, result))
+			mask |= flagdesc[i].flag;
+	}
+
+	if (flagmask)
+		*flagmask = mask;
+
+	return flags;
 }
 
 /******************************************************************************/
@@ -895,7 +941,7 @@ std::vector<ItemStack> read_items(lua_State *L, int index, Server *srv)
 	while (lua_next(L, index)) {
 		s32 key = luaL_checkinteger(L, -2);
 		if (key < 1) {
-			throw LuaError(NULL, "Invalid inventory list index");
+			throw LuaError("Invalid inventory list index");
 		}
 		if (items.size() < (u32) key) {
 			items.resize(key);
@@ -909,37 +955,48 @@ std::vector<ItemStack> read_items(lua_State *L, int index, Server *srv)
 /******************************************************************************/
 void luaentity_get(lua_State *L, u16 id)
 {
-	// Get minetest.luaentities[i]
-	lua_getglobal(L, "minetest");
+	// Get luaentities[i]
+	lua_getglobal(L, "core");
 	lua_getfield(L, -1, "luaentities");
 	luaL_checktype(L, -1, LUA_TTABLE);
 	lua_pushnumber(L, id);
 	lua_gettable(L, -2);
-	lua_remove(L, -2); // luaentities
-	lua_remove(L, -2); // minetest
+	lua_remove(L, -2); // Remove luaentities
+	lua_remove(L, -2); // Remove core
 }
 
 /******************************************************************************/
 NoiseParams *read_noiseparams(lua_State *L, int index)
 {
+	NoiseParams *np = new NoiseParams;
+
+	if (!read_noiseparams_nc(L, index, np)) {
+		delete np;
+		np = NULL;
+	}
+
+	return np;
+}
+
+bool read_noiseparams_nc(lua_State *L, int index, NoiseParams *np)
+{
 	if (index < 0)
 		index = lua_gettop(L) + 1 + index;
 
 	if (!lua_istable(L, index))
-		return NULL;
+		return false;
 
-	NoiseParams *np = new NoiseParams;
+	np->offset  = getfloatfield_default(L, index, "offset",  0.0);
+	np->scale   = getfloatfield_default(L, index, "scale",   0.0);
+	np->persist = getfloatfield_default(L, index, "persist", 0.0);
+	np->seed    = getintfield_default(L,   index, "seed",    0);
+	np->octaves = getintfield_default(L,   index, "octaves", 0);
 
-	np->offset  = getfloatfield_default(L, index, "offset", 0.0);
-	np->scale   = getfloatfield_default(L, index, "scale", 0.0);
 	lua_getfield(L, index, "spread");
 	np->spread  = read_v3f(L, -1);
 	lua_pop(L, 1);
-	np->seed    = getintfield_default(L, index, "seed", 0);
-	np->octaves = getintfield_default(L, index, "octaves", 0);
-	np->persist = getfloatfield_default(L, index, "persist", 0.0);
 
-	return np;
+	return true;
 }
 
 /******************************************************************************/
@@ -958,6 +1015,7 @@ bool read_schematic(lua_State *L, int index, DecoSchematic *dschem, Server *serv
 		MapNode *schemdata = new MapNode[numnodes];
 		int i = 0;
 		
+		// Get schematic data
 		lua_getfield(L, index, "data");
 		luaL_checktype(L, -1, LUA_TTABLE);
 		
@@ -986,15 +1044,34 @@ bool read_schematic(lua_State *L, int index, DecoSchematic *dschem, Server *serv
 			lua_pop(L, 1);
 		}
 		
-		dschem->size      = size;
-		dschem->schematic = schemdata;
-		
 		if (i != numnodes) {
 			errorstream << "read_schematic: incorrect number of "
 				"nodes provided in raw schematic data (got " << i <<
 				", expected " << numnodes << ")." << std::endl;
 			return false;
 		}
+
+		u8 *sliceprobs = new u8[size.Y];
+		for (i = 0; i != size.Y; i++)
+			sliceprobs[i] = MTSCHEM_PROB_ALWAYS;
+
+		// Get Y-slice probability values (if present)
+		lua_getfield(L, index, "yslice_prob");
+		if (lua_istable(L, -1)) {
+			lua_pushnil(L);
+			while (lua_next(L, -2)) {
+				if (getintfield(L, -1, "ypos", i) && i >= 0 && i < size.Y) {
+					sliceprobs[i] = getintfield_default(L, -1,
+						"prob", MTSCHEM_PROB_ALWAYS);
+				}
+				lua_pop(L, 1);
+			}
+		}
+
+		dschem->size        = size;
+		dschem->schematic   = schemdata;
+		dschem->slice_probs = sliceprobs;
+
 	} else if (lua_isstring(L, index)) {
 		dschem->filename = std::string(lua_tostring(L, index));
 	} else {
@@ -1088,8 +1165,11 @@ bool push_json_value(lua_State *L, const Json::Value &value, int nullindex)
 }
 
 // Converts Lua table --> JSON
-void get_json_value(lua_State *L, Json::Value &root, int index)
+void read_json_value(lua_State *L, Json::Value &root, int index, u8 recursion)
 {
+	if (recursion > 16) {
+		throw SerializationError("Maximum recursion depth exceeded");
+	}
 	int type = lua_type(L, index);
 	if (type == LUA_TBOOLEAN) {
 		root = (bool) lua_toboolean(L, index);
@@ -1104,7 +1184,7 @@ void get_json_value(lua_State *L, Json::Value &root, int index)
 		while (lua_next(L, index)) {
 			// Key is at -2 and value is at -1
 			Json::Value value;
-			get_json_value(L, value, lua_gettop(L));
+			read_json_value(L, value, lua_gettop(L), recursion + 1);
 
 			Json::ValueType roottype = root.type();
 			int keytype = lua_type(L, -1);

@@ -191,7 +191,7 @@ public:
 	}
 
 	ItemSAO(ServerEnvironment *env, v3f pos,
-			const std::string itemstring):
+			const std::string &itemstring):
 		ServerActiveObject(env, pos),
 		m_itemstring(itemstring),
 		m_itemstring_changed(false),
@@ -350,7 +350,7 @@ private:
 ItemSAO proto_ItemSAO(NULL, v3f(0,0,0), "");
 
 ServerActiveObject* createItemSAO(ServerEnvironment *env, v3f pos,
-		const std::string itemstring)
+                                  const std::string &itemstring)
 {
 	return new ItemSAO(env, pos, itemstring);
 }
@@ -1027,6 +1027,8 @@ void PlayerSAO::removingFromEnvironment()
 	{
 		m_player->setPlayerSAO(NULL);
 		m_player->peer_id = 0;
+		m_env->savePlayer(m_player->getName());
+		m_env->removePlayer(m_player->getName());
 	}
 }
 

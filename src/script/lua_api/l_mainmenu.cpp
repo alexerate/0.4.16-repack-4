@@ -20,7 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "lua_api/l_mainmenu.h"
 #include "lua_api/l_internal.h"
 #include "common/c_content.h"
-#include "lua_api/l_async_events.h"
+#include "cpp_api/s_async.h"
 #include "guiEngine.h"
 #include "guiMainMenu.h"
 #include "guiKeyChangeMenu.h"
@@ -146,22 +146,36 @@ int ModApiMainMenu::l_set_background(lua_State *L)
 	std::string backgroundlevel(luaL_checkstring(L, 1));
 	std::string texturename(luaL_checkstring(L, 2));
 
-	bool retval = false;
+	bool tile_image = false;
+	bool retval     = false;
+	unsigned int minsize = 16;
+
+	if (!lua_isnone(L, 3)) {
+		tile_image = lua_toboolean(L, 3);
+	}
+
+	if (!lua_isnone(L, 4)) {
+		minsize = lua_tonumber(L, 4);
+	}
 
 	if (backgroundlevel == "background") {
-		retval |= engine->setTexture(TEX_LAYER_BACKGROUND,texturename);
+		retval |= engine->setTexture(TEX_LAYER_BACKGROUND, texturename,
+				tile_image, minsize);
 	}
 
 	if (backgroundlevel == "overlay") {
-		retval |= engine->setTexture(TEX_LAYER_OVERLAY,texturename);
+		retval |= engine->setTexture(TEX_LAYER_OVERLAY, texturename,
+				tile_image, minsize);
 	}
 
 	if (backgroundlevel == "header") {
-		retval |= engine->setTexture(TEX_LAYER_HEADER,texturename);
+		retval |= engine->setTexture(TEX_LAYER_HEADER,  texturename,
+				tile_image, minsize);
 	}
 
 	if (backgroundlevel == "footer") {
-		retval |= engine->setTexture(TEX_LAYER_FOOTER,texturename);
+		retval |= engine->setTexture(TEX_LAYER_FOOTER, texturename,
+				tile_image, minsize);
 	}
 
 	lua_pushboolean(L,retval);
@@ -184,17 +198,24 @@ int ModApiMainMenu::l_set_clouds(lua_State *L)
 /******************************************************************************/
 int ModApiMainMenu::l_get_textlist_index(lua_State *L)
 {
+	// get_table_index accepts both tables and textlists
+	return l_get_table_index(L);
+}
+
+/******************************************************************************/
+int ModApiMainMenu::l_get_table_index(lua_State *L)
+{
 	GUIEngine* engine = getGuiEngine(L);
 	assert(engine != 0);
 
-	std::string listboxname(luaL_checkstring(L, 1));
+	std::wstring tablename(narrow_to_wide(luaL_checkstring(L, 1)));
+	GUITable *table = engine->m_menu->getTable(tablename);
+	s32 selection = table ? table->getSelected() : 0;
 
-	int selection = engine->m_menu->getListboxIndex(listboxname);
-
-	if (selection >= 0)
-		selection++;
-
-	lua_pushinteger(L, selection);
+	if (selection >= 1)
+		lua_pushinteger(L, selection);
+	else
+		lua_pushnil(L);
 	return 1;
 }
 
@@ -380,11 +401,6 @@ int ModApiMainMenu::l_get_modstore_details(lua_State *L)
 /******************************************************************************/
 int ModApiMainMenu::l_get_modstore_list(lua_State *L)
 {
-	std::string listtype = "local";
-
-	if (!lua_isnone(L,1)) {
-		listtype = luaL_checkstring(L,1);
-	}
 	Json::Value mods;
 	std::string url = "";
 	try{
@@ -440,15 +456,12 @@ int ModApiMainMenu::l_get_favorites(lua_State *L)
 	}
 
 	std::vector<ServerListSpec> servers;
-#if USE_CURL
+
 	if(listtype == "online") {
 		servers = ServerList::getOnline();
 	} else {
 		servers = ServerList::getLocal();
 	}
-#else
-	servers = ServerList::getLocal();
-#endif
 
 	lua_newtable(L);
 	int top = lua_gettop(L);
@@ -566,15 +579,12 @@ int ModApiMainMenu::l_delete_favorite(lua_State *L)
 		(listtype != "online"))
 		return 0;
 
-#if USE_CURL
+
 	if(listtype == "online") {
 		servers = ServerList::getOnline();
 	} else {
 		servers = ServerList::getLocal();
 	}
-#else
-	servers = ServerList::getLocal();
-#endif
 
 	int fav_idx	= luaL_checkinteger(L,1) -1;
 
@@ -700,6 +710,14 @@ int ModApiMainMenu::l_get_texturepath(lua_State *L)
 {
 	std::string gamepath
 			= fs::RemoveRelativePathComponents(porting::path_user + DIR_DELIM + "textures");
+	lua_pushstring(L, gamepath.c_str());
+	return 1;
+}
+
+int ModApiMainMenu::l_get_texturepath_share(lua_State *L)
+{
+	std::string gamepath
+			= fs::RemoveRelativePathComponents(porting::path_share + DIR_DELIM + "textures");
 	lua_pushstring(L, gamepath.c_str());
 	return 1;
 }
@@ -849,9 +867,8 @@ int ModApiMainMenu::l_extract_zip(lua_State *L)
 
 					unsigned int bytes_read =
 							toread->read(read_buffer,sizeof(read_buffer));
-					unsigned int bytes_written;
-					if ((bytes_read < 0 ) ||
-						(bytes_written = fwrite(read_buffer, 1, bytes_read, targetfile) != bytes_read))
+					if ((bytes_read == 0 ) ||
+						(fwrite(read_buffer, 1, bytes_read, targetfile) != bytes_read))
 					{
 						fclose(targetfile);
 						fs->removeFileArchive(fs->getFileArchiveCount()-1);
@@ -876,7 +893,7 @@ int ModApiMainMenu::l_extract_zip(lua_State *L)
 }
 
 /******************************************************************************/
-int ModApiMainMenu::l_get_scriptdir(lua_State *L)
+int ModApiMainMenu::l_get_mainmenu_path(lua_State *L)
 {
 	GUIEngine* engine = getGuiEngine(L);
 	assert(engine != 0);
@@ -976,6 +993,9 @@ int ModApiMainMenu::l_download_file(lua_State *L)
 			lua_pushboolean(L,true);
 			return 1;
 		}
+	} else {
+		errorstream << "DOWNLOAD denied: " << absolute_destination
+				<< " isn't a allowed path" << std::endl;
 	}
 	lua_pushboolean(L,false);
 	return 1;
@@ -991,23 +1011,49 @@ int ModApiMainMenu::l_gettext(lua_State *L)
 }
 
 /******************************************************************************/
+int ModApiMainMenu::l_get_screen_info(lua_State *L)
+{
+	lua_newtable(L);
+	int top = lua_gettop(L);
+	lua_pushstring(L,"density");
+	lua_pushnumber(L,porting::getDisplayDensity());
+	lua_settable(L, top);
+
+	lua_pushstring(L,"display_width");
+	lua_pushnumber(L,porting::getDisplaySize().X);
+	lua_settable(L, top);
+
+	lua_pushstring(L,"display_height");
+	lua_pushnumber(L,porting::getDisplaySize().Y);
+	lua_settable(L, top);
+
+	lua_pushstring(L,"window_width");
+	lua_pushnumber(L,porting::getWindowSize().X);
+	lua_settable(L, top);
+
+	lua_pushstring(L,"window_height");
+	lua_pushnumber(L,porting::getWindowSize().Y);
+	lua_settable(L, top);
+	return 1;
+}
+
+/******************************************************************************/
 int ModApiMainMenu::l_do_async_callback(lua_State *L)
 {
 	GUIEngine* engine = getGuiEngine(L);
 
-	const char* serialized_fct_raw = luaL_checkstring(L, 1);
-	unsigned int lenght_fct = luaL_checkint(L, 2);
+	size_t func_length, param_length;
+	const char* serialized_func_raw = luaL_checklstring(L, 1, &func_length);
 
-	const char* serialized_params_raw = luaL_checkstring(L, 3);
-	unsigned int lenght_params = luaL_checkint(L, 4);
+	const char* serialized_param_raw = luaL_checklstring(L, 2, &param_length);
 
-	assert(serialized_fct_raw != 0);
-	assert(serialized_params_raw != 0);
+	assert(serialized_func_raw != NULL);
+	assert(serialized_param_raw != NULL);
 
-	std::string serialized_fct = std::string(serialized_fct_raw,lenght_fct);
-	std::string serialized_params = std::string(serialized_params_raw,lenght_params);
+	std::string serialized_func = std::string(serialized_func_raw, func_length);
+	std::string serialized_param = std::string(serialized_param_raw, param_length);
 
-	lua_pushinteger(L,engine->DoAsync(serialized_fct,serialized_params));
+	lua_pushinteger(L, engine->queueAsync(serialized_func, serialized_param));
 
 	return 1;
 }
@@ -1018,6 +1064,7 @@ void ModApiMainMenu::Initialize(lua_State *L, int top)
 	API_FCT(update_formspec);
 	API_FCT(set_clouds);
 	API_FCT(get_textlist_index);
+	API_FCT(get_table_index);
 	API_FCT(get_worlds);
 	API_FCT(get_games);
 	API_FCT(start);
@@ -1032,12 +1079,13 @@ void ModApiMainMenu::Initialize(lua_State *L, int top)
 	API_FCT(get_modpath);
 	API_FCT(get_gamepath);
 	API_FCT(get_texturepath);
+	API_FCT(get_texturepath_share);
 	API_FCT(get_dirlist);
 	API_FCT(create_dir);
 	API_FCT(delete_dir);
 	API_FCT(copy_dir);
 	API_FCT(extract_zip);
-	API_FCT(get_scriptdir);
+	API_FCT(get_mainmenu_path);
 	API_FCT(show_file_open_dialog);
 	API_FCT(get_version);
 	API_FCT(download_file);
@@ -1046,6 +1094,7 @@ void ModApiMainMenu::Initialize(lua_State *L, int top)
 	API_FCT(sound_play);
 	API_FCT(sound_stop);
 	API_FCT(gettext);
+	API_FCT(get_screen_info);
 	API_FCT(do_async_callback);
 }
 
@@ -1059,6 +1108,7 @@ void ModApiMainMenu::InitializeAsync(AsyncEngine& engine)
 	ASYNC_API_FCT(get_modpath);
 	ASYNC_API_FCT(get_gamepath);
 	ASYNC_API_FCT(get_texturepath);
+	ASYNC_API_FCT(get_texturepath_share);
 	ASYNC_API_FCT(get_dirlist);
 	ASYNC_API_FCT(create_dir);
 	ASYNC_API_FCT(delete_dir);

@@ -23,28 +23,27 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 	See comments in porting.h
 */
 
-#if defined(linux)
-	#include <unistd.h>
-#elif defined(__APPLE__)
-	#include <unistd.h>
-	#include <mach-o/dyld.h>
-#elif defined(__FreeBSD__)
-	#include <unistd.h>
+#include "porting.h"
+
+#if defined(__FreeBSD__)
 	#include <sys/types.h>
 	#include <sys/sysctl.h>
+#elif defined(_WIN32)
+	#include <algorithm>
+#endif
+#if !defined(_WIN32)
+	#include <unistd.h>
+	#include <sys/utsname.h>
 #endif
 
-#include "porting.h"
 #include "config.h"
 #include "debug.h"
 #include "filesys.h"
 #include "log.h"
 #include "util/string.h"
+#include "main.h"
+#include "settings.h"
 #include <list>
-
-#ifdef __APPLE__
-	#include "CoreFoundation/CoreFoundation.h"
-#endif
 
 namespace porting
 {
@@ -168,6 +167,7 @@ int getNumberOfProcessors() {
 }
 
 
+#ifndef __ANDROID__
 bool threadBindToProcessor(threadid_t tid, int pnumber) {
 #if defined(_WIN32)
 
@@ -191,11 +191,11 @@ bool threadBindToProcessor(threadid_t tid, int pnumber) {
 
 #elif defined(__sun) || defined(sun)
 
-	return processor_bind(P_LWPID, MAKE_LWPID_PTHREAD(tid), 
+	return processor_bind(P_LWPID, MAKE_LWPID_PTHREAD(tid),
 						pnumber, NULL) == 0;
 
 #elif defined(_AIX)
-	
+
 	return bindprocessor(BINDTHREAD, (tid_t)tid, pnumber) == 0;
 
 #elif defined(__hpux) || defined(hpux)
@@ -204,11 +204,11 @@ bool threadBindToProcessor(threadid_t tid, int pnumber) {
 
 	return pthread_processor_bind_np(PTHREAD_BIND_ADVISORY_NP,
 									&answer, pnumber, tid) == 0;
-	
+
 #elif defined(__APPLE__)
 
 	struct thread_affinity_policy tapol;
-	
+
 	thread_port_t threadport = pthread_mach_thread_np(tid);
 	tapol.affinity_tag = pnumber + 1;
 	return thread_policy_set(threadport, THREAD_AFFINITY_POLICY,
@@ -220,7 +220,7 @@ bool threadBindToProcessor(threadid_t tid, int pnumber) {
 
 #endif
 }
-
+#endif
 
 bool threadSetPriority(threadid_t tid, int prio) {
 #if defined(_WIN32)
@@ -233,21 +233,21 @@ bool threadSetPriority(threadid_t tid, int prio) {
 
 	CloseHandle(hThread);
 	return success;
-	
+
 #else
 
 	struct sched_param sparam;
 	int policy;
-	
+
 	if (pthread_getschedparam(tid, &policy, &sparam) != 0)
 		return false;
-		
+
 	int min = sched_get_priority_min(policy);
 	int max = sched_get_priority_max(policy);
 
 	sparam.sched_priority = min + prio * (max - min) / THREAD_PRIORITY_HIGHEST;
 	return pthread_setschedparam(tid, policy, &sparam) == 0;
-	
+
 #endif
 }
 
@@ -282,6 +282,42 @@ bool detectMSVCBuildDir(char *c_path)
 	std::string path(c_path);
 	const char *ends[] = {"bin\\Release", "bin\\Build", NULL};
 	return (removeStringEnd(path, ends) != "");
+}
+
+std::string get_sysinfo()
+{
+#ifdef _WIN32
+	OSVERSIONINFO osvi;
+	std::ostringstream oss;
+	std::string tmp;
+	ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
+	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+	GetVersionEx(&osvi);
+	tmp = osvi.szCSDVersion;
+	std::replace(tmp.begin(), tmp.end(), ' ', '_');
+
+	oss << "Windows/" << osvi.dwMajorVersion << "."
+		<< osvi.dwMinorVersion;
+	if(osvi.szCSDVersion[0])
+		oss << "-" << tmp;
+	oss << " ";
+	#ifdef _WIN64
+	oss << "x86_64";
+	#else
+	BOOL is64 = FALSE;
+	if(IsWow64Process(GetCurrentProcess(), &is64) && is64)
+		oss << "x86_64"; // 32-bit app on 64-bit OS
+	else
+		oss << "x86";
+	#endif
+
+	return oss.str();
+#else
+	struct utsname osinfo;
+	uname(&osinfo);
+	return std::string(osinfo.sysname) + "/"
+		+ osinfo.release + " " + osinfo.machine;
+#endif
 }
 
 void initializePaths()
@@ -423,9 +459,15 @@ void initializePaths()
 	{
 		char buf[BUFSIZ];
 		memset(buf, 0, BUFSIZ);
-		assert(readlink("/proc/self/exe", buf, BUFSIZ-1) != -1);
-		pathRemoveFile(buf, '/');
-		bindir = buf;
+		if (readlink("/proc/self/exe", buf, BUFSIZ-1) == -1) {
+			errorstream << "Unable to read bindir "<< std::endl;
+#ifndef __ANDROID__
+			assert("Unable to read bindir" == 0);
+#endif
+		} else {
+			pathRemoveFile(buf, '/');
+			bindir = buf;
+		}
 	}
 
 	// Find share directory from these.
@@ -434,14 +476,18 @@ void initializePaths()
 	std::string static_sharedir = STATIC_SHAREDIR;
 	if(static_sharedir != "" && static_sharedir != ".")
 		trylist.push_back(static_sharedir);
-	trylist.push_back(bindir + "/../share/" + PROJECT_NAME);
-	trylist.push_back(bindir + "/..");
+	trylist.push_back(
+			bindir + DIR_DELIM + ".." + DIR_DELIM + "share" + DIR_DELIM + PROJECT_NAME);
+	trylist.push_back(bindir + DIR_DELIM + "..");
+#ifdef __ANDROID__
+	trylist.push_back(DIR_DELIM "sdcard" DIR_DELIM PROJECT_NAME);
+#endif
 
 	for(std::list<std::string>::const_iterator i = trylist.begin();
 			i != trylist.end(); i++)
 	{
 		const std::string &trypath = *i;
-		if(!fs::PathExists(trypath) || !fs::PathExists(trypath + "/builtin")){
+		if(!fs::PathExists(trypath) || !fs::PathExists(trypath + DIR_DELIM + "builtin")){
 			dstream<<"WARNING: system-wide share not found at \""
 					<<trypath<<"\""<<std::endl;
 			continue;
@@ -454,43 +500,83 @@ void initializePaths()
 		path_share = trypath;
 		break;
 	}
-
-	path_user = std::string(getenv("HOME")) + "/." + PROJECT_NAME;
+#ifndef __ANDROID__
+	path_user = std::string(getenv("HOME")) + DIR_DELIM + "." + PROJECT_NAME;
+#else
+	path_user = std::string(DIR_DELIM "sdcard" DIR_DELIM PROJECT_NAME DIR_DELIM);
+#endif
 
 	/*
 		OS X
 	*/
 	#elif defined(__APPLE__)
 
-    // Code based on
-    // http://stackoverflow.com/questions/516200/relative-paths-not-working-in-xcode-c
-    CFBundleRef main_bundle = CFBundleGetMainBundle();
-    CFURLRef resources_url = CFBundleCopyResourcesDirectoryURL(main_bundle);
-    char path[PATH_MAX];
-    if(CFURLGetFileSystemRepresentation(resources_url, TRUE, (UInt8 *)path, PATH_MAX))
+	// Code based on
+	// http://stackoverflow.com/questions/516200/relative-paths-not-working-in-xcode-c
+	CFBundleRef main_bundle = CFBundleGetMainBundle();
+	CFURLRef resources_url = CFBundleCopyResourcesDirectoryURL(main_bundle);
+	char path[PATH_MAX];
+	if(CFURLGetFileSystemRepresentation(resources_url, TRUE, (UInt8 *)path, PATH_MAX))
 	{
 		dstream<<"Bundle resource path: "<<path<<std::endl;
 		//chdir(path);
-		path_share = std::string(path) + "/share";
+		path_share = std::string(path) + DIR_DELIM + "share";
 	}
 	else
-    {
-        // error!
+	{
+		// error!
 		dstream<<"WARNING: Could not determine bundle resource path"<<std::endl;
-    }
-    CFRelease(resources_url);
+	}
+	CFRelease(resources_url);
 
 	path_user = std::string(getenv("HOME")) + "/Library/Application Support/" + PROJECT_NAME;
 
 	#else // FreeBSD, and probably many other POSIX-like systems.
 
 	path_share = STATIC_SHAREDIR;
-	path_user = std::string(getenv("HOME")) + "/." + PROJECT_NAME;
+	path_user = std::string(getenv("HOME")) + DIR_DELIM + "." + PROJECT_NAME;
 
 	#endif
 
 #endif // RUN_IN_PLACE
 }
+
+static irr::IrrlichtDevice* device;
+
+void initIrrlicht(irr::IrrlichtDevice * _device) {
+	device = _device;
+}
+
+#ifndef SERVER
+v2u32 getWindowSize() {
+	return device->getVideoDriver()->getScreenSize();
+}
+
+#ifndef __ANDROID__
+
+float getDisplayDensity() {
+	float gui_scaling = g_settings->getFloat("gui_scaling");
+	// using Y here feels like a bug, this needs to be discussed later!
+	if (getWindowSize().Y <= 800) {
+		return (2.0/3.0) * gui_scaling;
+	}
+	if (getWindowSize().Y <= 1280) {
+		return 1.0 * gui_scaling;
+	}
+
+	return (4.0/3.0) * gui_scaling;
+}
+
+v2u32 getDisplaySize() {
+	IrrlichtDevice *nulldevice = createDevice(video::EDT_NULL);
+
+	core::dimension2d<u32> deskres = nulldevice->getVideoModeList()->getDesktopResolution();
+	nulldevice -> drop();
+
+	return deskres;
+}
+#endif
+#endif
 
 } //namespace porting
 

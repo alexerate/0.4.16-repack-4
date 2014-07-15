@@ -24,13 +24,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 class ModApiMapgen : public ModApiBase {
 private:
-	// minetest.get_mapgen_object(objectname)
+	// get_mapgen_object(objectname)
 	// returns the requested object used during map generation
 	static int l_get_mapgen_object(lua_State *L);
 
-	// minetest.set_mapgen_params(params)
+	// set_mapgen_params(params)
 	// set mapgen parameters
 	static int l_set_mapgen_params(lua_State *L);
+
+	// set_noiseparam_defaults({np1={noise params}, ...})
+	static int l_set_noiseparam_defaults(lua_State *L);
 
 	// set_gen_notify(flagstring)
 	static int l_set_gen_notify(lua_State *L);

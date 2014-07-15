@@ -19,12 +19,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "irrlichttypes_extrabloated.h"
 #include <ISceneNode.h>
-#include "localplayer.h"
+#include "camera.h"
 
 #ifndef SKY_HEADER
 #define SKY_HEADER
 
-#define SKY_MATERIAL_COUNT 3
+#define SKY_MATERIAL_COUNT 5
 #define SKY_STAR_COUNT 200
 
 // Skybox, rendered with zbuffer turned off, before all other nodes.
@@ -32,7 +32,7 @@ class Sky : public scene::ISceneNode
 {
 public:
 	//! constructor
-	Sky(scene::ISceneNode* parent, scene::ISceneManager* mgr, s32 id, LocalPlayer* player);
+	Sky(scene::ISceneNode* parent, scene::ISceneManager* mgr, s32 id);
 
 	virtual void OnRegisterSceneNode();
 
@@ -50,14 +50,25 @@ public:
 	{ return SKY_MATERIAL_COUNT; }
 
 	void update(float m_time_of_day, float time_brightness,
-			float direct_brightness, bool sunlight_seen);
+			float direct_brightness, bool sunlight_seen, CameraMode cam_mode,
+			float yaw, float pitch);
 	
 	float getBrightness(){ return m_brightness; }
-	video::SColor getBgColor(){ return m_bgcolor; }
-	video::SColor getSkyColor(){ return m_skycolor; }
+
+	video::SColor getBgColor(){
+		return m_visible ? m_bgcolor : m_fallback_bg_color;
+	}
+	video::SColor getSkyColor(){
+		return m_visible ? m_skycolor : m_fallback_bg_color;
+	}
 	
-	bool getCloudsVisible(){ return m_clouds_visible; }
+	bool getCloudsVisible(){ return m_clouds_visible && m_visible; }
 	video::SColorf getCloudColor(){ return m_cloudcolor_f; }
+
+	void setVisible(bool visible){ m_visible = visible; }
+	void setFallbackBgColor(const video::SColor &fallback_bg_color){
+		m_fallback_bg_color = fallback_bg_color;
+	}
 
 private:
 	core::aabbox3d<f32> Box;
@@ -98,6 +109,8 @@ private:
 		return result;
 	}
 
+	bool m_visible;
+	video::SColor m_fallback_bg_color; // Used when m_visible=false
 	bool m_first_update;
 	float m_time_of_day;
 	float m_time_brightness;
@@ -113,9 +126,11 @@ private:
 	video::SColor m_skycolor;
 	video::SColorf m_cloudcolor_f;
 	v3f m_stars[SKY_STAR_COUNT];
-	u16 m_star_indices[SKY_STAR_COUNT*4];
 	video::S3DVertex m_star_vertices[SKY_STAR_COUNT*4];
-	LocalPlayer* m_player;
+	video::ITexture* m_sun_texture;
+	video::ITexture* m_moon_texture;
+	video::ITexture* m_sun_tonemap;
+	video::ITexture* m_moon_tonemap;
 };
 
 #endif

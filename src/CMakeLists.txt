@@ -1,6 +1,8 @@
 project(minetest)
 cmake_minimum_required( VERSION 2.6 )
 
+INCLUDE(CheckCSourceRuns)
+
 # Set some random things default to not being visible in the GUI
 mark_as_advanced(EXECUTABLE_OUTPUT_PATH LIBRARY_OUTPUT_PATH)
 mark_as_advanced(SQLITE3_INCLUDE_DIR SQLITE3_LIBRARY)
@@ -160,7 +162,12 @@ else()
 		endif(APPLE)
 	endif(BUILD_CLIENT)
 	find_package(ZLIB REQUIRED)
-	set(PLATFORM_LIBS -lpthread -lrt ${CMAKE_DL_LIBS})
+	set(PLATFORM_LIBS -lpthread ${CMAKE_DL_LIBS})
+	if(APPLE)
+		set(PLATFORM_LIBS "-framework CoreFoundation" ${PLATFORM_LIBS})
+	else()
+		set(PLATFORM_LIBS -lrt ${PLATFORM_LIBS})
+	endif(APPLE)
 	#set(CLIENT_PLATFORM_LIBS -lXxf86vm)
 	# This way Xxf86vm is found on OpenBSD too
 	find_library(XXF86VM_LIBRARY Xxf86vm)
@@ -170,33 +177,102 @@ endif()
 
 find_package(Sqlite3 REQUIRED)
 find_package(Json REQUIRED)
-find_package(OpenGLES2)
+
+option(ENABLE_GLES "Enable OpenGL ES support" 0)
+mark_as_advanced(ENABLE_GLES)
+if(ENABLE_GLES)
+	find_package(OpenGLES2)
+endif(ENABLE_GLES)
 
 if(USE_FREETYPE)
-	find_package(Freetype REQUIRED)
+	if(UNIX)
+		include(FindPkgConfig)
+		if(PKG_CONFIG_FOUND)
+			pkg_check_modules(FREETYPE QUIET freetype2)
+			if(FREETYPE_FOUND)
+				SET(FREETYPE_PKGCONFIG_FOUND TRUE)
+				SET(FREETYPE_LIBRARY ${FREETYPE_LIBRARIES})
+				# because cmake is idiotic
+				string(REPLACE ";" " " FREETYPE_CFLAGS_STR ${FREETYPE_CFLAGS})
+				string(REPLACE ";" " " FREETYPE_LDFLAGS_STR ${FREETYPE_LDFLAGS})
+			endif(FREETYPE_FOUND)
+		endif(PKG_CONFIG_FOUND)
+	endif(UNIX)
+	if(NOT FREETYPE_FOUND)
+		find_package(Freetype REQUIRED)
+	endif(NOT FREETYPE_FOUND)
 	set(CGUITTFONT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cguittfont")
 	set(CGUITTFONT_LIBRARY cguittfont)
 endif(USE_FREETYPE)
 
-
-find_library(LUA_LIBRARY luajit
-		NAMES luajit-5.1)
-find_path(LUA_INCLUDE_DIR luajit.h
-	NAMES luajit.h
-	PATH_SUFFIXES luajit-2.0)
-message (STATUS "LuaJIT library: ${LUA_LIBRARY}")
-message (STATUS "LuaJIT headers: ${LUA_INCLUDE_DIR}")
+if (NOT DISABLE_LUAJIT)
+	find_library(LUA_LIBRARY luajit
+			NAMES luajit-5.1)
+	find_path(LUA_INCLUDE_DIR luajit.h
+		NAMES luajit.h
+		PATH_SUFFIXES luajit-2.0)
+	message (STATUS "LuaJIT library: ${LUA_LIBRARY}")
+	message (STATUS "LuaJIT headers: ${LUA_INCLUDE_DIR}")
+else (NOT ${DISABLE_LUAJIT} MATCHES "1")
+	message (STATUS "LuaJIT detection disabled! (DISABLE_LUAJIT=1)")
+	set(LUA_LIBRARY "")
+	set(LUA_INCLUDE_DIR "")
+endif (NOT DISABLE_LUAJIT)
 
 set(USE_LUAJIT 0)
 if(LUA_LIBRARY AND LUA_INCLUDE_DIR)
-	message (STATUS "LuaJIT found.")
-	set(USE_LUAJIT 1)
-else(LUA_LIBRARY AND LUA_INCLUDE_DIR)
+	message (STATUS "LuaJIT found, checking for broken versions...")
+	if(CMAKE_CROSSCOMPILING)
+		message(WARNING "Cross-compiling enabled, assuming LuaJIT is not broken")
+		set(VALID_LUAJIT_VERSION 1)
+	else(CMAKE_CROSSCOMPILING)
+		set(BACKUP_REQUIRED_INCS CMAKE_REQUIRED_INCLUDES)
+		set(CMAKE_REQUIRED_INCLUDES "${CMAKE_REQUIRED_INCLUDES} ${LUA_INCLUDE_DIR}")
+		CHECK_C_SOURCE_RUNS("
+			#include <luajit.h>
+			#include <stdio.h>
+			#include <string.h>
+
+			#define ARRAYSIZE(a) (sizeof(a) / sizeof((a)[0]))
+
+			static char *broken_luajit_versions[] = {
+					\"LuaJIT 2.0.0-beta7\",
+					\"LuaJIT 2.0.0-beta6\",
+					\"LuaJIT 2.0.0-beta5\",
+					\"LuaJIT 2.0.0-beta4\",
+					\"LuaJIT 2.0.0-beta3\",
+					\"LuaJIT 2.0.0-beta2\",
+					\"LuaJIT 2.0.0-beta1\"
+			};
+
+			int main(int argc, char *argv[]) {
+				unsigned int i;
+				for (i = 0; i < ARRAYSIZE(broken_luajit_versions); i++) {
+					if (strcmp(LUAJIT_VERSION, broken_luajit_versions[i]) == 0) {
+						return 1;
+					}
+				}
+				return 0;
+			}
+			"
+			VALID_LUAJIT_VERSION)
+		set(CMAKE_REQUIRED_INCLUDES BACKUP_REQUIRED_INCS)
+	endif(CMAKE_CROSSCOMPILING)
+	if (VALID_LUAJIT_VERSION)
+		message (STATUS "LuaJIT version ok")
+		set(USE_LUAJIT 1)
+	else (VALID_LUAJIT_VERSION)
+		message (STATUS "LuaJIT versions till 2.0.0beta7 known to be broken, update to at least beta8")
+		set(USE_LUAJIT 0)
+	endif (VALID_LUAJIT_VERSION)
+endif (LUA_LIBRARY AND LUA_INCLUDE_DIR)
+
+if(NOT USE_LUAJIT)
 	message (STATUS "LuaJIT not found, using bundled Lua.")
 	set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
 	set(LUA_LIBRARY "lua")
 	add_subdirectory(lua)
-endif(LUA_LIBRARY AND LUA_INCLUDE_DIR)
+endif(NOT USE_LUAJIT)
 
 mark_as_advanced(LUA_LIBRARY)
 mark_as_advanced(LUA_INCLUDE_DIR)
@@ -219,6 +295,25 @@ if(ENABLE_LEVELDB)
 		message(STATUS "LevelDB not found!")
 	endif(LEVELDB_LIBRARY AND LEVELDB_INCLUDE_DIR)
 endif(ENABLE_LEVELDB)
+
+set(USE_REDIS 0)
+
+OPTION(ENABLE_REDIS "Enable redis backend" 1)
+
+if(ENABLE_REDIS)
+	find_library(REDIS_LIBRARY hiredis)
+	find_path(REDIS_INCLUDE_DIR hiredis.h PATH_SUFFIXES hiredis)
+	message(STATUS "redis library: ${REDIS_LIBRARY}")
+	message(STATUS "redis headers: ${REDIS_INCLUDE_DIR}")
+	if(REDIS_LIBRARY AND REDIS_INCLUDE_DIR)
+		set(USE_REDIS 1)
+		message(STATUS "redis backend enabled")
+		include_directories(${REDIS_INCLUDE_DIR})
+	else(REDIS_LIBRARY AND REDIS_INCLUDE_DIR)
+		set(USE_REDIS 0)
+		message(STATUS "redis not found!")
+	endif(REDIS_LIBRARY AND REDIS_INCLUDE_DIR)
+endif(ENABLE_REDIS)
 
 configure_file(
 	"${PROJECT_SOURCE_DIR}/cmake_config.h.in"
@@ -288,6 +383,7 @@ set(common_SRCS
 	connection.cpp
 	environment.cpp
 	server.cpp
+	clientiface.cpp
 	socket.cpp
 	mapblock.cpp
 	mapsector.cpp
@@ -296,6 +392,7 @@ set(common_SRCS
 	database-dummy.cpp
 	database-leveldb.cpp
 	database-sqlite3.cpp
+	database-redis.cpp
 	player.cpp
 	test.cpp
 	sha1.cpp
@@ -313,7 +410,7 @@ set(common_SRCS
 	${UTIL_SRCS}
 )
 
-# This gives us the icon
+# This gives us the icon and file version information
 if(WIN32)
 	set(WINRESOURCE_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../misc/winresource.rc)
 	if(MINGW)
@@ -321,10 +418,11 @@ if(WIN32)
 			set(CMAKE_RC_COMPILER "windres.exe")
 		endif()
 		ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/winresource_rc.o
-			COMMAND ${CMAKE_RC_COMPILER} -I${CMAKE_CURRENT_SOURCE_DIR}
+			COMMAND ${CMAKE_RC_COMPILER} -I${CMAKE_CURRENT_SOURCE_DIR} -I${CMAKE_CURRENT_BINARY_DIR}
 			-i${WINRESOURCE_FILE}
 			-o ${CMAKE_CURRENT_BINARY_DIR}/winresource_rc.o
-			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+			DEPENDS ${WINRESOURCE_FILE})
 		SET(common_SRCS ${common_SRCS} ${CMAKE_CURRENT_BINARY_DIR}/winresource_rc.o)
 	else(MINGW) # Probably MSVC
 		set(common_SRCS ${common_SRCS} ${WINRESOURCE_FILE})
@@ -351,13 +449,10 @@ set(minetest_SRCS
 	chat.cpp
 	hud.cpp
 	guiKeyChangeMenu.cpp
-	guiMessageMenu.cpp
-	guiTextInputMenu.cpp
 	guiFormSpecMenu.cpp
-	guiPauseMenu.cpp
+	guiTable.cpp
 	guiPasswordChange.cpp
 	guiVolumeChange.cpp
-	guiDeathScreen.cpp
 	guiChatConsole.cpp
 	client.cpp
 	clientmedia.cpp
@@ -369,16 +464,9 @@ set(minetest_SRCS
 	guiEngine.cpp
 	guiFileSelectMenu.cpp
 	convert_json.cpp
+	drawscene.cpp
 	${minetest_SCRIPT_SRCS}
 )
-
-if(USE_FREETYPE)
-	set(minetest_SRCS
-		${minetest_SRCS}
-		intlGUIEditBox.cpp
-	)
-endif(USE_FREETYPE)
-
 list(SORT minetest_SRCS)
 
 # Server sources
@@ -421,7 +509,7 @@ set(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/bin")
 if(BUILD_CLIENT)
 	add_executable(${PROJECT_NAME} ${minetest_SRCS})
 	add_dependencies(${PROJECT_NAME} GenerateVersion)
-	target_link_libraries(
+	set(minetest_LIBS
 		${PROJECT_NAME}
 		${ZLIB_LIBRARIES}
 		${IRRLICHT_LIBRARY}
@@ -439,6 +527,16 @@ if(BUILD_CLIENT)
 		${PLATFORM_LIBS}
 		${CLIENT_PLATFORM_LIBS}
 	)
+	if(APPLE)
+		target_link_libraries(
+			${minetest_LIBS}
+			${ICONV_LIBRARY}
+		)
+	else()
+		target_link_libraries(
+			${minetest_LIBS}
+		)
+	endif()
 	if(USE_CURL)
 		target_link_libraries(
 			${PROJECT_NAME}
@@ -446,6 +544,12 @@ if(BUILD_CLIENT)
 		)
 	endif(USE_CURL)
 	if(USE_FREETYPE)
+		if(FREETYPE_PKGCONFIG_FOUND)
+			set_target_properties(${PROJECT_NAME}
+				PROPERTIES
+				COMPILE_FLAGS "${FREETYPE_CFLAGS_STR}"
+			)
+		endif(FREETYPE_PKGCONFIG_FOUND)
 		target_link_libraries(
 			${PROJECT_NAME}
 			${FREETYPE_LIBRARY}
@@ -455,6 +559,9 @@ if(BUILD_CLIENT)
 	if (USE_LEVELDB)
 		target_link_libraries(${PROJECT_NAME} ${LEVELDB_LIBRARY})
 	endif(USE_LEVELDB)
+	if (USE_REDIS)
+		target_link_libraries(${PROJECT_NAME} ${REDIS_LIBRARY})
+	endif(USE_REDIS)
 endif(BUILD_CLIENT)
 
 if(BUILD_SERVER)
@@ -472,6 +579,9 @@ if(BUILD_SERVER)
 	if (USE_LEVELDB)
 		target_link_libraries(${PROJECT_NAME}server ${LEVELDB_LIBRARY})
 	endif(USE_LEVELDB)
+	if (USE_REDIS)
+		target_link_libraries(${PROJECT_NAME}server ${REDIS_LIBRARY})
+	endif(USE_REDIS)
 	if(USE_CURL)
 		target_link_libraries(
 			${PROJECT_NAME}server
@@ -510,7 +620,9 @@ if(MSVC)
 
 else()
 	# Probably GCC
-
+	if(APPLE)
+		SET( CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -pagezero_size 10000 -image_base 100000000" )
+	endif()
 	if(WARN_ALL)
 		set(RELEASE_WARNING_FLAGS "-Wall")
 	else()
@@ -528,12 +640,12 @@ else()
 		set(OTHER_FLAGS "-mthreads -fexceptions")
 	endif()
 
+	set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG ${RELEASE_WARNING_FLAGS} ${WARNING_FLAGS} ${OTHER_FLAGS} -ffast-math -Wall -pipe -funroll-loops")
 	if(APPLE)
-		set(CMAKE_OSX_ARCHITECTURES i386 CACHE STRING "do not build for 64-bit" FORCE)
-		set(ARCH i386)
-	endif()
-
-	set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG ${RELEASE_WARNING_FLAGS} ${WARNING_FLAGS} ${OTHER_FLAGS} -O3 -ffast-math -Wall -fomit-frame-pointer -pipe -funroll-loops")
+		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os")
+	else()
+		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -fomit-frame-pointer")
+	endif(APPLE)
 	set(CMAKE_CXX_FLAGS_DEBUG "-g -O1 -Wall ${WARNING_FLAGS} ${OTHER_FLAGS}")
 
 	if(USE_GPROF)
@@ -573,9 +685,15 @@ if(WIN32)
 		if(VORBISFILE_DLL)
 			install(FILES ${VORBISFILE_DLL} DESTINATION ${BINDIR})
 		endif()
-		if(CURL_DLL)
-			install(FILES ${CURL_DLL} DESTINATION ${BINDIR})
-		endif()
+	endif()
+	if(CURL_DLL)
+		install(FILES ${CURL_DLL} DESTINATION ${BINDIR})
+	endif()
+	if (ZLIB_DLL)
+		install(FILES ${ZLIB_DLL} DESTINATION ${BINDIR})
+	endif()
+	if(FREETYPE_DLL)
+		install(FILES ${FREETYPE_DLL} DESTINATION ${BINDIR})
 	endif()
 endif()
 

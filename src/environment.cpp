@@ -42,6 +42,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "map.h"
 #include "emerge.h"
 #include "util/serialize.h"
+#include "jthread/jmutexautolock.h"
 
 #define PP(x) "("<<(x).X<<","<<(x).Y<<","<<(x).Z<<")"
 
@@ -49,7 +50,9 @@ Environment::Environment():
 	m_time_of_day(9000),
 	m_time_of_day_f(9000./24000),
 	m_time_of_day_speed(0),
-	m_time_counter(0)
+	m_time_counter(0),
+	m_enable_day_night_ratio_override(false),
+	m_day_night_ratio_override(0.0f)
 {
 }
 
@@ -83,19 +86,29 @@ void Environment::addPlayer(Player *player)
 void Environment::removePlayer(u16 peer_id)
 {
 	DSTACK(__FUNCTION_NAME);
-re_search:
+
 	for(std::list<Player*>::iterator i = m_players.begin();
-			i != m_players.end(); ++i)
+			i != m_players.end();)
 	{
 		Player *player = *i;
-		if(player->peer_id != peer_id)
-			continue;
-		
-		delete player;
-		m_players.erase(i);
-		// See if there is an another one
-		// (shouldn't be, but just to be sure)
-		goto re_search;
+		if(player->peer_id == peer_id) {
+			delete player;
+			i = m_players.erase(i);
+		} else {
+			++i;
+		}
+	}
+}
+
+void Environment::removePlayer(const char *name)
+{
+	for (std::list<Player*>::iterator it = m_players.begin();
+			it != m_players.end(); ++it) {
+		if (strcmp((*it)->getName(), name) == 0) {
+			delete *it;
+			m_players.erase(it);
+			return;
+		}
 	}
 }
 
@@ -190,16 +203,36 @@ std::list<Player*> Environment::getPlayers(bool ignore_disconnected)
 
 u32 Environment::getDayNightRatio()
 {
+	if(m_enable_day_night_ratio_override)
+		return m_day_night_ratio_override;
 	bool smooth = g_settings->getBool("enable_shaders");
 	return time_to_daynight_ratio(m_time_of_day_f*24000, smooth);
 }
 
+void Environment::setTimeOfDaySpeed(float speed)
+{
+	JMutexAutoLock(this->m_lock);
+	m_time_of_day_speed = speed;
+}
+
+float Environment::getTimeOfDaySpeed()
+{
+	JMutexAutoLock(this->m_lock);
+	float retval = m_time_of_day_speed;
+	return retval;
+}
+
 void Environment::stepTimeOfDay(float dtime)
 {
+	float day_speed = 0;
+	{
+		JMutexAutoLock(this->m_lock);
+		day_speed = m_time_of_day_speed;
+	}
+	
 	m_time_counter += dtime;
-	f32 speed = m_time_of_day_speed * 24000./(24.*3600);
+	f32 speed = day_speed * 24000./(24.*3600);
 	u32 units = (u32)(m_time_counter*speed);
-	m_time_counter -= (f32)units / speed;
 	bool sync_f = false;
 	if(units > 0){
 		// Sync at overflow
@@ -209,8 +242,11 @@ void Environment::stepTimeOfDay(float dtime)
 		if(sync_f)
 			m_time_of_day_f = (float)m_time_of_day / 24000.0;
 	}
+	if (speed > 0) {
+		m_time_counter -= (f32)units / speed;
+	}
 	if(!sync_f){
-		m_time_of_day_f += m_time_of_day_speed/24/3600*dtime;
+		m_time_of_day_f += day_speed/24/3600*dtime;
 		if(m_time_of_day_f > 1.0)
 			m_time_of_day_f -= 1.0;
 		if(m_time_of_day_f < 0.0)
@@ -258,7 +294,7 @@ void ActiveBlockList::update(std::list<v3s16> &active_positions,
 	/*
 		Create the new list
 	*/
-	std::set<v3s16> newlist;
+	std::set<v3s16> newlist = m_forceloaded_list;
 	for(std::list<v3s16>::iterator i = active_positions.begin();
 			i != active_positions.end(); ++i)
 	{
@@ -308,13 +344,12 @@ void ActiveBlockList::update(std::list<v3s16> &active_positions,
 */
 
 ServerEnvironment::ServerEnvironment(ServerMap *map,
-		GameScripting *scriptIface,
-		IGameDef *gamedef, IBackgroundBlockEmerger *emerger):
+		GameScripting *scriptIface, IGameDef *gamedef,
+		const std::string &path_world) :
 	m_map(map),
 	m_script(scriptIface),
 	m_gamedef(gamedef),
-	m_emerger(emerger),
-	m_random_spawn_timer(3),
+	m_path_world(path_world),
 	m_send_recommended_timer(0),
 	m_active_block_interval_overload_skip(0),
 	m_game_time(0),
@@ -322,7 +357,6 @@ ServerEnvironment::ServerEnvironment(ServerMap *map,
 	m_recommended_send_interval(0.1),
 	m_max_lag_estimate(0.1)
 {
-	m_use_weather = g_settings->getBool("weather");
 }
 
 ServerEnvironment::~ServerEnvironment()
@@ -381,196 +415,75 @@ bool ServerEnvironment::line_of_sight(v3f pos1, v3f pos2, float stepsize, v3s16 
 	return true;
 }
 
-void ServerEnvironment::serializePlayers(const std::string &savedir)
+void ServerEnvironment::saveLoadedPlayers()
 {
-	std::string players_path = savedir + "/players";
+	std::string players_path = m_path_world + DIR_DELIM "players";
 	fs::CreateDir(players_path);
 
-	std::set<Player*> saved_players;
-
-	std::vector<fs::DirListNode> player_files = fs::GetDirListing(players_path);
-	for(u32 i=0; i<player_files.size(); i++)
-	{
-		if(player_files[i].dir || player_files[i].name[0] == '.')
-			continue;
-		
-		// Full path to this file
-		std::string path = players_path + "/" + player_files[i].name;
-
-		//infostream<<"Checking player file "<<path<<std::endl;
-
-		// Load player to see what is its name
-		RemotePlayer testplayer(m_gamedef);
-		{
-			// Open file and deserialize
-			std::ifstream is(path.c_str(), std::ios_base::binary);
-			if(is.good() == false)
-			{
-				infostream<<"Failed to read "<<path<<std::endl;
-				continue;
-			}
-			testplayer.deSerialize(is, player_files[i].name);
-		}
-
-		//infostream<<"Loaded test player with name "<<testplayer.getName()<<std::endl;
-		
-		// Search for the player
-		std::string playername = testplayer.getName();
-		Player *player = getPlayer(playername.c_str());
-		if(player == NULL)
-		{
-			infostream<<"Didn't find matching player, ignoring file "<<path<<std::endl;
-			continue;
-		}
-
-		//infostream<<"Found matching player, overwriting."<<std::endl;
-
-		// OK, found. Save player there.
-		if(player->checkModified())
-		{
-			// Open file and serialize
-			std::ostringstream ss(std::ios_base::binary);
-			player->serialize(ss);
-			if(!fs::safeWriteToFile(path, ss.str()))
-			{
-				infostream<<"Failed to write "<<path<<std::endl;
-				continue;
-			}
-			saved_players.insert(player);
-		} else {
-			saved_players.insert(player);
-		}
-	}
-
-	for(std::list<Player*>::iterator i = m_players.begin();
-			i != m_players.end(); ++i)
-	{
-		Player *player = *i;
-		if(saved_players.find(player) != saved_players.end())
-		{
-			/*infostream<<"Player "<<player->getName()
-					<<" was already saved."<<std::endl;*/
-			continue;
-		}
-		std::string playername = player->getName();
-		// Don't save unnamed player
-		if(playername == "")
-		{
-			//infostream<<"Not saving unnamed player."<<std::endl;
-			continue;
-		}
-		/*
-			Find a sane filename
-		*/
-		if(string_allowed(playername, PLAYERNAME_ALLOWED_CHARS) == false)
-			playername = "player";
-		std::string path = players_path + "/" + playername;
-		bool found = false;
-		for(u32 i=0; i<1000; i++)
-		{
-			if(fs::PathExists(path) == false)
-			{
-				found = true;
-				break;
-			}
-			path = players_path + "/" + playername + itos(i);
-		}
-		if(found == false)
-		{
-			infostream<<"Didn't find free file for player"<<std::endl;
-			continue;
-		}
-
-		{
-			/*infostream<<"Saving player "<<player->getName()<<" to "
-					<<path<<std::endl;*/
-			// Open file and serialize
-			std::ostringstream ss(std::ios_base::binary);
-			player->serialize(ss);
-			if(!fs::safeWriteToFile(path, ss.str()))
-			{
-				infostream<<"Failed to write "<<path<<std::endl;
-				continue;
-			}
-			saved_players.insert(player);
-		}
-	}
-
-	//infostream<<"Saved "<<saved_players.size()<<" players."<<std::endl;
-}
-
-void ServerEnvironment::deSerializePlayers(const std::string &savedir)
-{
-	std::string players_path = savedir + "/players";
-
-	std::vector<fs::DirListNode> player_files = fs::GetDirListing(players_path);
-	for(u32 i=0; i<player_files.size(); i++)
-	{
-		if(player_files[i].dir)
-			continue;
-		
-		// Full path to this file
-		std::string path = players_path + "/" + player_files[i].name;
-
-		//infostream<<"Checking player file "<<path<<std::endl;
-
-		// Load player to see what is its name
-		RemotePlayer testplayer(m_gamedef);
-		{
-			// Open file and deserialize
-			std::ifstream is(path.c_str(), std::ios_base::binary);
-			if(is.good() == false)
-			{
-				infostream<<"Failed to read "<<path<<std::endl;
-				continue;
-			}
-			testplayer.deSerialize(is, player_files[i].name);
-		}
-
-		if(!string_allowed(testplayer.getName(), PLAYERNAME_ALLOWED_CHARS))
-		{
-			infostream<<"Not loading player with invalid name: "
-					<<testplayer.getName()<<std::endl;
-		}
-
-		/*infostream<<"Loaded test player with name "<<testplayer.getName()
-				<<std::endl;*/
-		
-		// Search for the player
-		std::string playername = testplayer.getName();
-		Player *player = getPlayer(playername.c_str());
-		bool newplayer = false;
-		if(player == NULL)
-		{
-			//infostream<<"Is a new player"<<std::endl;
-			player = new RemotePlayer(m_gamedef);
-			newplayer = true;
-		}
-
-		// Load player
-		{
-			verbosestream<<"Reading player "<<testplayer.getName()<<" from "
-					<<path<<std::endl;
-			// Open file and deserialize
-			std::ifstream is(path.c_str(), std::ios_base::binary);
-			if(is.good() == false)
-			{
-				infostream<<"Failed to read "<<path<<std::endl;
-				continue;
-			}
-			player->deSerialize(is, player_files[i].name);
-		}
-
-		if(newplayer)
-		{
-			addPlayer(player);
+	for (std::list<Player*>::iterator it = m_players.begin();
+			it != m_players.end();
+			++it) {
+		RemotePlayer *player = static_cast<RemotePlayer*>(*it);
+		if (player->checkModified()) {
+			player->save(players_path);
 		}
 	}
 }
 
-void ServerEnvironment::saveMeta(const std::string &savedir)
+void ServerEnvironment::savePlayer(const std::string &playername)
 {
-	std::string path = savedir + "/env_meta.txt";
+	std::string players_path = m_path_world + DIR_DELIM "players";
+	fs::CreateDir(players_path);
+
+	RemotePlayer *player = static_cast<RemotePlayer*>(getPlayer(playername.c_str()));
+	if (player) {
+		player->save(players_path);
+	}
+}
+
+Player *ServerEnvironment::loadPlayer(const std::string &playername)
+{
+	std::string players_path = m_path_world + DIR_DELIM "players" DIR_DELIM;
+
+	RemotePlayer *player = static_cast<RemotePlayer*>(getPlayer(playername.c_str()));
+	bool newplayer = false;
+	bool found = false;
+	if (!player) {
+		player = new RemotePlayer(m_gamedef);
+		newplayer = true;
+	}
+
+	RemotePlayer testplayer(m_gamedef);
+	std::string path = players_path + playername;
+	for (u32 i = 0; i < PLAYER_FILE_ALTERNATE_TRIES; i++) {
+		// Open file and deserialize
+		std::ifstream is(path.c_str(), std::ios_base::binary);
+		if (!is.good()) {
+			return NULL;
+		}
+		testplayer.deSerialize(is, path);
+		is.close();
+		if (testplayer.getName() == playername) {
+			*player = testplayer;
+			found = true;
+			break;
+		}
+		path = players_path + playername + itos(i);
+	}
+	if (!found) {
+		infostream << "Player file for player " << playername
+				<< " not found" << std::endl;
+		return NULL;
+	}
+	if (newplayer) {
+		addPlayer(player);
+	}
+	return player;
+}
+
+void ServerEnvironment::saveMeta()
+{
+	std::string path = m_path_world + DIR_DELIM "env_meta.txt";
 
 	// Open file and serialize
 	std::ostringstream ss(std::ios_base::binary);
@@ -589,9 +502,9 @@ void ServerEnvironment::saveMeta(const std::string &savedir)
 	}
 }
 
-void ServerEnvironment::loadMeta(const std::string &savedir)
+void ServerEnvironment::loadMeta()
 {
-	std::string path = savedir + "/env_meta.txt";
+	std::string path = m_path_world + DIR_DELIM "env_meta.txt";
 
 	// Open file and deserialize
 	std::ifstream is(path.c_str(), std::ios_base::binary);
@@ -710,12 +623,44 @@ public:
 			}
 		}
 	}
+	// Find out how many objects the given block and its neighbours contain.
+	// Returns the number of objects in the block, and also in 'wider' the
+	// number of objects in the block and all its neighbours. The latter
+	// may an estimate if any neighbours are unloaded.
+	u32 countObjects(MapBlock *block, ServerMap * map, u32 &wider)
+	{
+		wider = 0;
+		u32 wider_unknown_count = 0;
+		for(s16 x=-1; x<=1; x++)
+		for(s16 y=-1; y<=1; y++)
+		for(s16 z=-1; z<=1; z++)
+		{
+			MapBlock *block2 = map->getBlockNoCreateNoEx(
+					block->getPos() + v3s16(x,y,z));
+			if(block2==NULL){
+				wider_unknown_count++;
+				continue;
+			}
+			wider += block2->m_static_objects.m_active.size()
+					+ block2->m_static_objects.m_stored.size();
+		}
+		// Extrapolate
+		u32 active_object_count = block->m_static_objects.m_active.size();
+		u32 wider_known_count = 3*3*3 - wider_unknown_count;
+		wider += wider_unknown_count * wider / wider_known_count;
+		return active_object_count;
+
+	}
 	void apply(MapBlock *block)
 	{
 		if(m_aabms.empty())
 			return;
 
 		ServerMap *map = &m_env->getServerMap();
+
+		u32 active_object_count_wider;
+		u32 active_object_count = this->countObjects(block, map, active_object_count_wider);
+		m_env->m_added_objects = 0;
 
 		v3s16 p0;
 		for(p0.X=0; p0.X<MAP_BLOCKSIZE; p0.X++)
@@ -760,33 +705,16 @@ public:
 				}
 neighbor_found:
 
-				// Find out how many objects the block contains
-				u32 active_object_count = block->m_static_objects.m_active.size();
-				// Find out how many objects this and all the neighbors contain
-				u32 active_object_count_wider = 0;
-				u32 wider_unknown_count = 0;
-				for(s16 x=-1; x<=1; x++)
-				for(s16 y=-1; y<=1; y++)
-				for(s16 z=-1; z<=1; z++)
-				{
-					MapBlock *block2 = map->getBlockNoCreateNoEx(
-							block->getPos() + v3s16(x,y,z));
-					if(block2==NULL){
-						wider_unknown_count = 0;
-						continue;
-					}
-					active_object_count_wider +=
-							block2->m_static_objects.m_active.size()
-							+ block2->m_static_objects.m_stored.size();
-				}
-				// Extrapolate
-				u32 wider_known_count = 3*3*3 - wider_unknown_count;
-				active_object_count_wider += wider_unknown_count * active_object_count_wider / wider_known_count;
-				
 				// Call all the trigger variations
 				i->abm->trigger(m_env, p, n);
 				i->abm->trigger(m_env, p, n,
 						active_object_count, active_object_count_wider);
+
+				// Count surrounding objects again if the abms added any
+				if(m_env->m_added_objects > 0) {
+					active_object_count = countObjects(block, map, active_object_count_wider);
+					m_env->m_added_objects = 0;
+				}
 			}
 		}
 	}
@@ -794,6 +722,14 @@ neighbor_found:
 
 void ServerEnvironment::activateBlock(MapBlock *block, u32 additional_dtime)
 {
+	// Reset usage timer immediately, otherwise a block that becomes active
+	// again at around the same time as it would normally be unloaded will
+	// get unloaded incorrectly. (I think this still leaves a small possibility
+	// of a race condition between this and server::AsyncRunStep, which only
+	// some kind of synchronisation will fix, but it at least reduces the window
+	// of opportunity for it to break from seconds to nanoseconds)
+	block->resetUsageTimer();
+
 	// Get time difference
 	u32 dtime_s = 0;
 	u32 stamp = block->getTimestamp();
@@ -1005,7 +941,8 @@ void ServerEnvironment::clearAllObjects()
 		}
 		num_blocks_checked++;
 
-		if(num_blocks_checked % report_interval == 0){
+		if(report_interval != 0 &&
+				num_blocks_checked % report_interval == 0){
 			float percent = 100.0 * (float)num_blocks_checked /
 					loadable_blocks.size();
 			infostream<<"ServerEnvironment::clearAllObjects(): "
@@ -1073,7 +1010,7 @@ void ServerEnvironment::step(float dtime)
 				continue;
 			
 			// Move
-			player->move(dtime, *m_map, 100*BS);
+			player->move(dtime, this, 100*BS);
 		}
 	}
 
@@ -1143,11 +1080,8 @@ void ServerEnvironment::step(float dtime)
 		{
 			v3s16 p = *i;
 
-			MapBlock *block = m_map->getBlockNoCreateNoEx(p);
+			MapBlock *block = m_map->getBlockOrEmerge(p);
 			if(block==NULL){
-				// Block needs to be fetched first
-				m_emerger->enqueueBlockEmerge(
-						PEER_ID_INEXISTENT, p, false);
 				m_active_blocks.m_list.erase(p);
 				continue;
 			}
@@ -1350,6 +1284,7 @@ u16 getFreeServerActiveObjectId(
 u16 ServerEnvironment::addActiveObject(ServerActiveObject *object)
 {
 	assert(object);
+	m_added_objects++;
 	u16 id = addActiveObjectRaw(object, true, 0);
 	return id;
 }
@@ -1359,7 +1294,7 @@ bool ServerEnvironment::addActiveObjectAsStatic(ServerActiveObject *obj)
 {
 	assert(obj);
 
-	v3f objectpos = obj->getBasePosition();	
+	v3f objectpos = obj->getBasePosition();
 
 	// The block in which the object resides in
 	v3s16 blockpos_o = getNodeBlockPos(floatToInt(objectpos, BS));
@@ -1571,7 +1506,7 @@ u16 ServerEnvironment::addActiveObjectRaw(ServerActiveObject *object,
 			object->m_static_block = blockpos;
 
 			if(set_changed)
-				block->raiseModified(MOD_STATE_WRITE_NEEDED, 
+				block->raiseModified(MOD_STATE_WRITE_NEEDED,
 						"addActiveObjectRaw");
 		} else {
 			v3s16 p = floatToInt(objectpos, BS);
@@ -1808,7 +1743,7 @@ void ServerEnvironment::activateObjects(MapBlock *block, u32 dtime_s)
 	If force_delete is set, active object is deleted nevertheless. It
 	shall only be set so in the destructor of the environment.
 
-	If block wasn't generated (not in memory or on disk), 
+	If block wasn't generated (not in memory or on disk),
 */
 void ServerEnvironment::deactivateFarObjects(bool force_delete)
 {
@@ -1829,7 +1764,7 @@ void ServerEnvironment::deactivateFarObjects(bool force_delete)
 			continue;
 
 		u16 id = i->first;
-		v3f objectpos = obj->getBasePosition();	
+		v3f objectpos = obj->getBasePosition();
 
 		// The block in which the object resides in
 		v3s16 blockpos_o = getNodeBlockPos(floatToInt(objectpos, BS));
@@ -2058,6 +1993,8 @@ ClientEnvironment::ClientEnvironment(ClientMap *map, scene::ISceneManager *smgr,
 	m_gamedef(gamedef),
 	m_irr(irr)
 {
+	char zero = 0;
+	memset(m_attachements, zero, sizeof(m_attachements));
 }
 
 ClientEnvironment::~ClientEnvironment()
@@ -2373,7 +2310,7 @@ void ClientEnvironment::step(float dtime)
 		if(player->isLocal() == false)
 		{
 			// Move
-			player->move(dtime, *m_map, 100*BS);
+			player->move(dtime, this, 100*BS);
 
 		}
 		
