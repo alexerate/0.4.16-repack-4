@@ -1,9 +1,15 @@
 Description: Fix the build on kFreeBSD as it uses glibc
 Author: Matthew Bekkema <mat8913ftw@gmail.com>
 
+---
+ cmake/Modules/FindGettextLib.cmake |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+Index: b/cmake/Modules/FindGettextLib.cmake
+===================================================================
 --- a/cmake/Modules/FindGettextLib.cmake
 +++ b/cmake/Modules/FindGettextLib.cmake
-@@ -49,8 +49,8 @@
+@@ -61,8 +61,8 @@ IF(GETTEXT_INCLUDE_DIR AND GETTEXT_MSGFM
  		ENDIF()
  	ELSE(WIN32)
  		# *BSD variants require special linkage as they don't use glibc

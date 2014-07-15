@@ -3,22 +3,19 @@ Author: Martin Quinson
 Forwarded: upstream won't take it as they install to non-standard paths
 
 ---
- src/main.cpp |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ src/main.cpp |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 Index: b/src/main.cpp
 ===================================================================
 --- a/src/main.cpp
 +++ b/src/main.cpp
-@@ -1006,9 +1006,9 @@
- 		run_tests();
- 	}
- #ifdef _MSC_VER
--	init_gettext((porting::path_share + DIR_DELIM + "locale").c_str(),g_settings->get("language"),argc,argv);
-+	init_gettext("/usr/share/locale",g_settings->get("language"),argc,argv);
+@@ -1034,7 +1034,7 @@ int main(int argc, char *argv[])
+ 	init_gettext((porting::path_share + DIR_DELIM + "locale").c_str(),
+ 		g_settings->get("language"), argc, argv);
  #else
--	init_gettext((porting::path_share + DIR_DELIM + "locale").c_str(),g_settings->get("language"));
-+	init_gettext("/usr/share/locale",g_settings->get("language"));
+-	init_gettext((porting::path_share + DIR_DELIM + "locale").c_str(),
++	init_gettext("/usr/share/locale",
+ 		g_settings->get("language"));
  #endif
  
- 	/*

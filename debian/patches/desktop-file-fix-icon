@@ -7,7 +7,7 @@ Index: b/misc/minetest.desktop
 ===================================================================
 --- a/misc/minetest.desktop
 +++ b/misc/minetest.desktop
-@@ -3,7 +3,7 @@
+@@ -3,7 +3,7 @@ Name=Minetest
  GenericName=Minetest
  Comment=Multiplayer infinite-world block sandbox
  Exec=minetest

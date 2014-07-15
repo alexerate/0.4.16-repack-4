@@ -10,15 +10,15 @@ Index: b/src/CMakeLists.txt
 ===================================================================
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -189,7 +189,6 @@
+@@ -265,7 +265,6 @@ if(NOT USE_LUAJIT)
  	message (STATUS "LuaJIT not found, using bundled Lua.")
  	set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
  	set(LUA_LIBRARY "lua")
 -	add_subdirectory(lua)
- endif(LUA_LIBRARY AND LUA_INCLUDE_DIR)
+ endif(NOT USE_LUAJIT)
  
  mark_as_advanced(LUA_LIBRARY)
-@@ -633,7 +632,6 @@
+@@ -751,7 +750,6 @@ endif(USE_GETTEXT)
  
  if (SQLITE3_FOUND)
  else (SQLITE3_FOUND)
@@ -26,7 +26,7 @@ Index: b/src/CMakeLists.txt
  endif (SQLITE3_FOUND)
  
  if (BUILD_CLIENT AND USE_FREETYPE)
-@@ -642,7 +640,6 @@
+@@ -760,7 +758,6 @@ endif (BUILD_CLIENT AND USE_FREETYPE)
  
  if (JSON_FOUND)
  else (JSON_FOUND)

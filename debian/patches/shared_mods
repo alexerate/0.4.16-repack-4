@@ -1,14 +1,14 @@
 Also look under /usr/share/games/minetest for mods, so that minetest-mod-* packages actually work
 
 ---
- builtin/modmgr.lua |    1 +
+ builtin/mainmenu/modmgr.lua |    1 +
  1 file changed, 1 insertion(+)
 
-Index: b/builtin/modmgr.lua
+Index: b/builtin/mainmenu/modmgr.lua
 ===================================================================
---- a/builtin/modmgr.lua
-+++ b/builtin/modmgr.lua
-@@ -900,6 +900,7 @@
+--- a/builtin/mainmenu/modmgr.lua
++++ b/builtin/mainmenu/modmgr.lua
+@@ -405,6 +405,7 @@ function modmgr.preparemodlist(data)
  		modpath ~= "" then
  		get_mods(modpath,global_mods)
  	end

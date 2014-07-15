@@ -19,16 +19,16 @@ Index: b/src/CMakeLists.txt
 ===================================================================
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -186,9 +186,9 @@
- 	message (STATUS "LuaJIT found.")
- 	set(USE_LUAJIT 1)
- else(LUA_LIBRARY AND LUA_INCLUDE_DIR)
+@@ -262,9 +262,9 @@ if(LUA_LIBRARY AND LUA_INCLUDE_DIR)
+ endif (LUA_LIBRARY AND LUA_INCLUDE_DIR)
+ 
+ if(NOT USE_LUAJIT)
 -	message (STATUS "LuaJIT not found, using bundled Lua.")
 -	set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
 -	set(LUA_LIBRARY "lua")
-+	message (STATUS "LuaJIT not found, using raw Lua.")
++	message (STATUS "LuaJIT not found, using the version of Lua provided by the system.")
 +	set(LUA_INCLUDE_DIR "/usr/include/lua5.1/")
 +	set(LUA_LIBRARY "lua5.1")
- endif(LUA_LIBRARY AND LUA_INCLUDE_DIR)
+ endif(NOT USE_LUAJIT)
  
  mark_as_advanced(LUA_LIBRARY)

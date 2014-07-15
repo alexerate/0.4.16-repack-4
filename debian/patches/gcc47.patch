@@ -12,7 +12,7 @@ Index: b/src/filesys.cpp
 ===================================================================
 --- a/src/filesys.cpp
 +++ b/src/filesys.cpp
-@@ -231,6 +231,7 @@
+@@ -232,6 +232,7 @@ std::string TempPath()
  
  #else // POSIX
  
