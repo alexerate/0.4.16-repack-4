@@ -1,3 +1,13 @@
+minetest (0.4.10+repack-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Added third person view.
+    - Many bug fixes, performance tweaks, memory usage reductions and
+      internal improvements, as well as many translation improvements.
+    - Added extended door mod; rework farming mod; added TNT.
+
+ -- Martin Quinson <mquinson@debian.org>  Tue, 15 Jul 2014 20:06:39 +0200
+
 minetest (0.4.9+repack-6) unstable; urgency=medium
 
   * Enable LevelDB backend (Closes: #751198). 

@@ -1,5 +1,218 @@
-minetest (version 0.4.9 -- January 1, 2014)
-===========================================
+minetest 0.4.10 (July 6, 2014)
+==============================
+
+ New Features:
+
+ * Big Gameplay Changes
+   - Added third person view (BlockMen)
+   - Removed finite liquid and weather (proller)
+
+ * Smaller Gameplay tweaks
+   - Create bones only when the player's inventory is not empty & remove the bones when emptied (arsdragonfly)
+   - Made pause menu actually pause singleplayer game and use lower maximum FPS in it (celeron55)
+   - Prevented placing node when player would be inside new node (BlockMen)
+   - Drop an item instead a stack while sneaking (Lord89James)
+   - Added support for exiting formspecs by doubleclicking outside (sapier)
+
+ * Logistic Changes
+   - Made build prefer pkg-config for freetype2 detection (hasufell)
+   - Added function to deregister a profiler from profiler list (sapier)
+   - Made MutexQueue use jsemaphore for signaling (sapier)
+   - Added maximum recursion depth to read_json_value (ShadowNinja)
+   - Made default User-agent follow RFC 2616 (ShadowNinja)
+   - Include system info in the HTTP user agent on Windows (sfan5)
+   - Added proper client initialization (sapier)
+   - Settings: Add no-exception variants of each get method (kwolekr)
+   - Huge overhaul of the entire MapgenParams system (kwolekr)
+   - ServerEnvironment: Remove direct dependency on EmergeManager (kwolekr)
+   - Replace pause, message, and death menus by formspec ones (sapier)
+   - Pass arguments by reference, reducing data copies (Selat)
+   - Cleaned up client init states by bumping protocol version (sapier)
+   - Added support for named threads on Linux, BSD, and Windows (MSVC-only) (sapier, ShadowNinja)
+   - Infered ipv6_server from bind_address; fixed client connect to IN(6)ADDR_ANY (kahrl)
+   - Fixed all warnings reported by clang (sfan5)
+   - Removed locks that aren't absolutely required from JThread (sapier)
+   - Use narrow_to_wide in gettext instead of operating system dependent conversion function (sapier)
+   - Organized builtin into subdirectories (ShadowNinja)
+   - Switched to "core" namespace internally (ShadowNinja)
+   - Mapped Irrlicht log level to Minetest's and allowed writing Irrlicht logs to debug file (RelaBadAngel)
+   - Made print() NUL-safe (ShadowNinja)
+   - Added formspec toolkit and re-factored main-menu to use it (sapier)
+   - Reworked dumping functions (ShadowNinja)
+   - Improved performance by removing some temporary objects (sapier)
+   - Added an AppData file (David Gumberg)
+   - United node shaders and improved shader performance (RealBadAngel)
+   - Made players only stay loaded while they're connected (ShadowNinja)
+   - Added formspec API versioning (sapier)
+   - Added support for multipart/form-data to HTTPFetch (ShadowNinja)
+   - Improved error reporting of LevelDB backend (sfan5)
+
+ * Visual Changes
+   - Added waypoint HUD element (RealBadAngel)
+   - Added on-the-fly normal map generation (RealBadAngel)
+   - Made sun and moon textureable (RealBadAngel)
+   - Made formspec text-area word-wrap (RealBadAngel)
+   - Added support for DPI based HUD scaling (sapier)
+   - Made debug text adjust it's border to the screensize (ShadowNinja)
+   - Added download rate to non-HTTP media progress bar (sapier)
+   - Added support for interlaced-polarized, top-bottom, and side-by-side 3D screens (sapier)
+   - Made pause menu hide before "Shutting down..." message is drawn (sapier)
+   - Sorted commands and privileges alphabetically in '/help' (kaeza)
+   - Improved face shading with and without shaders (RealBadAngel)
+   - Added support for scalable font and GUI elements (sapier)
+   - Made GUITable mouse wheel scrolling faster (kahrl)
+
+ * Other Things
+   - Added the option to bind to a specific address (ShadowNinja)
+   - Made flag strings clear specified flag with 'no' prefix (kwolekr)
+   - Added check to avoid usage of broken LuaJIT < 2.0.0-beta-8 (sapier)
+   - Lots of new and updated translations (many contributors)
+   - Improved performance of ABMs by only calcuating object counts once (CiaranG)
+   - Improved win32 file version information (sapier)
+   - Documented CMake options in README (sfan5)
+   - Corrected misleading detached inventory error message (CiaranG)
+   - Added more informative error messages for inventory and item method errors (ShadowNinja)
+   - Added redis database backend (sfan5)
+   - Moved the old stuff to doc (BlockMen)
+   - Removed dependency on marshal and many other async changes (ShadowNinja)
+   - Made item entity stacks merge on the ground and add TTL to item entities (RealBadAngel)
+   - Updated buildbot scripts and added 64-bit buildbot (sfan5)
+   - Added support for directly starting a world by name from command line (sapier)
+   - Many performance improvements and memory usage reductions (sapier)
+   - Added support for Android 2.3+ (sapier)
+
+ Bug Fixes:
+   - Fixed objects being selected behind a node (Novatux)
+   - Fixed absence of images when compiled with RUN_IN_PLACE=0 (xyz)
+   - Added option to link to OpenGL ES (sfan5)
+   - Fixed CMake list parsing in build (hasufell)
+   - Fixed cutting of multi-line error messages at half of second line in main menu dialog (celeron55)
+   - Created new instance of mesh every time it's required (celeron55)
+   - Escaped error messages in error dialog (PilzAdam)
+   - Added operating system to user agent (proller)
+   - Prevented auto-rotated nodes from replacing the nodes they were placed on (ShadowNinja)
+   - Added protection support to auto-rotated nodes (ShadowNinja)
+   - Prevented looking up node texts in a endless recursion loop (sapier)
+   - Set locale properly when built without gettext support (celeron55)
+   - Fixed Minetest's reliable UDP implementation (sapier)
+   - Compare values instead of pointers in Inventory::operator== (kahrl)
+   - Fixed some errors reported by clang static analyzer (xyz)
+   - Fixed win32 reading semaphore count not working (broke all queues) (sapier)
+   - Prevented player from jumping into nodes from below (BlockMen)
+   - Fixed cURL DLL not getting installed when sound was disabled (sfan5)
+   - Fixed error on mod download failure (ShadowNinja)
+   - Fixed use of previously deallocated EmergeManager (kwolekr)
+   - Fixed only half of unreliable queue being handled per step in worst case (sapier)
+   - Fixed player textures by adding '-' to list of allowed characters in media filenames (sapier)
+   - Fixed texture pack names corrupting mainmenu (ShadowNinja)
+   - Fixed crash when a error occurred in a globalstep callback (ShadowNinja)
+   - Fixed a heap-use-after-free in pause menu (xyz)
+   - Added checks for invalid user input for important settings (kwolekr)
+   - Fixed memory leak in database migration (Selat)
+   - Fixed invalid check for fread error on extracting zip (sapier)
+   - Fixed a unloaded but active block problem (CiaranG)
+   - Fixed rendering glitches when far from the center of the map (Novatux)
+   - Fixed race condition on exit to menu (sapier)
+   - Fixed generating winresource.o with build dir&nbsp;!= source dir (sfan5)
+   - Fixed special characters in pause and message menu (BlockMen)
+   - Fixed game pause in singleplayer (BlockMen)
+   - Fixed "ghost stacks" created when a player clicks an item on the ground (Novatux)
+   - Fixed double sending of chat messages (sapier)
+   - Fixed bug in RemoteClient::GetNextBlocks (celeron55)
+   - Fixed crash when teleporting near unknown node (BlockMen)
+   - Fixed broken IPv4 serialization on win32 (sapier)
+   - Fixed invalid liquid lighting (RealBadAngel)
+   - Fixed wrong node texture rotation for facedirs 5 and 7 (MetaDucky)
+   - Fixed crash when trying to draw too many items from inventory in HUD (celeron55, RealBadAngel)
+   - Fixed a text border update bug (ShadowNinja)
+   - Added a hack to avoid a 2 second startup delay on local games (sapier)
+   - Fixed player:set_animation() in third person view (BlockMen)
+   - Fixed numeric underflow on calculating window size adjustment (sapier)
+   - Fixed heart + bubble bar size on different texture packs (sapier)
+   - Added a limit to node meta data resolving recursion (ShadowNinja)
+   - Fixed typo (std::encl) in src/gettext.cpp (JakubVanek)
+   - Fixed wielded index being greater than inventory size (RealBadAngel)
+   - Fixed chat overlaying full screen (sapier)
+   - Fixed build on big endian architectures (mat8913)
+   - Made lack of IPv6 non-fatal to unit tests (sapier)
+   - Fixed the Map and Rollback databases not closing (sapier)
+   - Fixed day/night passing at the wrong speed on some architectures (sapier)
+   - Handle missing tablecolumns[] (kahrl)
+   - Fixed wrong status text rectangle (sapier)
+   - Fixed GenericCAO not grabing member objects, causing them to be deleted early (sapier)
+   - Fixed support for Max OSX (mdoege)
+   - Fixed regression in light calculation (sapier)
+
+  Modding-related Changes:
+   - Passed pointed_thing to after_place_node (ShadowNinja)
+   - Documented "wielditem" visual (ShadowNinja)
+   - Passed pointed_thing to on_rightclick (Novatux)
+   - Added forceloading (Novatux)
+   - Added InvRef::get/set_lists() (ShadowNinja)
+   - Mapgen V6: Added flag to stop mud flow (kwolekr)
+   - Allowed vertical axis particle rotation constraint (khonkhortisan)
+   - Used tables for adding particles, deprecated former way (khonkhortisan)
+   - Added formspec table (kahrl)
+   - Added minetest.override_item (ShadowNinja)
+   - Added reading of slice probability table from schematic descriptors (kwolekr)
+   - LuaVoxelManip: Added get_param2_data and set_param2_data (kwolekr)
+   - Added pointed_thing to minetest.register_on_placenode (ShadowNinja)
+   - Added pointed_thing to minetest.register_on_punchnode and on_punch callbacks (ShadowNinja)
+   - Added player:set_sky() with simple skybox support (celeron55)
+   - Added player:override_day_night_ratio() for arbitrarily controlling sunlight brightness (celeron55)
+   - Added minetest.kick_player(name, reason) (sapier)
+   - Added capability to read table flag fields from Lua API (kwolekr)
+   - Added minetest.set_noiseparam_defaults() (kwolekr)
+   - Added force_placement parameter to minetest.place_structure (kwolekr)
+   - Removed "Server -!- " prefix from player messages (ShadowNinja)
+   - Updated set_mapgen_params and set_gen_notify to use new flag format (kwolekr)
+   - Added player:set_local_animations() (BlockMen)
+   - Added player:set_eye_offset() (MirceaKitsune, BlockMen)
+   - Added support for function serialization to minetest.serialize (ShadowNinja)
+   - Added proper Lua API deprecation handling (sapier)
+   - Made dump2() return the serialized string, like dump() (ShadowNinja)
+   - Added item eat callback (rubenwardy)
+   - Added success and output return values to chat commands (ShadowNinja)
+   - Allowed custom liquids to have drops (sfan5)
+   - Made dropdown formspec elements send their values the same way that buttons do (sapier)
+   - Reworked tooltips, adding a tooltip element (RealBadAngel)
+   - Reworked the glasslike_framed drawtype (RealBadAngel)
+
+  Game Content Changes (minetest_game):
+   - Added desert cobblestone, dropped by desert stone (brunob.santos, sfan5)
+   - Added desert stone brick and sandstone brick stairs/slabs (Amaz1)
+   - Added extended doors mod (PenguinDad, BlockMen)
+   - Added glass panes and iron bars (BlockMen)
+   - Added TNT (BlockMen)
+   - Reworked farming mod, added API (webdesigner97)
+   - Upwards digging for papyrus and cactus (casimir)
+   - Additional mirrored recipes for axes (marvok)
+   - Bookshelves have an inventory (for books) (arsdragonfly)
+   - Added furnace protection and progress visualization (Krock)
+   - Added /sethome and /home commands (with “home” privilege) (sfan5)
+   - Added Mese and diamond hoes (BlockMen)
+   - Enabled jungles by default on new worlds (sfan5, BlockMen)
+   - Increased crafting output for stairs (4 → 6) (Jonathon Station)
+   - Made punching bones pick up items (Krock)
+   - Made items drop if no space for bones (Krock)
+   - Don't create bones when inventory is empty (arsdragonfly)
+   - Added cuboid wieldhand (paramat)
+   - Many new textures, added inventory backgrounds (BlockMen)
+
+  Master server (server list):
+   - Fixed null string escape in server list (proller)
+   - Made server announcing use multipart/form-data (ShadowNinja)
+   - Fixed boolean typing and alignment (ShadowNinja)
+   - Fixed code style, const-correctness, and types (ShadowNinja)
+   - Moved the master server to separate repository (ShadowNinja)
+   - Fixed seconds validity check (ShadowNinja)
+   - Made README more complete (ShadowNinja, sfan5)
+   - Made the hovered entry highlight in very light gray (sfan5)
+   - Switched to 'display' instead of 'visibility' to prevent the page from having white space at the bottom (sfan5)
+
+
+minetest 0.4.9 (January 1, 2014)
+================================
 
  New Features: 
 
@@ -41,8 +254,8 @@ minetest (version 0.4.9 -- January 1, 2014)
    - Remove support for optdepends.txt (ShadowNinja)
    - Add map feature generation notify Lua API (kwolekr) 
 
-minetest (version 0.4.8 -- November 24, 2013)
-=============================================
+minetest 0.4.8 (November 24, 2013)
+==================================
 
  New Features:
  
@@ -126,8 +339,8 @@ minetest (version 0.4.8 -- November 24, 2013)
    - <auto_clip> option for background images (BlockMen)
    - Added support for a callback on formspec close (Novatux) 
 
-minetest (version 0.4.7 -- June 06, 2013)
-=========================================
+minetest 0.4.7 (June 06, 2013)
+==============================
 
  New Features:
 
@@ -227,8 +440,8 @@ minetest (version 0.4.7 -- June 06, 2013)
      that means they are called via minetest.<function> instead of minetest.env:<function> (sapier, celeron55 & kahrl)
    - Added obj:set_hotbar_itemcount() (kahrl)
 
-minetest (version 0.4.6 -- April 03, 2013)
-==========================================
+minetest 0.4.6 (April 03, 2013)
+===============================
 
  New Features:
 
@@ -329,8 +542,8 @@ minetest (version 0.4.6 -- April 03, 2013)
    - New damage system added [PilzAdam & celeron55]
    - Added place field to sound table of tools [PilzAdam]
 
-minetest (version 0.4.5 -- March 04, 2013)
-==========================================
+minetest 0.4.5 (March 04, 2013)
+===============================
 
  New Features:
 
@@ -431,8 +644,8 @@ minetest (version 0.4.5 -- March 04, 2013)
    - Added minetest.show_fromspec(playername, formspec) to show formspecs
      via Lua [sapier]
 
-minetest (version 0.4.4 -- December 06, 2012)
-=============================================
+minetest 0.4.4 (December 06, 2012)
+==================================
 
  New Features:
 
