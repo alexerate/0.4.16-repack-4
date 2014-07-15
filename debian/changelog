@@ -1,4 +1,4 @@
-minetest (0.4.10+repack-1) UNRELEASED; urgency=medium
+minetest (0.4.10+repack-1) unstable; urgency=medium
 
   * New upstream release.
     - Added third person view.
@@ -8,7 +8,7 @@ minetest (0.4.10+repack-1) UNRELEASED; urgency=medium
   * d/p/powerpc.patch: drop patch integrated upstream
   * d/control:VCS-git: Prefer anonscm.debian.org to deprecated urls
 
- -- Martin Quinson <mquinson@debian.org>  Tue, 15 Jul 2014 20:06:39 +0200
+ -- Martin Quinson <mquinson@debian.org>  Wed, 16 Jul 2014 00:12:12 +0200
 
 minetest (0.4.9+repack-6) unstable; urgency=medium
 
