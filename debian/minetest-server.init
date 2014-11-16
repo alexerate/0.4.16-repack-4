@@ -10,11 +10,11 @@
 ### END INIT INFO
 
 PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
-NAME="minetest"
-DAEMON="/usr/sbin/$NAME"
+NAME="minetestserver"
+DAEMON="/usr/games/$NAME"
 DESC="minetest network game server"
 PIDFILE="/var/run/$NAME.pid"
-BINARY="/usr/sbin/$NAME"
+BINARY="/usr/games/$NAME"
 USER="Debian-minetest"
 
 test -x $DAEMON || exit 0
