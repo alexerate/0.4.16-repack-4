@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+
+exec /usr/lib/minetest/minetestserver --config /etc/minetest/server.cfg "$@"
