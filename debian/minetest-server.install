@@ -1,1 +1,2 @@
 usr/bin/minetestserver usr/lib/minetest
+debian/bin/minetestserver usr/games
