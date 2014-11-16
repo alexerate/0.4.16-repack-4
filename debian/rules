@@ -45,7 +45,7 @@ cleanremovals= bin \
 
 override_dh_clean:
 	dh_clean --exclude old/Makefile.old
-	
+
 override_dh_auto_clean:
 	dh_clean --exclude old/Makefile.old
 	rm -rf ${cleanremovals}
@@ -67,7 +67,7 @@ override_dh_auto_configure:
 
 override_dh_auto_build:
 	dh_auto_build --parallel
-	
+
 override_dh_install:
 	dh_install --list-missing -X.gitignore
 	for bpkg in minetest minetest-data minetest-dbg minetest-server ; do \
@@ -115,4 +115,4 @@ get-orig-source:
 	@echo "successfully created new tarball: ${wrkdir}/../minetest_${version}+repack.orig.tar.gz"
 
 %:
-	dh ${@} 
+	dh ${@}

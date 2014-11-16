@@ -12,7 +12,7 @@ minetest (0.4.10+repack-1) unstable; urgency=medium
 
 minetest (0.4.9+repack-6) unstable; urgency=medium
 
-  * Enable LevelDB backend (Closes: #751198). 
+  * Enable LevelDB backend (Closes: #751198).
     Many thanks to Eric Monson for the report and patch.
 
  -- Martin Quinson <mquinson@debian.org>  Thu, 12 Jun 2014 16:39:16 +0200
@@ -95,7 +95,7 @@ minetest (0.4.7+repack-2) unstable; urgency=low
 minetest (0.4.7+repack-1) unstable; urgency=low
 
   * New upstream release (LP: #1191519)
-    - all mods but 'minetest_game' mods were dropped upstream. 
+    - all mods but 'minetest_game' mods were dropped upstream.
       We still need to repack to integrate the remaining mod, though.
   * Refresh our patches accordingly
   * Build-depend on luajit as it is now the used library for lua
@@ -105,8 +105,8 @@ minetest (0.4.7+repack-1) unstable; urgency=low
 
 minetest (0.4.6+repack-6) unstable; urgency=low
 
-  * Reupload to unstable so that it gets rebuilt against irrlicht 1.8. 
-    We could have asked a binNMU to the release team for the transition, 
+  * Reupload to unstable so that it gets rebuilt against irrlicht 1.8.
+    We could have asked a binNMU to the release team for the transition,
     but minetest is the only package build-depending on irrlicht.
 
  -- Martin Quinson <mquinson@debian.org>  Mon, 06 May 2013 11:36:12 +0200
@@ -125,7 +125,7 @@ minetest (0.4.6+repack-4) unstable; urgency=low
 
   [Matthew Bekkema]
   * Fix build on big endian architectures.
-  
+
   [Martin Quinson]
   * minetest Suggests minetest-server (Closes: #674121)
   * Conflicts with unofficial minetestc55 (LP: #1162551)
@@ -140,7 +140,7 @@ minetest (0.4.6+repack-3) unstable; urgency=low
   * Fix build on kfreebsd, and hopefully on sparc
   * Further source repacking to remove unused embeedded libraries from
     tarball.
-    
+
   [Martin Quinson]
   * d/control: update upstream's URL
 
@@ -179,7 +179,7 @@ minetest (0.4.6+repack-1) unstable; urgency=low
   * d/p/useless-depends.patch: drop useless dependencies reported
     during build by dpkg-shlibdeps
   * d/control: adapt build-deps to drop these dependencies
-  
+
   [Martin Quinson]
   * d/control: Add myself to the uploaders.
   * d/control: rename the minetest-common pkg to minetest-data, as an
