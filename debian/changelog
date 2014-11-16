@@ -1,3 +1,9 @@
+minetest (0.4.10+repack-3~bpo70+1) wheezy-backports; urgency=medium
+
+  * Rebuild for wheezy-backports.
+
+ -- Markus Koschany <apo@gambaru.de>  Sun, 16 Nov 2014 23:37:09 +0100
+
 minetest (0.4.10+repack-1) unstable; urgency=medium
 
   * New upstream release (closes: #754552).
