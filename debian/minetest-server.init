@@ -14,7 +14,7 @@ NAME="minetestserver"
 DAEMON="/usr/games/$NAME"
 DESC="minetest network game server"
 PIDFILE="/var/run/$NAME.pid"
-BINARY="/usr/games/$NAME"
+BINARY="/usr/lib/minetest/$NAME"
 USER="Debian-minetest"
 
 test -x $DAEMON || exit 0
