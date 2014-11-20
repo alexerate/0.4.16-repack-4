@@ -23,6 +23,8 @@ minetest (0.4.10+repack-3) experimental; urgency=medium
     - minetest-dbg: Depend either on minetest OR minetest-server.
   * Fix lintian error quilt-series-without-trailing-newline.
   * Fix lintian warning empty-short-license-in-dep5-copyright.
+  * Override lintian error minetest-server: systemd-no-service-for-init-script
+    because we ship a corresponding service file.
 
  -- Markus Koschany <apo@gambaru.de>  Thu, 20 Nov 2014 18:07:24 +0100
 
