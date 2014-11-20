@@ -17,7 +17,9 @@ case "$1" in
     fi
     install -d /var/games
     install -d /var/games/minetest-server
+    install -d /var/log/minetest
     chown Debian-minetest:games /var/games/minetest-server
+    chown Debian-minetest:games /var/log/minetest
   ;;
   abort-upgrade|abort-remove|abort-deconfigure)
   ;;
