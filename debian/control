@@ -50,8 +50,7 @@ Package: minetest-dbg
 Architecture: any
 Section: debug
 Depends:
- minetest (= ${binary:Version}),
- minetest-server (= ${binary:Version}),
+ minetest (= ${binary:Version}) |  minetest-server (= ${binary:Version}),
  ${misc:Depends}
 Description: Multiplayer infinite-world block sandbox (debugging symbols)
  Minetest is a minecraft-inspired game written from scratch and licensed
