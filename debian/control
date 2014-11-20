@@ -22,7 +22,7 @@ Build-Depends:
  libvorbis-dev,
  libopenal-dev,
  libjsoncpp-dev,
-Standards-Version: 3.9.5
+Standards-Version: 3.9.6
 Homepage: http://minetest.net/
 Vcs-Git: git://anonscm.debian.org/pkg-games/minetest-v04x.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-games/minetest-v04x.git
