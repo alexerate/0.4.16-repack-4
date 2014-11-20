@@ -1,7 +1,6 @@
 desktop-file-fix-icon
 kfreebsd-gettext.patch
 i18n.patch
-# jthread-changed.patch
 useless-depends.patch
 dynamic-link.patch
 debianization.patch
@@ -10,3 +9,5 @@ mapper.patch
 shared_mods
 rawlua
 hurd.patch
+#jthread-changed.patch
+
