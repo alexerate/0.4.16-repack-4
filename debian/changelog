@@ -1,27 +1,22 @@
-minetest (0.4.10+repack-3) unstable; urgency=medium
+minetest (0.4.10+repack-3) experimental; urgency=medium
 
   [ Markus Koschany ]
-  * Add minetest-server.init
-  * Add minetest-server.postinst and minetest-server.postrm
-  * Install minetestserver to /usr/lib/minetest
-  * Add minetestserver wrapper script
-  * Install minetestserver wrapper to /usr/games
-  * Change server.cfg to minetest.conf
-  * Backport
-  * Fix NAME, BINARY and DAEMON variable
-  * Install minetest.conf conffile
-  * Fix minetest-server.init.
-  * Update minetest.conf
-  * Revert "Backport"
-    This reverts commit 11e42728666ceb33cd54e4bc36077d7a80baf277.
-  * Some small tweaks for minetest.conf
-  * Save log files in /var/log/minetest
-  * Create /var/log/minetest in postinst and remove it in postrm.
-  * Update minetest.conf
-  * Add minetest-server@.service file
-  * Add minetest-server.logrotate
+  * minetest-server: Support systemd and SysV init systems. (Closes: #769965)
+    - Add minetest-server.init.
+    - Add minetest-server.postinst and minetest-server.postrm.
+      Create an unprivileged system-wide user, Debian-minetest. The new home
+      directory is /var/games/minetest-server. All log files are written to
+      /var/log/minetest.
+    - Add minetest-server@.service file. This is a template unit file which
+      allows system administrators to run multiple instances of the server.
+      See minetest-server.README.Debian for more information.
+  * Install minetestserver binary to /usr/lib/minetest.
+  * Add minetestserver wrapper script and install it to /usr/games.
+  * Install default configuration file to /etc/minetest/minetest.conf.
+  * Add minetest-server.logrotate and daily rotate log files in
+    /var/log/minetest for 14 days.
 
- -- Markus Koschany <apo@gambaru.de>  Thu, 20 Nov 2014 03:29:29 +0100
+ -- Markus Koschany <apo@gambaru.de>  Thu, 20 Nov 2014 18:07:24 +0100
 
 minetest (0.4.10+repack-2) unstable; urgency=medium
 
