@@ -1,3 +1,10 @@
+minetest (0.4.10+repack-2) unstable; urgency=medium
+
+  * d/p/hurd.patch: new patch to fix FTBFS on Hurd (Closes: #764579)
+    Thanks to Svante Signell for the report and the patch.
+
+ -- Martin Quinson <mquinson@debian.org>  Fri, 14 Nov 2014 10:14:16 +0100
+
 minetest (0.4.10+repack-1) unstable; urgency=medium
 
   * New upstream release (closes: #754552).
