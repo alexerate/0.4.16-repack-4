@@ -115,4 +115,4 @@ get-orig-source:
 	@echo "successfully created new tarball: ${wrkdir}/../minetest_${version}+repack.orig.tar.gz"
 
 %:
-	dh ${@}
+	dh ${@} --with systemd
