@@ -1,3 +1,28 @@
+minetest (0.4.10+repack-3) unstable; urgency=medium
+
+  [ Markus Koschany ]
+  * Add minetest-server.init
+  * Add minetest-server.postinst and minetest-server.postrm
+  * Install minetestserver to /usr/lib/minetest
+  * Add minetestserver wrapper script
+  * Install minetestserver wrapper to /usr/games
+  * Change server.cfg to minetest.conf
+  * Backport
+  * Fix NAME, BINARY and DAEMON variable
+  * Install minetest.conf conffile
+  * Fix minetest-server.init.
+  * Update minetest.conf
+  * Revert "Backport"
+    This reverts commit 11e42728666ceb33cd54e4bc36077d7a80baf277.
+  * Some small tweaks for minetest.conf
+  * Save log files in /var/log/minetest
+  * Create /var/log/minetest in postinst and remove it in postrm.
+  * Update minetest.conf
+  * Add minetest-server@.service file
+  * Add minetest-server.logrotate
+
+ -- Markus Koschany <apo@gambaru.de>  Thu, 20 Nov 2014 03:29:29 +0100
+
 minetest (0.4.10+repack-2) unstable; urgency=medium
 
   * d/p/hurd.patch: new patch to fix FTBFS on Hurd (Closes: #764579)
