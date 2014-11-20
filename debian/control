@@ -63,6 +63,7 @@ Description: Multiplayer infinite-world block sandbox (debugging symbols)
 Package: minetest-server
 Architecture: any
 Depends:
+ adduser,
  ${shlibs:Depends},
  ${misc:Depends},
  minetest-data (= ${source:Version}),
