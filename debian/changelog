@@ -12,6 +12,7 @@ minetest (0.4.10+repack-3) experimental; urgency=medium
     - Add minetest-server@.service file. This is a template unit file which
       allows system administrators to run multiple instances of the server.
       See minetest-server.README.Debian for more information.
+    - Add minetest-server.service to run the default configuration.
   * Install minetestserver binary to /usr/lib/minetest.
   * Add minetestserver wrapper script and install it to /usr/games.
   * Install default configuration file to /etc/minetest/minetest.conf.
