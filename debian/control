@@ -6,22 +6,22 @@ Uploaders:
  Michael Gilbert <mgilbert@debian.org>,
  Martin Quinson <mquinson@debian.org>
 Build-Depends:
+ cmake,
  debhelper (>= 9),
  dh-systemd (>= 1.5),
- cmake,
  gettext,
  imagemagick,
  libcurl4-gnutls-dev,
  libfreetype6-dev,
  libirrlicht-dev (>= 1.7.0),
+ libjsoncpp-dev,
  libleveldb-dev,
  libluajit-5.1-dev [i386 amd64 kfreebsd-i386 armel armhf powerpc powerpcspe mips] | liblua5.1-dev,
- zlib1g-dev,
- libsqlite3-dev,
  libogg-dev,
- libvorbis-dev,
  libopenal-dev,
- libjsoncpp-dev,
+ libsqlite3-dev,
+ libvorbis-dev,
+ zlib1g-dev
 Standards-Version: 3.9.6
 Homepage: http://minetest.net/
 Vcs-Git: git://anonscm.debian.org/pkg-games/minetest-v04x.git
@@ -30,16 +30,16 @@ Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-games/minetest-v04x.git
 Package: minetest
 Architecture: any
 Depends:
- ${shlibs:Depends},
- ${misc:Depends},
  minetest-data (= ${source:Version}),
+ ${misc:Depends},
+ ${shlibs:Depends}
 Conflicts:
- minetestc55,
+ minetestc55
 Suggests:
- minetest-server,
  minetest-mod-moreblocks,
  minetest-mod-moreores,
  minetest-mod-pipeworks,
+ minetest-server
 Description: Multiplayer infinite-world block sandbox
  Minetest is a minecraft-inspired game written from scratch and licensed
  under the LGPL (version 2.1 or later). It supports both survival and creative
@@ -50,9 +50,9 @@ Package: minetest-dbg
 Architecture: any
 Section: debug
 Depends:
- ${misc:Depends},
  minetest (= ${binary:Version}),
  minetest-server (= ${binary:Version}),
+ ${misc:Depends}
 Description: Multiplayer infinite-world block sandbox (debugging symbols)
  Minetest is a minecraft-inspired game written from scratch and licensed
  under the LGPL (version 2.1 or later). It supports both survival and creative
@@ -65,9 +65,9 @@ Package: minetest-server
 Architecture: any
 Depends:
  adduser,
- ${shlibs:Depends},
- ${misc:Depends},
  minetest-data (= ${source:Version}),
+ ${misc:Depends},
+ ${shlibs:Depends}
 Description: Multiplayer infinite-world block sandbox (server)
  Minetest is a minecraft-inspired game written from scratch and licensed
  under the LGPL (version 2.1 or later). It supports both survival and creative
@@ -79,9 +79,10 @@ Description: Multiplayer infinite-world block sandbox (server)
 Package: minetest-data
 Architecture: all
 Depends:
- ${misc:Depends},
  fonts-liberation,
- python, python-imaging,
+ python,
+ python-imaging,
+ ${misc:Depends}
 Breaks:
  minetest (<< 0.3.1+dfsg-3),
  minetest-common
