@@ -1,2 +1,0 @@
-# This is not true. We ship minetest-server@.service
-minetest-server: systemd-no-service-for-init-script
