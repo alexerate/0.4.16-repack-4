@@ -3,7 +3,7 @@
         missingok
         rotate 14
         compress
-	delaycompress
+        delaycompress
         notifempty
         copytruncate
 }
