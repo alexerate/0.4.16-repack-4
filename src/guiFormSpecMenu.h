@@ -33,6 +33,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 class IGameDef;
 class InventoryManager;
 class ISimpleTextureSource;
+class Client;
 
 typedef enum {
 	f_Button,
@@ -40,6 +41,7 @@ typedef enum {
 	f_TabHeader,
 	f_CheckBox,
 	f_DropDown,
+	f_ScrollBar,
 	f_Unknown
 } FormspecFieldType;
 
@@ -208,7 +210,7 @@ public:
 			ISimpleTextureSource *tsrc,
 			IFormSource* fs_src,
 			TextDest* txt_dst,
-			GUIFormSpecMenu** ext_ptr
+			Client* client
 			);
 
 	~GUIFormSpecMenu();
@@ -271,9 +273,6 @@ public:
 
 	GUITable* getTable(std::wstring tablename);
 
-	static bool parseColor(const std::string &value,
-			video::SColor &color, bool quiet);
-
 #ifdef __ANDROID__
 	bool getAndroidUIInput();
 #endif
@@ -293,9 +292,11 @@ protected:
 	InventoryManager *m_invmgr;
 	IGameDef *m_gamedef;
 	ISimpleTextureSource *m_tsrc;
+	Client *m_client;
 
 	std::string m_formspec_string;
 	InventoryLocation m_current_inventory_location;
+
 
 	std::vector<ListDrawSpec> m_inventorylists;
 	std::vector<ImageDrawSpec> m_backgrounds;
@@ -306,7 +307,8 @@ protected:
 	std::vector<std::pair<FieldSpec,GUITable*> > m_tables;
 	std::vector<std::pair<FieldSpec,gui::IGUICheckBox*> > m_checkboxes;
 	std::map<std::wstring, TooltipSpec> m_tooltips;
-	
+	std::vector<std::pair<FieldSpec,gui::IGUIScrollBar*> > m_scrollbars;
+
 	ItemSpec *m_selected_item;
 	u32 m_selected_amount;
 	bool m_selected_dragging;
@@ -318,12 +320,15 @@ protected:
 	InventoryLocation m_selected_content_guess_inventory;
 
 	v2s32 m_pointer;
+	v2s32 m_old_pointer;  // Mouse position after previous mouse event
 	gui::IGUIStaticText *m_tooltip_element;
 
 	u32 m_tooltip_show_delay;
-	s32 m_hoovered_time;
+	s32 m_hovered_time;
 	s32 m_old_tooltip_id;
 	std::string m_old_tooltip;
+
+	bool m_rmouse_auto_place;
 
 	bool m_allowclose;
 	bool m_lock;
@@ -342,15 +347,14 @@ protected:
 private:
 	IFormSource      *m_form_src;
 	TextDest         *m_text_dst;
-	GUIFormSpecMenu **m_ext_ptr;
-	gui::IGUIFont    *m_font;
 	unsigned int      m_formspec_version;
 
 	typedef struct {
+		bool explicit_size;
+		v2f invsize;
 		v2s32 size;
 		core::rect<s32> rect;
 		v2s32 basepos;
-		int bp_set;
 		v2u32 screensize;
 		std::wstring focused_fieldname;
 		GUITable::TableOptions table_options;
@@ -397,6 +401,8 @@ private:
 	void parseListColors(parserData* data,std::string element);
 	void parseTooltip(parserData* data,std::string element);
 	bool parseVersionDirect(std::string data);
+	bool parseSizeDirect(parserData* data, std::string element);
+	void parseScrollBar(parserData* data, std::string element);
 
 	/**
 	 * check if event is part of a double click
@@ -413,6 +419,7 @@ private:
 	clickpos m_doubleclickdetect[2];
 
 	int m_btn_height;
+	gui::IGUIFont *m_font;
 
 	std::wstring getLabelByID(s32 id);
 	std::wstring getNameByID(s32 id);

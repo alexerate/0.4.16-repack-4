@@ -18,6 +18,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "content_sao.h"
+#include "util/serialize.h"
+#include "util/mathconstants.h"
 #include "collision.h"
 #include "environment.h"
 #include "settings.h"
@@ -29,8 +31,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "player.h"
 #include "scripting_game.h"
 #include "genericobject.h"
-#include "util/serialize.h"
-#include "util/mathconstants.h"
+#include "log.h"
 
 std::map<u16, ServerActiveObject::Factory> ServerActiveObject::m_types;
 
@@ -1035,11 +1036,6 @@ void PlayerSAO::removingFromEnvironment()
 bool PlayerSAO::isStaticAllowed() const
 {
 	return false;
-}
-
-bool PlayerSAO::unlimitedTransferDistance() const
-{
-	return g_settings->getBool("unlimited_player_transfer_distance");
 }
 
 std::string PlayerSAO::getClientInitializationData(u16 protocol_version)

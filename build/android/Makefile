@@ -24,7 +24,7 @@ ROOT = $(shell pwd)
 # Android Version code
 # Increase for each build!
 ################################################################################
-ANDROID_VERSION_CODE = 4
+ANDROID_VERSION_CODE = 5
 
 ################################################################################
 # toolchain config for arm old processors
@@ -36,6 +36,7 @@ TARGET_TOOLCHAIN = arm-linux-androideabi-
 TARGET_CFLAGS_ADDON = -mfloat-abi=softfp -mfpu=vfp
 CROSS_PREFIX = arm-linux-androideabi-
 COMPILER_VERSION = 4.8
+HAVE_LEVELDB = 1
 
 ################################################################################
 # toolchain config for arm new processors
@@ -50,6 +51,7 @@ COMPILER_VERSION = 4.8
 #TARGET_LDFLAGS_ADDON = -Wl,--no-warn-mismatch -lm_hard
 #CROSS_PREFIX = arm-linux-androideabi-
 #COMPILER_VERSION = 4.8
+#HAVE_LEVELDB = 1
 
 ################################################################################
 # toolchain config for little endian mips
@@ -60,6 +62,7 @@ COMPILER_VERSION = 4.8
 #TARGET_TOOLCHAIN = mipsel-linux-android-
 #CROSS_PREFIX = mipsel-linux-android-
 #COMPILER_VERSION = 4.8
+#HAVE_LEVELDB = 0
 
 ################################################################################
 # toolchain config for x86
@@ -70,6 +73,7 @@ COMPILER_VERSION = 4.8
 #TARGET_TOOLCHAIN = x86-
 #CROSS_PREFIX = i686-linux-android-
 #COMPILER_VERSION = 4.8
+#HAVE_LEVELDB = 1
 
 ################################################################################
 ASSETS_TIMESTAMP = deps/assets_timestamp
@@ -121,6 +125,11 @@ FREETYPE_URL_GIT = https://github.com/cdave1/freetype2-android
 
 -include $(PATHCFGFILE)
 
+#use interim target variable to switch leveldb on or off
+ifeq ($(HAVE_LEVELDB),1)
+	LEVELDB_TARGET = $(LEVELDB_LIB)
+endif
+
 .PHONY : debug release reconfig delconfig \
 	leveldb_download clean_leveldb leveldb\
 	irrlicht_download clean_irrlicht irrlicht \
@@ -135,7 +144,7 @@ FREETYPE_URL_GIT = https://github.com/cdave1/freetype2-android
 	$(IRRLICHT_TIMESTAMP) $(CURL_TIMESTAMP) \
 	$(OPENSSL_TIMESTAMP) curl_binary \
 	$(ROOT)/jni/src/android_version.h
-
+	
 debug : $(PATHCFGFILE)
 	export NDEBUG=;                                                            \
 	export BUILD_TYPE=debug;                                                   \
@@ -163,9 +172,9 @@ $(PATHCFGFILE) :
 		exit 1;                                                                \
 	fi;                                                                        \
 	echo "ANDROID_NDK = $$ANDROID_NDK" > ${PATHCFGFILE};                       \
-	echo "NDK_MODULE_PATH = $$ANDROID_NDK/tools" >> ${PATHCFGFILE};            \
+	echo "NDK_MODULE_PATH = $$ANDROID_NDK/toolchains" >> ${PATHCFGFILE};            \
 	echo "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";\
-	echo "+ Note: NDK_MODULE_PATH is set to $$ANDROID_NDK/tools";              \
+	echo "+ Note: NDK_MODULE_PATH is set to $$ANDROID_NDK/toolchains";              \
 	echo "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";\
 	echo "Please specify path of ANDROID SDK";                                 \
 	echo "e.g. /home/user/adt-bundle-linux-x86_64-20131030/sdk/";              \
@@ -628,14 +637,14 @@ assets : $(ASSETS_TIMESTAMP)
 clean_assets :
 	@$(RM) -r assets
 	
-apk: $(PATHCFGFILE) assets $(IRRLICHT_LIB) $(CURL_LIB) $(LEVELDB_LIB)              \
+apk: $(PATHCFGFILE) assets $(IRRLICHT_LIB) $(CURL_LIB) $(LEVELDB_TARGET)       \
 	$(OPENAL_LIB) $(OGG_LIB) prep_srcdir $(ROOT)/jni/src/android_version.h
 	@export NDEBUG=$$NDEBUG; $(MAKE) -j${PARALLEL} manifest;                   \
 	export PATH=$$PATH:${SDKFOLDER}/platform-tools:${ANDROID_NDK};             \
 	export ANDROID_HOME=${SDKFOLDER};                                          \
 	mkdir -p ${ROOT}/src;                                                      \
 	ndk-build NDK_MODULE_PATH=${NDK_MODULE_PATH} -j${PARALLEL}                 \
-	GPROF=${GPROF} APP_ABI=${TARGET_ABI}                                       \
+	GPROF=${GPROF} APP_ABI=${TARGET_ABI} HAVE_LEVELDB=${HAVE_LEVELDB}          \
 	APP_PLATFORM=${APP_PLATFORM}                                               \
 	TARGET_LIBDIR=${TARGET_LIBDIR}                                             \
 	TARGET_CFLAGS+="${TARGET_CFLAGS_ADDON}"                                    \
@@ -691,7 +700,11 @@ $(ROOT)/jni/src/android_version.h :
 	echo "#define VERSION_PATCH_ORIG $$(cat ${ROOT}/../../CMakeLists.txt |     \
 	grep ^set\(VERSION_PATCH\ | sed 's/)/ /' | awk '{print $$2;}')"            \
 	>> ${ROOT}/jni/src/android_version.h;                                      \
-	echo "#define CMAKE_VERSION_GITHASH \"$$(git rev-parse --short=8 HEAD)\""  \
+	export GITHASH=$$(git rev-parse --short=8 HEAD);                           \
+	if [ "x$$GITHASH" = "x" ] ; then                                           \
+		export GITHASH=gUnknown;                                               \
+	fi;                                                                        \
+	echo "#define CMAKE_VERSION_GITHASH \"$$GITHASH\""                         \
 	>> ${ROOT}/jni/src/android_version.h;                                      \
 	echo "#define CMAKE_VERSION_STRING STR(VERSION_MAJOR)\".\"STR(VERSION_MINOR)\
 	\".\"STR(VERSION_PATCH)"                                                   \

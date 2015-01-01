@@ -49,8 +49,8 @@ void main(void)
 	vec4 pos = gl_Vertex;
 	vec4 pos2 = mWorld * gl_Vertex;
 	if (gl_TexCoord[0].y < 0.05) {
-	pos.x += (smoothTriangleWave(animationTimer * 20.0 + pos2.x * 0.1 + pos2.z * 0.1) * 2.0 - 1.0) * 0.8;
-			pos.y -= (smoothTriangleWave(animationTimer * 10.0 + pos2.x * -0.5 + pos2.z * -0.5) * 2.0 - 1.0) * 0.4;
+		pos.x += (smoothTriangleWave(animationTimer * 20.0 + pos2.x * 0.1 + pos2.z * 0.1) * 2.0 - 1.0) * 0.8;
+		pos.y -= (smoothTriangleWave(animationTimer * 10.0 + pos2.x * -0.5 + pos2.z * -0.5) * 2.0 - 1.0) * 0.4;
 	}
 	gl_Position = mWorldViewProj * pos;
 #else
@@ -63,35 +63,28 @@ void main(void)
 
 	vec3 normal, tangent, binormal;
 	normal = normalize(gl_NormalMatrix * gl_Normal);
-	float tileContrast = 1.0;
 	if (gl_Normal.x > 0.5) {
 		//  1.0,  0.0,  0.0
-		tileContrast = 0.8;
 		tangent  = normalize(gl_NormalMatrix * vec3( 0.0,  0.0, -1.0));
 		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
 	} else if (gl_Normal.x < -0.5) {
 		// -1.0,  0.0,  0.0
-		tileContrast = 0.8;
 		tangent  = normalize(gl_NormalMatrix * vec3( 0.0,  0.0,  1.0));
 		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
 	} else if (gl_Normal.y > 0.5) {
 		//  0.0,  1.0,  0.0
-		tileContrast = 1.2;
 		tangent  = normalize(gl_NormalMatrix * vec3( 1.0,  0.0,  0.0));
 		binormal = normalize(gl_NormalMatrix * vec3( 0.0,  0.0,  1.0));
 	} else if (gl_Normal.y < -0.5) {
 		//  0.0, -1.0,  0.0
-		tileContrast = 0.3;
 		tangent  = normalize(gl_NormalMatrix * vec3( 1.0,  0.0,  0.0));
 		binormal = normalize(gl_NormalMatrix * vec3( 0.0,  0.0,  1.0));
 	} else if (gl_Normal.z > 0.5) {
 		//  0.0,  0.0,  1.0
-		tileContrast = 0.5;
 		tangent  = normalize(gl_NormalMatrix * vec3( 1.0,  0.0,  0.0));
 		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
 	} else if (gl_Normal.z < -0.5) {
 		//  0.0,  0.0, -1.0
-		tileContrast = 0.5;
 		tangent  = normalize(gl_NormalMatrix * vec3(-1.0,  0.0,  0.0));
 		binormal = normalize(gl_NormalMatrix * vec3( 0.0, -1.0,  0.0));
 	}
@@ -115,7 +108,7 @@ void main(void)
 
 	// Moonlight is blue
 	b += (day - night) / 13.0;
-	rg -= (day - night) / 13.0;
+	rg -= (day - night) / 23.0;
 
 	// Emphase blue a bit in darker places
 	// See C++ implementation in mapblock_mesh.cpp finalColorBlend()
@@ -128,13 +121,6 @@ void main(void)
 	color.r = rg;
 	color.g = rg;
 	color.b = b;
-
-#if !(MATERIAL_TYPE == TILE_MATERIAL_LIQUID_TRANSPARENT || MATERIAL_TYPE == TILE_MATERIAL_LIQUID_OPAQUE)
-	// Make sides and bottom darker than the top
-	color = color * color; // SRGB -> Linear
-	color *= tileContrast;
-	color = sqrt(color); // Linear -> SRGB
-#endif
 
 	color.a = gl_Color.a;
 	gl_FrontColor = gl_BackColor = clamp(color,0.0,1.0);

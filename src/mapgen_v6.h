@@ -21,6 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define MAPGENV6_HEADER
 
 #include "mapgen.h"
+#include "noise.h"
 
 #define AVERAGE_MUD_AMOUNT 4
 
@@ -33,7 +34,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 extern FlagDesc flagdesc_mapgen_v6[];
 
 
-enum BiomeType
+enum BiomeV6Type
 {
 	BT_NORMAL,
 	BT_DESERT
@@ -54,20 +55,19 @@ struct MapgenV6Params : public MapgenSpecificParams {
 	NoiseParams np_humidity;
 	NoiseParams np_trees;
 	NoiseParams np_apple_trees;
-	
+
 	MapgenV6Params();
 	~MapgenV6Params() {}
-	
+
 	void readParams(Settings *settings);
 	void writeParams(Settings *settings);
 };
 
 class MapgenV6 : public Mapgen {
 public:
-	EmergeManager *emerge;
+	EmergeManager *m_emerge;
 
 	int ystride;
-	u32 flags;
 	u32 spflags;
 
 	u32 blockseed;
@@ -110,7 +110,7 @@ public:
 
 	MapgenV6(int mapgenid, MapgenParams *params, EmergeManager *emerge);
 	~MapgenV6();
-	
+
 	void makeChunk(BlockMakeData *data);
 	int getGroundLevelAtPoint(v2s16 p);
 
@@ -123,7 +123,7 @@ public:
 	s16 find_stone_level(v2s16 p2d);
 	bool block_is_underground(u64 seed, v3s16 blockpos);
 	s16 find_ground_level_from_noise(u64 seed, v2s16 p2d, s16 precision);
-	
+
 	float getHumidity(v2s16 p);
 	float getTreeAmount(v2s16 p);
 	bool getHaveAppleTree(v2s16 p);
@@ -131,11 +131,11 @@ public:
 	virtual float getMudAmount(int index);
 	bool getHaveBeach(v2s16 p);
 	bool getHaveBeach(int index);
-	BiomeType getBiome(v2s16 p);
-	BiomeType getBiome(int index, v2s16 p);
-	
+	BiomeV6Type getBiome(v2s16 p);
+	BiomeV6Type getBiome(int index, v2s16 p);
+
 	u32 get_blockseed(u64 seed, v3s16 p);
-	
+
 	virtual void calculateNoise();
 	int generateGround();
 	void addMud();
@@ -151,7 +151,7 @@ struct MapgenFactoryV6 : public MapgenFactory {
 	Mapgen *createMapgen(int mgid, MapgenParams *params, EmergeManager *emerge) {
 		return new MapgenV6(mgid, params, emerge);
 	};
-	
+
 	MapgenSpecificParams *createMapgenParams() {
 		return new MapgenV6Params();
 	};

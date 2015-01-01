@@ -12,14 +12,14 @@ set(VERSION_EXTRA "" CACHE STRING "Stuff to append to version string")
 # Also remember to set PROTOCOL_VERSION in clientserver.h when releasing
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 4)
-set(VERSION_PATCH 10)
+set(VERSION_PATCH 11)
 set(VERSION_PATCH_ORIG ${VERSION_PATCH})
 
 if(VERSION_EXTRA)
 	set(VERSION_PATCH ${VERSION_PATCH}-${VERSION_EXTRA})
 else()
 	# Comment the following line during release
-	# set(VERSION_PATCH ${VERSION_PATCH}-dev)
+	#set(VERSION_PATCH ${VERSION_PATCH}-dev)
 endif()
 set(VERSION_STRING "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
@@ -73,7 +73,7 @@ if(WIN32)
 	set(LOCALEDIR "locale")
 elseif(APPLE)
 	set(SHAREDIR ".")
-	set(BINDIR "./bin")
+	set(BINDIR ".")
 	set(DOCDIR "./doc/${PROJECT_NAME}")
 	set(EXAMPLE_CONF_DIR ${DOCDIR})
 	set(LOCALEDIR "locale")
@@ -202,20 +202,22 @@ if(WIN32)
 	#	install(FILES bin/minetestserver.exe DESTINATION bin)
 	#endif()
 
-	set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${VERSION_STRING}-win32")
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${VERSION_STRING}-win64")
+	else(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${VERSION_STRING}-win32")
+	endif(CMAKE_SIZEOF_VOID_P EQUAL 8)
 
 	set(CPACK_GENERATOR ZIP)
 
 	# This might be needed for some installer
 	#set(CPACK_PACKAGE_EXECUTABLES bin/minetest.exe "Minetest" bin/minetestserver.exe "Minetest Server")
 elseif(APPLE)
-	# see http://cmake.org/Wiki/CMake:CPackPackageGenerators#Bundle_.28OSX_only.29
 	set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${VERSION_STRING}-osx")
-	set(CPACK_PACKAGE_ICON ${CMAKE_CURRENT_SOURCE_DIR}/misc/mac/minetest-icon.icns)
+	set(CPACK_PACKAGE_ICON ${CMAKE_CURRENT_SOURCE_DIR}/misc/minetest-icon.icns)
 	set(CPACK_BUNDLE_NAME ${PROJECT_NAME})
 	set(CPACK_BUNDLE_ICON ${CPACK_PACKAGE_ICON})
-	set(CPACK_BUNDLE_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/misc/mac/Info.plist)
-	set(CPACK_BUNDLE_STARTUP_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/misc/mac/minetest-mac.sh)
+	set(CPACK_BUNDLE_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/misc/Info.plist)
 	set(CPACK_GENERATOR "Bundle")
 else()
 	set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${VERSION_STRING}-linux")
@@ -224,4 +226,15 @@ else()
 endif()
 
 include(CPack)
+
+# Add a target to generate API documentation with Doxygen
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile @ONLY)
+	add_custom_target(doc
+		${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/doc/Doxyfile
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc
+		COMMENT "Generating API documentation with Doxygen" VERBATIM
+	)
+endif(DOXYGEN_FOUND)
 

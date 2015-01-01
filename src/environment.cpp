@@ -36,6 +36,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef SERVER
 #include "clientmap.h"
 #include "localplayer.h"
+#include "mapblock_mesh.h"
 #include "event.h"
 #endif
 #include "daynightratio.h"
@@ -54,6 +55,7 @@ Environment::Environment():
 	m_enable_day_night_ratio_override(false),
 	m_day_night_ratio_override(0.0f)
 {
+	m_cache_enable_shaders = g_settings->getBool("enable_shaders");
 }
 
 Environment::~Environment()
@@ -205,8 +207,7 @@ u32 Environment::getDayNightRatio()
 {
 	if(m_enable_day_night_ratio_override)
 		return m_day_night_ratio_override;
-	bool smooth = g_settings->getBool("enable_shaders");
-	return time_to_daynight_ratio(m_time_of_day_f*24000, smooth);
+	return time_to_daynight_ratio(m_time_of_day_f*24000, m_cache_enable_shaders);
 }
 
 void Environment::setTimeOfDaySpeed(float speed)
@@ -449,11 +450,11 @@ Player *ServerEnvironment::loadPlayer(const std::string &playername)
 	bool newplayer = false;
 	bool found = false;
 	if (!player) {
-		player = new RemotePlayer(m_gamedef);
+		player = new RemotePlayer(m_gamedef, playername.c_str());
 		newplayer = true;
 	}
 
-	RemotePlayer testplayer(m_gamedef);
+	RemotePlayer testplayer(m_gamedef, "");
 	std::string path = players_path + playername;
 	for (u32 i = 0; i < PLAYER_FILE_ALTERNATE_TRIES; i++) {
 		// Open file and deserialize
@@ -478,6 +479,7 @@ Player *ServerEnvironment::loadPlayer(const std::string &playername)
 	if (newplayer) {
 		addPlayer(player);
 	}
+	player->setModified(false);
 	return player;
 }
 
@@ -508,38 +510,29 @@ void ServerEnvironment::loadMeta()
 
 	// Open file and deserialize
 	std::ifstream is(path.c_str(), std::ios_base::binary);
-	if(is.good() == false)
-	{
-		infostream<<"ServerEnvironment::loadMeta(): Failed to open "
-				<<path<<std::endl;
+	if (!is.good()) {
+		infostream << "ServerEnvironment::loadMeta(): Failed to open "
+				<< path << std::endl;
 		throw SerializationError("Couldn't load env meta");
 	}
 
 	Settings args;
-	
-	for(;;)
-	{
-		if(is.eof())
-			throw SerializationError
-					("ServerEnvironment::loadMeta(): EnvArgsEnd not found");
-		std::string line;
-		std::getline(is, line);
-		std::string trimmedline = trim(line);
-		if(trimmedline == "EnvArgsEnd")
-			break;
-		args.parseConfigLine(line);
+
+	if (!args.parseConfigLines(is, "EnvArgsEnd")) {
+		throw SerializationError("ServerEnvironment::loadMeta(): "
+				"EnvArgsEnd not found!");
 	}
-	
-	try{
+
+	try {
 		m_game_time = args.getU64("game_time");
-	}catch(SettingNotFoundException &e){
+	} catch (SettingNotFoundException &e) {
 		// Getting this is crucial, otherwise timestamps are useless
 		throw SerializationError("Couldn't load env meta game_time");
 	}
 
-	try{
+	try {
 		m_time_of_day = args.getU64("time_of_day");
-	}catch(SettingNotFoundException &e){
+	} catch (SettingNotFoundException &e) {
 		// This is not as important
 		m_time_of_day = 9000;
 	}
@@ -778,19 +771,26 @@ bool ServerEnvironment::setNode(v3s16 p, const MapNode &n)
 {
 	INodeDefManager *ndef = m_gamedef->ndef();
 	MapNode n_old = m_map->getNodeNoEx(p);
+
 	// Call destructor
-	if(ndef->get(n_old).has_on_destruct)
+	if (ndef->get(n_old).has_on_destruct)
 		m_script->node_on_destruct(p, n_old);
+
 	// Replace node
-	bool succeeded = m_map->addNodeWithEvent(p, n);
-	if(!succeeded)
+	if (!m_map->addNodeWithEvent(p, n))
 		return false;
+
+	// Update active VoxelManipulator if a mapgen thread
+	m_map->updateVManip(p);
+
 	// Call post-destructor
-	if(ndef->get(n_old).has_after_destruct)
+	if (ndef->get(n_old).has_after_destruct)
 		m_script->node_after_destruct(p, n_old);
+
 	// Call constructor
-	if(ndef->get(n).has_on_construct)
+	if (ndef->get(n).has_on_construct)
 		m_script->node_on_construct(p, n);
+
 	return true;
 }
 
@@ -798,24 +798,36 @@ bool ServerEnvironment::removeNode(v3s16 p)
 {
 	INodeDefManager *ndef = m_gamedef->ndef();
 	MapNode n_old = m_map->getNodeNoEx(p);
+
 	// Call destructor
-	if(ndef->get(n_old).has_on_destruct)
+	if (ndef->get(n_old).has_on_destruct)
 		m_script->node_on_destruct(p, n_old);
+
 	// Replace with air
 	// This is slightly optimized compared to addNodeWithEvent(air)
-	bool succeeded = m_map->removeNodeWithEvent(p);
-	if(!succeeded)
+	if (!m_map->removeNodeWithEvent(p))
 		return false;
+
+	// Update active VoxelManipulator if a mapgen thread
+	m_map->updateVManip(p);
+
 	// Call post-destructor
-	if(ndef->get(n_old).has_after_destruct)
+	if (ndef->get(n_old).has_after_destruct)
 		m_script->node_after_destruct(p, n_old);
+
 	// Air doesn't require constructor
 	return true;
 }
 
 bool ServerEnvironment::swapNode(v3s16 p, const MapNode &n)
 {
-	return m_map->addNodeWithEvent(p, n, false);
+	if (!m_map->addNodeWithEvent(p, n, false))
+		return false;
+
+	// Update active VoxelManipulator if a mapgen thread
+	m_map->updateVManip(p);
+
+	return true;
 }
 
 std::set<u16> ServerEnvironment::getObjectsInsideRadius(v3f pos, float radius)
@@ -1214,11 +1226,6 @@ void ServerEnvironment::step(float dtime)
 				i != m_active_objects.end(); ++i)
 		{
 			ServerActiveObject* obj = i->second;
-			// Remove non-peaceful mobs on peaceful mode
-			if(g_settings->getBool("only_peaceful_mobs")){
-				if(!obj->isPeaceful())
-					obj->m_removed = true;
-			}
 			// Don't step if is to be removed or stored statically
 			if(obj->m_removed || obj->m_pending_deactivation)
 				continue;
@@ -1339,11 +1346,17 @@ bool ServerEnvironment::addActiveObjectAsStatic(ServerActiveObject *obj)
 	inside a radius around a position
 */
 void ServerEnvironment::getAddedActiveObjects(v3s16 pos, s16 radius,
+		s16 player_radius,
 		std::set<u16> &current_objects,
 		std::set<u16> &added_objects)
 {
 	v3f pos_f = intToFloat(pos, BS);
 	f32 radius_f = radius * BS;
+	f32 player_radius_f = player_radius * BS;
+
+	if (player_radius_f < 0)
+		player_radius_f = 0;
+
 	/*
 		Go through the object list,
 		- discard m_removed objects,
@@ -1363,12 +1376,15 @@ void ServerEnvironment::getAddedActiveObjects(v3s16 pos, s16 radius,
 		// Discard if removed or deactivating
 		if(object->m_removed || object->m_pending_deactivation)
 			continue;
-		if(object->unlimitedTransferDistance() == false){
+
+		f32 distance_f = object->getBasePosition().getDistanceFrom(pos_f);
+		if (object->getType() == ACTIVEOBJECT_TYPE_PLAYER) {
 			// Discard if too far
-			f32 distance_f = object->getBasePosition().getDistanceFrom(pos_f);
-			if(distance_f > radius_f)
+			if (distance_f > player_radius_f && player_radius_f != 0)
 				continue;
-		}
+		} else if (distance_f > radius_f)
+			continue;
+
 		// Discard if already on current_objects
 		std::set<u16>::iterator n;
 		n = current_objects.find(id);
@@ -1384,11 +1400,17 @@ void ServerEnvironment::getAddedActiveObjects(v3s16 pos, s16 radius,
 	inside a radius around a position
 */
 void ServerEnvironment::getRemovedActiveObjects(v3s16 pos, s16 radius,
+		s16 player_radius,
 		std::set<u16> &current_objects,
 		std::set<u16> &removed_objects)
 {
 	v3f pos_f = intToFloat(pos, BS);
 	f32 radius_f = radius * BS;
+	f32 player_radius_f = player_radius * BS;
+
+	if (player_radius_f < 0)
+		player_radius_f = 0;
+
 	/*
 		Go through current_objects; object is removed if:
 		- object is not found in m_active_objects (this is actually an
@@ -1417,19 +1439,15 @@ void ServerEnvironment::getRemovedActiveObjects(v3s16 pos, s16 radius,
 			continue;
 		}
 		
-		// If transfer distance is unlimited, don't remove
-		if(object->unlimitedTransferDistance())
-			continue;
-
 		f32 distance_f = object->getBasePosition().getDistanceFrom(pos_f);
-
-		if(distance_f >= radius_f)
-		{
-			removed_objects.insert(id);
+		if (object->getType() == ACTIVEOBJECT_TYPE_PLAYER) {
+			if (distance_f <= player_radius_f || player_radius_f == 0)
+				continue;
+		} else if (distance_f <= radius_f)
 			continue;
-		}
-		
-		// Not removed
+
+		// Object is no longer visible
+		removed_objects.insert(id);
 	}
 }
 
@@ -1651,7 +1669,7 @@ void ServerEnvironment::activateObjects(MapBlock *block, u32 dtime_s)
 	if(block==NULL)
 		return;
 	// Ignore if no stored objects (to not set changed flag)
-	if(block->m_static_objects.m_stored.size() == 0)
+	if(block->m_static_objects.m_stored.empty())
 		return;
 	verbosestream<<"ServerEnvironment::activateObjects(): "
 			<<"activating objects of block "<<PP(block->getPos())
@@ -2313,21 +2331,26 @@ void ClientEnvironment::step(float dtime)
 			player->move(dtime, this, 100*BS);
 
 		}
-		
-		// Update lighting on all players on client
-		float light = 1.0;
-		try{
-			// Get node at head
-			v3s16 p = player->getLightPosition();
-			MapNode n = m_map->getNode(p);
-			light = n.getLightBlendF1((float)getDayNightRatio()/1000, m_gamedef->ndef());
-		}
-		catch(InvalidPositionException &e){
-			light = blend_light_f1((float)getDayNightRatio()/1000, LIGHT_SUN, 0);
-		}
-		player->light = light;
 	}
-	
+
+	// Update lighting on local player (used for wield item)
+	u32 day_night_ratio = getDayNightRatio();
+	{
+		// Get node at head
+
+		// On InvalidPositionException, use this as default
+		// (day: LIGHT_SUN, night: 0)
+		MapNode node_at_lplayer(CONTENT_AIR, 0x0f, 0);
+
+		v3s16 p = lplayer->getLightPosition();
+		node_at_lplayer = m_map->getNodeNoEx(p);
+
+		u16 light = getInteriorLight(node_at_lplayer, 0, m_gamedef->ndef());
+		u8 day = light & 0xff;
+		u8 night = (light >> 8) & 0xff;
+		finalColorBlend(lplayer->light_color, day, night, day_night_ratio);
+	}
+
 	/*
 		Step active objects and update lighting of them
 	*/
@@ -2346,15 +2369,16 @@ void ClientEnvironment::step(float dtime)
 		{
 			// Update lighting
 			u8 light = 0;
-			try{
-				// Get node at head
-				v3s16 p = obj->getLightPosition();
-				MapNode n = m_map->getNode(p);
-				light = n.getLightBlend(getDayNightRatio(), m_gamedef->ndef());
-			}
-			catch(InvalidPositionException &e){
-				light = blend_light(getDayNightRatio(), LIGHT_SUN, 0);
-			}
+			bool pos_ok;
+
+			// Get node at head
+			v3s16 p = obj->getLightPosition();
+			MapNode n = m_map->getNodeNoEx(p, &pos_ok);
+			if (pos_ok)
+				light = n.getLightBlend(day_night_ratio, m_gamedef->ndef());
+			else
+				light = blend_light(day_night_ratio, LIGHT_SUN, 0);
+
 			obj->updateLight(light);
 		}
 	}
@@ -2445,15 +2469,16 @@ u16 ClientEnvironment::addActiveObject(ClientActiveObject *object)
 	object->addToScene(m_smgr, m_texturesource, m_irr);
 	{ // Update lighting immediately
 		u8 light = 0;
-		try{
-			// Get node at head
-			v3s16 p = object->getLightPosition();
-			MapNode n = m_map->getNode(p);
+		bool pos_ok;
+
+		// Get node at head
+		v3s16 p = object->getLightPosition();
+		MapNode n = m_map->getNodeNoEx(p, &pos_ok);
+		if (pos_ok)
 			light = n.getLightBlend(getDayNightRatio(), m_gamedef->ndef());
-		}
-		catch(InvalidPositionException &e){
+		else
 			light = blend_light(getDayNightRatio(), LIGHT_SUN, 0);
-		}
+
 		object->updateLight(light);
 	}
 	return object->getId();

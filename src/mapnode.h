@@ -108,6 +108,9 @@ enum Rotation {
 #define LEVELED_MASK 0x3F
 #define LEVELED_MAX LEVELED_MASK
 
+
+struct ContentFeatures;
+
 /*
 	This is the stuff what the whole world consists of.
 */
@@ -140,14 +143,13 @@ struct MapNode
 	{
 		*this = n;
 	}
-	
-	MapNode(content_t content=CONTENT_AIR, u8 a_param1=0, u8 a_param2=0)
-	{
-		param0 = content;
-		param1 = a_param1;
-		param2 = a_param2;
-	}
-	
+
+	MapNode(content_t content = CONTENT_AIR, u8 a_param1=0, u8 a_param2=0)
+		: param0(content),
+		  param1(a_param1),
+		  param2(a_param2)
+	{ }
+
 	// Create directly from a nodename
 	// If name is unknown, sets CONTENT_IGNORE
 	MapNode(INodeDefManager *ndef, const std::string &name,
@@ -188,6 +190,24 @@ struct MapNode
 	
 	void setLight(enum LightBank bank, u8 a_light, INodeDefManager *nodemgr);
 	u8 getLight(enum LightBank bank, INodeDefManager *nodemgr) const;
+
+	/**
+	 * This function differs from getLight(enum LightBank bank, INodeDefManager *nodemgr)
+	 * in that the ContentFeatures of the node in question are not retrieved by
+	 * the function itself.  Thus, if you have already called nodemgr->get() to
+	 * get the ContentFeatures you pass it to this function instead of the
+	 * function getting ContentFeatures itself.  Since INodeDefManager::get()
+	 * is relatively expensive this can lead to significant performance
+	 * improvements in some situations.  Call this function if (and only if)
+	 * you have already retrieved the ContentFeatures by calling
+	 * INodeDefManager::get() for the node you're working with and the
+	 * pre-conditions listed are true.
+	 *
+	 * @pre f != NULL
+	 * @pre f->param_type == CPT_LIGHT
+	 */
+	u8 getLightNoChecks(LightBank bank, const ContentFeatures *f);
+
 	bool getLightBanks(u8 &lightday, u8 &lightnight, INodeDefManager *nodemgr) const;
 	
 	// 0 <= daylight_factor <= 1000
@@ -217,8 +237,7 @@ struct MapNode
 	void rotateAlongYAxis(INodeDefManager *nodemgr, Rotation rot);
 
 	/*
-		Gets list of node boxes (used for rendering (NDT_NODEBOX)
-		and collision)
+		Gets list of node boxes (used for rendering (NDT_NODEBOX))
 	*/
 	std::vector<aabb3f> getNodeBoxes(INodeDefManager *nodemgr) const;
 
@@ -226,6 +245,11 @@ struct MapNode
 		Gets list of selection boxes
 	*/
 	std::vector<aabb3f> getSelectionBoxes(INodeDefManager *nodemgr) const;
+
+	/*
+		Gets list of collision boxes
+	*/
+	std::vector<aabb3f> getCollisionBoxes(INodeDefManager *nodemgr) const;
 
 	/* Liquid helpers */
 	u8 getMaxLevel(INodeDefManager *nodemgr) const;

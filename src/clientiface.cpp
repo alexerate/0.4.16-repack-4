@@ -20,6 +20,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <sstream>
 
 #include "clientiface.h"
+#include "util/numeric.h"
+#include "util/mathconstants.h"
 #include "player.h"
 #include "settings.h"
 #include "mapblock.h"
@@ -28,11 +30,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "map.h"
 #include "emerge.h"
 #include "serverobject.h"              // TODO this is used for cleanup of only
-
-#include "util/numeric.h"
-#include "util/mathconstants.h"
-
 #include "main.h"                      // for g_settings
+#include "log.h"
 
 const char *ClientInterface::statenames[] = {
 	"Invalid",
@@ -52,6 +51,13 @@ std::string ClientInterface::state2Name(ClientState state)
 	return statenames[state];
 }
 
+void RemoteClient::ResendBlockIfOnWire(v3s16 p)
+{
+	// if this block is on wire, mark it for sending again as soon as possible
+	if (m_blocks_sending.find(p) != m_blocks_sending.end()) {
+		SetBlockNotSent(p);
+	}
+}
 
 void RemoteClient::GetNextBlocks(
 		ServerEnvironment *env,
@@ -597,7 +603,7 @@ void ClientInterface::UpdatePlayerList()
 		m_clients_names.clear();
 
 
-		if(clients.size() != 0)
+		if(!clients.empty())
 			infostream<<"Players:"<<std::endl;
 		for(std::list<u16>::iterator
 			i = clients.begin();

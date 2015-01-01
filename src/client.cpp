@@ -17,13 +17,19 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "client.h"
 #include <iostream>
 #include <algorithm>
-#include "clientserver.h"
-#include "jthread/jmutexautolock.h"
-#include "main.h"
 #include <sstream>
+#include <IFileSystem.h>
+#include "jthread/jmutexautolock.h"
+#include "util/directiontables.h"
+#include "util/pointedthing.h"
+#include "util/serialize.h"
+#include "util/string.h"
+#include "strfnd.h"
+#include "client.h"
+#include "clientserver.h"
+#include "main.h"
 #include "filesys.h"
 #include "porting.h"
 #include "mapsector.h"
@@ -37,20 +43,19 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "nodedef.h"
 #include "itemdef.h"
 #include "shader.h"
-#include <IFileSystem.h>
 #include "base64.h"
 #include "clientmap.h"
 #include "clientmedia.h"
 #include "sound.h"
-#include "util/string.h"
 #include "IMeshCache.h"
 #include "serialization.h"
-#include "util/serialize.h"
 #include "config.h"
-#include "util/directiontables.h"
-#include "util/pointedthing.h"
 #include "version.h"
 #include "drawscene.h"
+#include "subgame.h"
+#include "server.h"
+#include "database.h"
+#include "database-sqlite3.h"
 
 extern gui::IGUIEnvironment* guienv;
 
@@ -214,6 +219,7 @@ Client::Client(
 		IrrlichtDevice *device,
 		const char *playername,
 		std::string password,
+		bool is_simple_singleplayer_game,
 		MapDrawControl &control,
 		IWritableTextureSource *tsrc,
 		IWritableShaderSource *shsrc,
@@ -249,9 +255,11 @@ Client::Client(
 	m_inventory_updated(false),
 	m_inventory_from_server(NULL),
 	m_inventory_from_server_age(0.0),
+	m_show_highlighted(false),
 	m_animation_time(0),
 	m_crack_level(-1),
 	m_crack_pos(0,0,0),
+	m_highlighted_pos(0,0,0),
 	m_map_seed(0),
 	m_password(password),
 	m_access_denied(false),
@@ -269,18 +277,50 @@ Client::Client(
 		Add local player
 	*/
 	{
-		Player *player = new LocalPlayer(this);
-
-		player->updateName(playername);
+		Player *player = new LocalPlayer(this, playername);
 
 		m_env.addPlayer(player);
 	}
+
+	if (g_settings->getBool("enable_local_map_saving")
+			&& !is_simple_singleplayer_game) {
+		const std::string world_path = porting::path_user + DIR_DELIM + "worlds"
+				+ DIR_DELIM + "server_" + g_settings->get("address")
+				+ "_" + g_settings->get("remote_port");
+
+		SubgameSpec gamespec;
+		if (!getWorldExists(world_path)) {
+			gamespec = findSubgame(g_settings->get("default_game"));
+			if (!gamespec.isValid())
+				gamespec = findSubgame("minimal");
+		} else {
+			std::string world_gameid = getWorldGameId(world_path, false);
+			gamespec = findWorldSubgame(world_path);
+		}
+		if (!gamespec.isValid()) {
+			errorstream << "Couldn't find subgame for local map saving." << std::endl;
+			return;
+		}
+
+		localserver = new Server(world_path, gamespec, false, false);
+		localdb = new Database_SQLite3(&(ServerMap&)localserver->getMap(), world_path);
+		localdb->beginSave();
+		actionstream << "Local map saving started, map will be saved at '" << world_path << "'" << std::endl;
+	} else {
+		localdb = NULL;
+	}
+
+	m_cache_smooth_lighting = g_settings->getBool("smooth_lighting");
 }
 
 void Client::Stop()
 {
 	//request all client managed threads to stop
 	m_mesh_update_thread.Stop();
+	if (localdb != NULL) {
+		actionstream << "Local map saving ended" << std::endl;
+		localdb->endSave();
+	}
 }
 
 bool Client::isShutdown()
@@ -537,7 +577,7 @@ void Client::step(float dtime)
 		{
 			if(sendlist.size() == 255 || i == deleted_blocks.end())
 			{
-				if(sendlist.size() == 0)
+				if(sendlist.empty())
 					break;
 				/*
 					[0] u16 command
@@ -773,7 +813,7 @@ void Client::step(float dtime)
 			}
 		}
 		// Sync to server
-		if(removed_server_ids.size() != 0)
+		if(!removed_server_ids.empty())
 		{
 			std::ostringstream os(std::ios_base::binary);
 			writeU16(os, TOSERVER_REMOVED_SOUNDS);
@@ -1154,6 +1194,10 @@ void Client::ProcessData(u8 *data, u32 datasize, u16 sender_peer_id)
 			block->deSerialize(istr, ser_version, false);
 			block->deSerializeNetworkSpecific(istr);
 			sector->insertBlock(block);
+		}
+
+		if (localdb != NULL) {
+			((ServerMap&) localserver->getMap()).saveBlock(block, localdb);
 		}
 
 		/*
@@ -2196,8 +2240,8 @@ void Client::sendReady()
 	writeU8(os,VERSION_PATCH_ORIG);
 	writeU8(os,0);
 
-	writeU16(os,strlen(CMAKE_VERSION_GITHASH));
-	os.write(CMAKE_VERSION_GITHASH,strlen(CMAKE_VERSION_GITHASH));
+	writeU16(os,strlen(minetest_version_hash));
+	os.write(minetest_version_hash,strlen(minetest_version_hash));
 
 	// Make data buffer
 	std::string s = os.str();
@@ -2300,20 +2344,17 @@ void Client::removeNode(v3s16 p)
 	{
 	}
 	
-	// add urgent task to update the modified node
-	addUpdateMeshTaskForNode(p, false, true);
-
 	for(std::map<v3s16, MapBlock * >::iterator
 			i = modified_blocks.begin();
 			i != modified_blocks.end(); ++i)
 	{
-		addUpdateMeshTaskWithEdge(i->first);
+		addUpdateMeshTaskWithEdge(i->first, false, true);
 	}
 }
 
 void Client::addNode(v3s16 p, MapNode n, bool remove_metadata)
 {
-	TimeTaker timer1("Client::addNode()");
+	//TimeTaker timer1("Client::addNode()");
 
 	std::map<v3s16, MapBlock*> modified_blocks;
 
@@ -2329,7 +2370,7 @@ void Client::addNode(v3s16 p, MapNode n, bool remove_metadata)
 			i = modified_blocks.begin();
 			i != modified_blocks.end(); ++i)
 	{
-		addUpdateMeshTaskWithEdge(i->first);
+		addUpdateMeshTaskWithEdge(i->first, false, true);
 	}
 }
 	
@@ -2475,6 +2516,15 @@ int Client::getCrackLevel()
 	return m_crack_level;
 }
 
+void Client::setHighlighted(v3s16 pos, bool show_highlighted)
+{
+	m_show_highlighted = show_highlighted;
+	v3s16 old_highlighted_pos = m_highlighted_pos;
+	m_highlighted_pos = pos;
+	addUpdateMeshTaskForNode(old_highlighted_pos, false, true);
+	addUpdateMeshTaskForNode(m_highlighted_pos, false, true);
+}
+
 void Client::setCrack(int level, v3s16 pos)
 {
 	int old_crack_level = m_crack_level;
@@ -2529,16 +2579,14 @@ void Client::typeChatMessage(const std::wstring &message)
 	// Show locally
 	if (message[0] == L'/')
 	{
-		m_chat_queue.push_back(
-				(std::wstring)L"issued command: "+message);
+		m_chat_queue.push_back((std::wstring)L"issued command: " + message);
 	}
 	else
 	{
 		LocalPlayer *player = m_env.getLocalPlayer();
 		assert(player != NULL);
 		std::wstring name = narrow_to_wide(player->getName());
-		m_chat_queue.push_back(
-				(std::wstring)L"<"+name+L"> "+message);
+		m_chat_queue.push_back((std::wstring)L"<" + name + L"> " + message);
 	}
 }
 
@@ -2547,22 +2595,23 @@ void Client::addUpdateMeshTask(v3s16 p, bool ack_to_server, bool urgent)
 	MapBlock *b = m_env.getMap().getBlockNoCreateNoEx(p);
 	if(b == NULL)
 		return;
-	
+
 	/*
 		Create a task to update the mesh of the block
 	*/
-	
+
 	MeshMakeData *data = new MeshMakeData(this);
-	
+
 	{
 		//TimeTaker timer("data fill");
 		// Release: ~0ms
 		// Debug: 1-6ms, avg=2ms
 		data->fill(b);
 		data->setCrack(m_crack_level, m_crack_pos);
-		data->setSmoothLighting(g_settings->getBool("smooth_lighting"));
+		data->setHighlighted(m_highlighted_pos, m_show_highlighted);
+		data->setSmoothLighting(m_cache_smooth_lighting);
 	}
-	
+
 	// Add task to queue
 	m_mesh_update_thread.m_queue_in.addBlock(p, data, ack_to_server, urgent);
 }
@@ -2570,9 +2619,7 @@ void Client::addUpdateMeshTask(v3s16 p, bool ack_to_server, bool urgent)
 void Client::addUpdateMeshTaskWithEdge(v3s16 blockpos, bool ack_to_server, bool urgent)
 {
 	try{
-		v3s16 p = blockpos + v3s16(0,0,0);
-		//MapBlock *b = m_env.getMap().getBlockNoCreate(p);
-		addUpdateMeshTask(p, ack_to_server, urgent);
+		addUpdateMeshTask(blockpos, ack_to_server, urgent);
 	}
 	catch(InvalidPositionException &e){}
 
@@ -2600,8 +2647,7 @@ void Client::addUpdateMeshTaskForNode(v3s16 nodepos, bool ack_to_server, bool ur
 	v3s16 blockpos_relative = blockpos * MAP_BLOCKSIZE;
 
 	try{
-		v3s16 p = blockpos + v3s16(0,0,0);
-		addUpdateMeshTask(p, ack_to_server, urgent);
+		addUpdateMeshTask(blockpos, ack_to_server, urgent);
 	}
 	catch(InvalidPositionException &e){}
 
@@ -2671,14 +2717,14 @@ void Client::afterContentReceived(IrrlichtDevice *device, gui::IGUIFont* font)
 
 	// Update node textures and assign shaders to each tile
 	infostream<<"- Updating node textures"<<std::endl;
-	m_nodedef->updateTextures(m_tsrc, m_shsrc);
+	m_nodedef->updateTextures(this);
 
 	// Preload item textures and meshes if configured to
 	if(g_settings->getBool("preload_item_visuals"))
 	{
 		verbosestream<<"Updating item textures and meshes"<<std::endl;
 		wchar_t* text = wgettext("Item textures...");
-		draw_load_screen(text, device, guienv, font, 0, 0);
+		draw_load_screen(text, device, guienv, 0, 0);
 		std::set<std::string> names = m_itemdef->getAll();
 		size_t size = names.size();
 		size_t count = 0;
@@ -2691,7 +2737,7 @@ void Client::afterContentReceived(IrrlichtDevice *device, gui::IGUIFont* font)
 			count++;
 			percent = count*100/size;
 			if (count%50 == 0) // only update every 50 item
-				draw_load_screen(text, device, guienv, font, 0, percent);
+				draw_load_screen(text, device, guienv, 0, percent);
 		}
 		delete[] text;
 	}
@@ -2722,6 +2768,34 @@ float Client::getAvgRate(void)
 			m_con.getLocalStat(con::AVG_DL_RATE));
 }
 
+void Client::makeScreenshot(IrrlichtDevice *device)
+{
+	irr::video::IVideoDriver *driver = device->getVideoDriver();
+	irr::video::IImage* const raw_image = driver->createScreenShot();
+	if (raw_image) {
+		irr::video::IImage* const image = driver->createImage(video::ECF_R8G8B8,
+			raw_image->getDimension());
+
+		if (image) {
+			raw_image->copyTo(image);
+			irr::c8 filename[256];
+			snprintf(filename, sizeof(filename), "%s" DIR_DELIM "screenshot_%u.png",
+				 g_settings->get("screenshot_path").c_str(),
+				 device->getTimer()->getRealTime());
+			std::ostringstream sstr;
+			if (driver->writeImageToFile(image, filename)) {
+				sstr << "Saved screenshot to '" << filename << "'";
+			} else {
+				sstr << "Failed to save screenshot '" << filename << "'";
+			}
+			m_chat_queue.push_back(narrow_to_wide(sstr.str()));
+			infostream << sstr.str() << std::endl;
+			image->drop();
+		}
+		raw_image->drop();
+	}
+}
+
 // IGameDef interface
 // Under envlock
 IItemDefManager* Client::getItemDefManager()
@@ -2744,6 +2818,10 @@ ITextureSource* Client::getTextureSource()
 IShaderSource* Client::getShaderSource()
 {
 	return m_shsrc;
+}
+scene::ISceneManager* Client::getSceneManager()
+{
+	return m_device->getSceneManager();
 }
 u16 Client::allocateUnknownNodeId(const std::string &name)
 {

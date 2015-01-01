@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "clouds.h"
 #include "clientmap.h"
 #include "util/timetaker.h"
+#include "fontengine.h"
 
 typedef enum {
 	LEFT = -1,
@@ -30,15 +31,18 @@ typedef enum {
 	EYECOUNT = 2
 } paralax_sign;
 
+
 void draw_selectionbox(video::IVideoDriver* driver, Hud& hud,
 		std::vector<aabb3f>& hilightboxes, bool show_hud)
 {
+	static const s16 selectionbox_width = rangelim(g_settings->getS16("selectionbox_width"), 1, 5);
+
 	if (!show_hud)
 		return;
 
 	video::SMaterial oldmaterial = driver->getMaterial2D();
 	video::SMaterial m;
-	m.Thickness = 3;
+	m.Thickness = selectionbox_width;
 	m.Lighting = false;
 	driver->setMaterial(m);
 	hud.drawSelectionBoxes(hilightboxes);
@@ -129,20 +133,15 @@ void draw_anaglyph_3d_mode(Camera& camera, bool show_hud, Hud& hud,
 }
 
 void init_texture(video::IVideoDriver* driver, const v2u32& screensize,
-		video::ITexture** texture)
+		video::ITexture** texture, const char* name)
 {
-	static v2u32 last_screensize = v2u32(0,0);
-
-	if (( *texture == NULL ) || (screensize != last_screensize))
+	if (*texture != NULL)
 	{
-		if (*texture != NULL)
-		{
-			driver->removeTexture(*texture);
-		}
-		*texture = driver->addRenderTargetTexture(
-				core::dimension2d<u32>(screensize.X, screensize.Y));
-		last_screensize = screensize;
+		driver->removeTexture(*texture);
 	}
+	*texture = driver->addRenderTargetTexture(
+			core::dimension2d<u32>(screensize.X, screensize.Y), name,
+			irr::video::ECF_A8R8G8B8);
 }
 
 video::ITexture* draw_image(const v2u32& screensize,
@@ -154,18 +153,21 @@ video::ITexture* draw_image(const v2u32& screensize,
 		video::SColor skycolor )
 {
 	static video::ITexture* images[2] = { NULL, NULL };
+	static v2u32 last_screensize = v2u32(0,0);
 
 	video::ITexture* image = NULL;
 
-	if (psign == RIGHT)
-	{
-		init_texture(driver, screensize, &images[1]);
-		image = images[1];
-	} else {
-		init_texture(driver, screensize, &images[0]);
-		image = images[0];
+	if (screensize != last_screensize) {
+		init_texture(driver, screensize, &images[1], "mt_drawimage_img1");
+		init_texture(driver, screensize, &images[0], "mt_drawimage_img2");
+		last_screensize = screensize;
 	}
 
+	if (psign == RIGHT)
+		image = images[1];
+	else
+		image = images[0];
+	
 	driver->setRenderTarget(image, true, true,
 			irr::video::SColor(255,
 					skycolor.getRed(), skycolor.getGreen(), skycolor.getBlue()));
@@ -208,7 +210,7 @@ video::ITexture*  draw_hud(video::IVideoDriver* driver, const v2u32& screensize,
 		video::SColor skycolor, gui::IGUIEnvironment* guienv, Camera& camera )
 {
 	static video::ITexture* image = NULL;
-	init_texture(driver, screensize, &image);
+	init_texture(driver, screensize, &image, "mt_drawimage_hud");
 	driver->setRenderTarget(image, true, true,
 			irr::video::SColor(255,0,0,0));
 
@@ -275,7 +277,11 @@ void draw_interlaced_3d_mode(Camera& camera, bool show_hud,
 	guienv->drawAll();
 
 	for (unsigned int i = 0; i < screensize.Y; i+=2 ) {
+#if (IRRLICHT_VERSION_MAJOR >= 1) && (IRRLICHT_VERSION_MINOR >= 8)
+		driver->draw2DImage(left_image, irr::core::position2d<s32>(0, i),
+#else
 		driver->draw2DImage(left_image, irr::core::position2d<s32>(0, screensize.Y-i),
+#endif
 				irr::core::rect<s32>(0, i,screensize.X, i+1), 0,
 				irr::video::SColor(255, 255, 255, 255),
 				false);
@@ -495,21 +501,18 @@ void draw_scene(video::IVideoDriver* driver, scene::ISceneManager* smgr,
 	Text will be removed when the screen is drawn the next time.
 	Additionally, a progressbar can be drawn when percent is set between 0 and 100.
 */
-/*gui::IGUIStaticText **/
 void draw_load_screen(const std::wstring &text, IrrlichtDevice* device,
-		gui::IGUIEnvironment* guienv, gui::IGUIFont* font, float dtime,
-		int percent, bool clouds )
+		gui::IGUIEnvironment* guienv, float dtime, int percent, bool clouds )
 {
-	video::IVideoDriver* driver = device->getVideoDriver();
-	v2u32 screensize = driver->getScreenSize();
-	const wchar_t *loadingtext = text.c_str();
-	core::vector2d<u32> textsize_u = font->getDimension(loadingtext);
-	core::vector2d<s32> textsize(textsize_u.X,textsize_u.Y);
-	core::vector2d<s32> center(screensize.X/2, screensize.Y/2);
-	core::rect<s32> textrect(center - textsize/2, center + textsize/2);
+	video::IVideoDriver* driver    = device->getVideoDriver();
+	v2u32 screensize               = porting::getWindowSize();
+
+	v2s32 textsize(g_fontengine->getTextWidth(text), g_fontengine->getLineHeight());
+	v2s32 center(screensize.X / 2, screensize.Y / 2);
+	core::rect<s32> textrect(center - textsize / 2, center + textsize / 2);
 
 	gui::IGUIStaticText *guitext = guienv->addStaticText(
-			loadingtext, textrect, false, false);
+			text.c_str(), textrect, false, false);
 	guitext->setTextAlignment(gui::EGUIA_CENTER, gui::EGUIA_UPPERLEFT);
 
 	bool cloud_menu_background = clouds && g_settings->getBool("menu_clouds");
@@ -517,25 +520,33 @@ void draw_load_screen(const std::wstring &text, IrrlichtDevice* device,
 	{
 		g_menuclouds->step(dtime*3);
 		g_menuclouds->render();
-		driver->beginScene(true, true, video::SColor(255,140,186,250));
+		driver->beginScene(true, true, video::SColor(255, 140, 186, 250));
 		g_menucloudsmgr->drawAll();
 	}
 	else
-		driver->beginScene(true, true, video::SColor(255,0,0,0));
+		driver->beginScene(true, true, video::SColor(255, 0, 0, 0));
 
-	if (percent >= 0 && percent <= 100) // draw progress bar
+	// draw progress bar
+	if ((percent >= 0) && (percent <= 100))
 	{
-		core::vector2d<s32> barsize(256,32);
-		core::rect<s32> barrect(center-barsize/2, center+barsize/2);
-		driver->draw2DRectangle(video::SColor(255,255,255,255),barrect, NULL); // border
-		driver->draw2DRectangle(video::SColor(255,64,64,64), core::rect<s32> (
-				barrect.UpperLeftCorner+1,
+		v2s32 barsize(
+				// 342 is (approximately) 256/0.75 to keep bar on same size as
+				// before with default settings
+				342 * porting::getDisplayDensity() *
+				g_settings->getFloat("gui_scaling"),
+				g_fontengine->getTextHeight() * 2);
+
+		core::rect<s32> barrect(center - barsize / 2, center + barsize / 2);
+		driver->draw2DRectangle(video::SColor(255, 255, 255, 255),barrect, NULL); // border
+		driver->draw2DRectangle(video::SColor(255, 64, 64, 64), core::rect<s32> (
+				barrect.UpperLeftCorner + 1,
 				barrect.LowerRightCorner-1), NULL); // black inside the bar
-		driver->draw2DRectangle(video::SColor(255,128,128,128), core::rect<s32> (
-				barrect.UpperLeftCorner+1,
+		driver->draw2DRectangle(video::SColor(255, 128, 128, 128), core::rect<s32> (
+				barrect.UpperLeftCorner + 1,
 				core::vector2d<s32>(
-					barrect.LowerRightCorner.X-(barsize.X-1)+percent*(barsize.X-2)/100,
-					barrect.LowerRightCorner.Y-1)), NULL); // the actual progress
+						barrect.LowerRightCorner.X -
+						(barsize.X - 1) + percent * (barsize.X - 2) / 100,
+						barrect.LowerRightCorner.Y - 1)), NULL); // the actual progress
 	}
 	guienv->drawAll();
 	driver->endScene();

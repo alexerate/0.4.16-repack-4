@@ -52,12 +52,18 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("keymap_toggle_hud", "KEY_F1");
 	settings->setDefault("keymap_toggle_chat", "KEY_F2");
 	settings->setDefault("keymap_toggle_force_fog_off", "KEY_F3");
-	settings->setDefault("keymap_toggle_update_camera", "KEY_F4");
+	settings->setDefault("keymap_toggle_update_camera",
+#if DEBUG
+			"KEY_F4");
+#else
+			"none");
+#endif
 	settings->setDefault("keymap_toggle_debug", "KEY_F5");
 	settings->setDefault("keymap_toggle_profiler", "KEY_F6");
 	settings->setDefault("keymap_camera_mode", "KEY_F7");
 	settings->setDefault("keymap_increase_viewing_range_min", "+");
 	settings->setDefault("keymap_decrease_viewing_range_min", "-");
+	settings->setDefault("enable_build_where_you_stand", "false" );
 	settings->setDefault("3d_mode", "none");
 	settings->setDefault("3d_paralax_strength", "0.025");
 	settings->setDefault("aux1_descends", "false");
@@ -100,6 +106,7 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("view_bobbing", "true");
 	settings->setDefault("new_style_water", "false");
 	settings->setDefault("new_style_leaves", "true");
+	settings->setDefault("connected_glass", "false");
 	settings->setDefault("smooth_lighting", "true");
 	settings->setDefault("texture_path", "");
 	settings->setDefault("shader_path", "");
@@ -120,6 +127,7 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("console_color", "(0,0,0)");
 	settings->setDefault("console_alpha", "200");
 	settings->setDefault("selectionbox_color", "(0,0,0)");
+	settings->setDefault("enable_node_highlighting", "false");
 	settings->setDefault("crosshair_color", "(255,255,255)");
 	settings->setDefault("crosshair_alpha", "255");
 	settings->setDefault("gui_scaling", "1.0");
@@ -127,13 +135,15 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("enable_sound", "true");
 	settings->setDefault("sound_volume", "0.8");
 	settings->setDefault("desynchronize_mapblock_texture_animation", "true");
+	settings->setDefault("selectionbox_width","2");
 	settings->setDefault("hud_hotbar_max_width","1.0");
+	settings->setDefault("enable_local_map_saving", "false");
 
 	settings->setDefault("mip_map", "false");
 	settings->setDefault("anisotropic_filter", "false");
 	settings->setDefault("bilinear_filter", "false");
 	settings->setDefault("trilinear_filter", "false");
-	settings->setDefault("preload_item_visuals", "true");
+	settings->setDefault("preload_item_visuals", "false");
 	settings->setDefault("enable_bumpmapping", "false");
 	settings->setDefault("enable_parallax_occlusion", "false");
 	settings->setDefault("generate_normalmaps", "false");
@@ -150,6 +160,7 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("enable_shaders", "true");
 	settings->setDefault("repeat_rightclick_time", "0.25");
 	settings->setDefault("enable_particles", "true");
+	settings->setDefault("enable_mesh_cache", "true");
 
 	settings->setDefault("curl_timeout", "5000");
 	settings->setDefault("curl_parallel_limit", "8");
@@ -176,10 +187,23 @@ void set_default_settings(Settings *settings)
 
 	settings->setDefault("fallback_font_shadow", "1");
 	settings->setDefault("fallback_font_shadow_alpha", "128");
+
+	std::stringstream fontsize;
+	fontsize << TTF_DEFAULT_FONT_SIZE;
+
+	settings->setDefault("font_size", fontsize.str());
+	settings->setDefault("mono_font_size", fontsize.str());
+	settings->setDefault("fallback_font_size", fontsize.str());
 #else
 	settings->setDefault("freetype", "false");
-	settings->setDefault("font_path", porting::getDataPath("fonts" DIR_DELIM "fontlucida.png"));
-	settings->setDefault("mono_font_path", porting::getDataPath("fonts" DIR_DELIM "fontdejavusansmono.png"));
+	settings->setDefault("font_path", porting::getDataPath("fonts" DIR_DELIM "lucida_sans"));
+	settings->setDefault("mono_font_path", porting::getDataPath("fonts" DIR_DELIM "mono_dejavu_sans"));
+
+	std::stringstream fontsize;
+	fontsize << DEFAULT_FONT_SIZE;
+
+	settings->setDefault("font_size", fontsize.str());
+	settings->setDefault("mono_font_size", fontsize.str());
 #endif
 
 	// Server stuff
@@ -187,19 +211,18 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("workaround_window_size","5");
 	settings->setDefault("max_packets_per_iteration","1024");
 	settings->setDefault("port", "30000");
-	settings->setDefault("bind_address","");
+	settings->setDefault("bind_address", "");
 	settings->setDefault("default_game", "minetest");
 	settings->setDefault("motd", "");
 	settings->setDefault("max_users", "15");
 	settings->setDefault("strict_protocol_version_checking", "false");
 	settings->setDefault("creative_mode", "false");
 	settings->setDefault("enable_damage", "true");
-	settings->setDefault("only_peaceful_mobs", "false");
 	settings->setDefault("fixed_map_seed", "");
 	settings->setDefault("give_initial_stuff", "false");
 	settings->setDefault("default_password", "");
 	settings->setDefault("default_privs", "interact, shout");
-	settings->setDefault("unlimited_player_transfer_distance", "true");
+	settings->setDefault("player_transfer_distance", "0");
 	settings->setDefault("enable_pvp", "true");
 	settings->setDefault("disallow_empty_password", "false");
 	settings->setDefault("disable_anticheat", "false");
@@ -253,7 +276,8 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("movement_gravity", "9.81");
 
 	//liquid stuff
-	settings->setDefault("liquid_loop_max", "10000");
+	settings->setDefault("liquid_loop_max", "100000");
+	settings->setDefault("liquid_queue_purge_time", "0");
 	settings->setDefault("liquid_update", "1.0");
 
 	//mapgen stuff
@@ -261,9 +285,6 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("water_level", "1");
 	settings->setDefault("chunksize", "5");
 	settings->setDefault("mg_flags", "");
-
-	settings->setDefault("mgmath_generator", "mandelbox");
-
 
 	// IPv6
 	settings->setDefault("enable_ipv6", "true");
@@ -288,7 +309,6 @@ void set_default_settings(Settings *settings)
 	settings->setDefault("enable_particles", "false");
 	settings->setDefault("video_driver", "ogles1");
 	settings->setDefault("touchtarget", "true");
-	settings->setDefault("main_menu_script","/sdcard/Minetest/builtin/mainmenu/init_android.lua");
 	settings->setDefault("TMPFolder","/sdcard/Minetest/tmp/");
 	settings->setDefault("touchscreen_threshold","20");
 	settings->setDefault("smooth_lighting", "false");
@@ -311,22 +331,8 @@ void set_default_settings(Settings *settings)
 		settings->setDefault("gui_scaling", "0.7");
 	}
 	settings->setDefault("curl_verify_cert","false");
-#endif
-}
-
-void late_init_default_settings(Settings* settings)
-{
-#ifndef SERVER
-	std::stringstream fontsize;
-	fontsize << floor(
-			DEFAULT_FONT_SIZE *
-			porting::getDisplayDensity() *
-			settings->getFloat("gui_scaling")
-			);
-
-	settings->setDefault("font_size", fontsize.str());
-	settings->setDefault("mono_font_size", fontsize.str());
-	settings->setDefault("fallback_font_size", fontsize.str());
+#else
+	settings->setDefault("screen_dpi", "72");
 #endif
 }
 

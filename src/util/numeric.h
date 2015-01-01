@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "../irr_v3d.h"
 #include "../irr_aabb3d.h"
 #include <list>
+#include <algorithm>
 
 // Calculate the borders of a "d-radius" cube
 void getFacePositions(std::list<v3s16> &list, u16 d);
@@ -110,15 +111,6 @@ inline bool isInArea(v3s16 p, v3s16 d)
 	);
 }
 
-inline s16 rangelim(s16 i, s16 max)
-{
-	if(i < 0)
-		return 0;
-	if(i > max)
-		return max;
-	return i;
-}
-
 #define rangelim(d, min, max) ((d) < (min) ? (min) : ((d)>(max)?(max):(d)))
 #define myfloor(x) ((x) > 0.0 ? (int)(x) : (int)(x) - 1)
 
@@ -138,6 +130,9 @@ inline v3s16 arealim(v3s16 p, s16 d)
 		p.Z = d-1;
 	return p;
 }
+
+#define ARRLEN(x) (sizeof(x) / sizeof((x)[0]))
+#define CONTAINS(c, v) (std::find((c).begin(), (c).end(), (v)) != (c).end())
 
 // The naive swap performs better than the xor version
 #define SWAP(t, x, y) do { \
@@ -355,6 +350,11 @@ inline float cycle_shift(float value, float by = 0, float max = 1)
     if (value + by < 0) return max + by + value;
     if (value + by > max) return value + by - max;
     return value + by;
+}
+
+inline bool is_power_of_two(u32 n)
+{
+	return n != 0 && (n & (n-1)) == 0;
 }
 
 #endif

@@ -70,17 +70,24 @@ std::vector<ServerListSpec> getOnline()
 	Json::Value root = fetchJsonValue(
 			(g_settings->get("serverlist_url") + "/list").c_str(), NULL);
 
-	std::vector<ServerListSpec> serverlist;
+	std::vector<ServerListSpec> server_list;
 
-	if (root.isArray()) {
-		for (unsigned int i = 0; i < root.size(); i++) {
-			if (root[i].isObject()) {
-				serverlist.push_back(root[i]);
-			}
+	if (!root.isObject()) {
+		return server_list;
+	}
+
+	root = root["list"];
+	if (!root.isArray()) {
+		return server_list;
+	}
+
+	for (unsigned int i = 0; i < root.size(); i++) {
+		if (root[i].isObject()) {
+			server_list.push_back(root[i]);
 		}
 	}
 
-	return serverlist;
+	return server_list;
 }
 
 
@@ -187,6 +194,7 @@ void sendAnnounce(const std::string &action,
 		const u32 game_time,
 		const float lag,
 		const std::string &gameid,
+		const std::string &mg_name,
 		const std::vector<ModSpec> &mods)
 {
 	Json::Value server;
@@ -220,9 +228,9 @@ void sendAnnounce(const std::string &action,
 	if (action == "start") {
 		server["dedicated"]         = g_settings->getBool("server_dedicated");
 		server["rollback"]          = g_settings->getBool("enable_rollback_recording");
-		server["mapgen"]            = g_settings->get("mg_name");
+		server["mapgen"]            = mg_name;
 		server["privs"]             = g_settings->get("default_privs");
-		server["can_see_far_names"] = g_settings->getBool("unlimited_player_transfer_distance");
+		server["can_see_far_names"] = g_settings->getS16("player_transfer_distance") <= 0;
 		server["mods"]              = Json::Value(Json::arrayValue);
 		for (std::vector<ModSpec>::const_iterator it = mods.begin();
 				it != mods.end();
@@ -236,11 +244,11 @@ void sendAnnounce(const std::string &action,
 	}
 
 	Json::FastWriter writer;
-	HTTPFetchRequest fetchrequest;
-	fetchrequest.url = g_settings->get("serverlist_url") + std::string("/announce");
-	fetchrequest.post_fields["json"] = writer.write(server);
-	fetchrequest.multipart = true;
-	httpfetch_async(fetchrequest);
+	HTTPFetchRequest fetch_request;
+	fetch_request.url = g_settings->get("serverlist_url") + std::string("/announce");
+	fetch_request.post_fields["json"] = writer.write(server);
+	fetch_request.multipart = true;
+	httpfetch_async(fetch_request);
 }
 #endif
 

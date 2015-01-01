@@ -16,17 +16,6 @@ doors = {}
 --    only_placer_can_open: if true only the player who placed the door can
 --                          open it
 
-local function is_right(pos) 
-	local r1 = minetest.get_node({x=pos.x-1, y=pos.y, z=pos.z})
-	local r2 = minetest.get_node({x=pos.x, y=pos.y, z=pos.z-1})
-	if string.find(r1.name, "door_") or string.find(r2.name, "door_") then
-		if string.find(r1.name, "_1") or string.find(r2.name, "_1") then
-			return true
-		else
-			return false
-		end
-	end
-end
 
 function doors.register_door(name, def)
 	def.groups.not_in_creative_inventory = 1
@@ -46,6 +35,14 @@ function doors.register_door(name, def)
 		def.selection_box_top = box
 	end
 
+	if not def.sound_close_door then
+		def.sound_close_door = "door_close"
+	end
+	if not def.sound_open_door then
+		def.sound_open_door = "door_open"
+	end
+	
+	
 	minetest.register_craftitem(name, {
 		description = def.description,
 		inventory_image = def.inventory_image,
@@ -90,12 +87,14 @@ function doors.register_door(name, def)
 			elseif p2 == 3 then
 				pt3.z = pt3.z-1
 			end
-			if not string.find(minetest.get_node(pt3).name, name.."_b_") then
+			if minetest.get_item_group(minetest.get_node(pt3).name, "door") == 0 then
 				minetest.set_node(pt, {name=name.."_b_1", param2=p2})
 				minetest.set_node(pt2, {name=name.."_t_1", param2=p2})
 			else
 				minetest.set_node(pt, {name=name.."_b_2", param2=p2})
 				minetest.set_node(pt2, {name=name.."_t_2", param2=p2})
+				minetest.get_meta(pt):set_int("right", 1)
+				minetest.get_meta(pt2):set_int("right", 1)
 			end
 
 			if def.only_placer_can_open then
@@ -138,17 +137,17 @@ function doors.register_door(name, def)
 		pos.y = pos.y-dir
 		minetest.swap_node(pos, {name=replace, param2=p2})
 
-		local snd_1 = "_close"
-		local snd_2 = "_open"
+		local snd_1 = def.sound_close_door
+		local snd_2 = def.sound_open_door 
 		if params[1] == 3 then
-			snd_1 = "_open"
-			snd_2 = "_close"
+			snd_1 = def.sound_open_door 
+			snd_2 = def.sound_close_door
 		end
 
-		if is_right(pos) then
-			minetest.sound_play("door"..snd_1, {pos = pos, gain = 0.3, max_hear_distance = 10})
+		if minetest.get_meta(pos):get_int("right") ~= 0 then
+			minetest.sound_play(snd_1, {pos = pos, gain = 0.3, max_hear_distance = 10})
 		else
-			minetest.sound_play("door"..snd_2, {pos = pos, gain = 0.3, max_hear_distance = 10})
+			minetest.sound_play(snd_2, {pos = pos, gain = 0.3, max_hear_distance = 10})
 		end
 	end
 
@@ -381,18 +380,17 @@ local function punch(pos)
 	local me = minetest.get_node(pos)
 	local tmp_node
 	local tmp_node2
-	oben = {x=pos.x, y=pos.y+1, z=pos.z}
-		if state == 1 then
-			state = 0
-			minetest.sound_play("door_close", {pos = pos, gain = 0.3, max_hear_distance = 10})
-			tmp_node = {name="doors:trapdoor", param1=me.param1, param2=me.param2}
-		else
-			state = 1
-			minetest.sound_play("door_open", {pos = pos, gain = 0.3, max_hear_distance = 10})
-			tmp_node = {name="doors:trapdoor_open", param1=me.param1, param2=me.param2}
-		end
-		update_door(pos, tmp_node)
-		meta:set_int("state", state)
+	if state == 1 then
+		state = 0
+		minetest.sound_play("door_close", {pos = pos, gain = 0.3, max_hear_distance = 10})
+		tmp_node = {name="doors:trapdoor", param1=me.param1, param2=me.param2}
+	else
+		state = 1
+		minetest.sound_play("door_open", {pos = pos, gain = 0.3, max_hear_distance = 10})
+		tmp_node = {name="doors:trapdoor_open", param1=me.param1, param2=me.param2}
+	end
+	update_door(pos, tmp_node)
+	meta:set_int("state", state)
 end
 
 minetest.register_node("doors:trapdoor", {
@@ -429,6 +427,7 @@ minetest.register_node("doors:trapdoor_open", {
 	pointable = true,
 	stack_max = 0,
 	groups = {snappy=1,choppy=2,oddly_breakable_by_hand=2,flammable=2,door=1},
+	climbable = true,
 	sounds = default.node_sound_wood_defaults(),
 	drop = "doors:trapdoor",
 	node_box = {

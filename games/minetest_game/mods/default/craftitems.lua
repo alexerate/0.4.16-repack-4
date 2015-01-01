@@ -14,11 +14,13 @@ minetest.register_craftitem("default:paper", {
 minetest.register_craftitem("default:book", {
 	description = "Book",
 	inventory_image = "default_book.png",
+	groups = {book=1},
 })
 
 minetest.register_craftitem("default:coal_lump", {
 	description = "Coal Lump",
 	inventory_image = "default_coal_lump.png",
+	groups = {coal = 1}
 })
 
 minetest.register_craftitem("default:iron_lump", {

@@ -30,7 +30,7 @@ core.register_entity(":__builtin:falling_node", {
 			item_texture = core.registered_items[itemname].inventory_image
 			item_type = core.registered_items[itemname].type
 		end
-		prop = {
+		local prop = {
 			is_visible = true,
 			textures = {node.name},
 		}
@@ -43,7 +43,6 @@ core.register_entity(":__builtin:falling_node", {
 
 	on_activate = function(self, staticdata)
 		self.object:set_armor_groups({immortal=1})
-		--self.object:setacceleration({x=0, y=-10, z=0})
 		self:set_node({name=staticdata})
 	end,
 
@@ -79,30 +78,41 @@ core.register_entity(":__builtin:falling_node", {
 			local np = {x=bcp.x, y=bcp.y+1, z=bcp.z}
 			-- Check what's here
 			local n2 = core.get_node(np)
-			-- remove node and replace it with it's drops
-			local drops = core.get_node_drops(n2.name, "")
-			core.remove_node(np)
-			local _, dropped_item
-			for _, dropped_item in ipairs(drops) do
-				core.add_item(np, dropped_item)
-			end
-			-- Run script hook
-			local _, callback
-			for _, callback in ipairs(core.registered_on_dignodes) do
-				callback(np, n2, nil)
+			-- If it's not air or liquid, remove node and replace it with
+			-- it's drops
+			if n2.name ~= "air" and (not core.registered_nodes[n2.name] or
+					core.registered_nodes[n2.name].liquidtype == "none") then
+				core.remove_node(np)
+				if core.registered_nodes[n2.name].buildable_to == false then
+					-- Add dropped items
+					local drops = core.get_node_drops(n2.name, "")
+					local _, dropped_item
+					for _, dropped_item in ipairs(drops) do
+						core.add_item(np, dropped_item)
+					end
+				end
+				-- Run script hook
+				local _, callback
+				for _, callback in ipairs(core.registered_on_dignodes) do
+					callback(np, n2, nil)
+				end
 			end
 			-- Create node and remove entity
 			core.add_node(np, self.node)
 			self.object:remove()
 			nodeupdate(np)
-		else
-			-- Do nothing
+			return
+		end
+		local vel = self.object:getvelocity()
+		if vector.equals(vel, {x=0,y=0,z=0}) then
+			local npos = self.object:getpos()
+			self.object:setpos(vector.round(npos))
 		end
 	end
 })
 
 function spawn_falling_node(p, node)
-	obj = core.add_entity(p, "__builtin:falling_node")
+	local obj = core.add_entity(p, "__builtin:falling_node")
 	obj:get_luaentity():set_node(node)
 end
 
@@ -153,10 +163,10 @@ end
 --
 
 function nodeupdate_single(p, delay)
-	n = core.get_node(p)
+	local n = core.get_node(p)
 	if core.get_item_group(n.name, "falling_node") ~= 0 then
-		p_bottom = {x=p.x, y=p.y-1, z=p.z}
-		n_bottom = core.get_node(p_bottom)
+		local p_bottom = {x=p.x, y=p.y-1, z=p.z}
+		local n_bottom = core.get_node(p_bottom)
 		-- Note: walkable is in the node definition, not in item groups
 		if core.registered_nodes[n_bottom.name] and
 				(core.get_item_group(n.name, "float") == 0 or
@@ -168,7 +178,7 @@ function nodeupdate_single(p, delay)
 			if delay then
 				core.after(0.1, nodeupdate_single, {x=p.x, y=p.y, z=p.z}, false)
 			else
-				n.level = core.env:get_node_level(p)
+				n.level = core.get_node_level(p)
 				core.remove_node(p)
 				spawn_falling_node(p, n)
 				nodeupdate(p)

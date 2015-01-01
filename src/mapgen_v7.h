@@ -26,6 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define MGV7_MOUNTAINS   0x01
 #define MGV7_RIDGES      0x02
 
+class BiomeManager;
 
 extern FlagDesc flagdesc_mapgen_v7[];
 
@@ -41,22 +42,21 @@ struct MapgenV7Params : public MapgenSpecificParams {
 	NoiseParams np_ridge_uwater;
 	NoiseParams np_mountain;
 	NoiseParams np_ridge;
-	
+
 	MapgenV7Params();
 	~MapgenV7Params() {}
-	
+
 	void readParams(Settings *settings);
 	void writeParams(Settings *settings);
 };
 
 class MapgenV7 : public Mapgen {
 public:
-	EmergeManager *emerge;
-	BiomeDefManager *bmgr;
+	EmergeManager *m_emerge;
+	BiomeManager *bmgr;
 
 	int ystride;
 	int zstride;
-	u32 flags;
 	u32 spflags;
 
 	u32 blockseed;
@@ -64,9 +64,9 @@ public:
 	v3s16 node_max;
 	v3s16 full_node_min;
 	v3s16 full_node_max;
-	
+
 	s16 *ridge_heightmap;
-	
+
 	Noise *noise_terrain_base;
 	Noise *noise_terrain_alt;
 	Noise *noise_terrain_persist;
@@ -76,10 +76,10 @@ public:
 	Noise *noise_ridge_uwater;
 	Noise *noise_mountain;
 	Noise *noise_ridge;
-	
+
 	Noise *noise_heat;
 	Noise *noise_humidity;
-	
+
 	content_t c_stone;
 	content_t c_dirt;
 	content_t c_dirt_with_grass;
@@ -94,7 +94,7 @@ public:
 
 	MapgenV7(int mapgenid, MapgenParams *params, EmergeManager *emerge);
 	~MapgenV7();
-	
+
 	virtual void makeChunk(BlockMakeData *data);
 	int getGroundLevelAtPoint(v2s16 p);
 	Biome *getBiomeAtPoint(v3s16 p);
@@ -103,19 +103,19 @@ public:
 	float baseTerrainLevelFromMap(int index);
 	bool getMountainTerrainAtPoint(int x, int y, int z);
 	bool getMountainTerrainFromMap(int idx_xyz, int idx_xz, int y);
-	
+
 	void calculateNoise();
-	
+
 	virtual int generateTerrain();
 	int generateBaseTerrain();
 	void generateMountainTerrain();
 	void generateRidgeTerrain();
-	
+
 	void generateBiomes();
 	void dustTopNodes();
-	
+
 	//void addTopNodes();
-	
+
 	void generateCaves(int max_stone_y);
 };
 
@@ -123,7 +123,7 @@ struct MapgenFactoryV7 : public MapgenFactory {
 	Mapgen *createMapgen(int mgid, MapgenParams *params, EmergeManager *emerge) {
 		return new MapgenV7(mgid, params, emerge);
 	};
-	
+
 	MapgenSpecificParams *createMapgenParams() {
 		return new MapgenV7Params();
 	};

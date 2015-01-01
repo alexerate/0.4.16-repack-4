@@ -39,12 +39,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "profiler.h"
 #include "log.h"
 #include "nodedef.h"
-#include "biome.h"
+#include "mg_biome.h"
+#include "mg_ore.h"
+#include "mg_decoration.h"
+#include "mg_schematic.h"
+#include "mapgen_v5.h"
 #include "mapgen_v6.h"
 #include "mapgen_v7.h"
-#include "mapgen_indev.h"
 #include "mapgen_singlenode.h"
-#include "mapgen_math.h"
 
 
 class EmergeThread : public JThread
@@ -82,15 +84,17 @@ public:
 
 EmergeManager::EmergeManager(IGameDef *gamedef) {
 	//register built-in mapgens
+	registerMapgen("v5",         new MapgenFactoryV5());
 	registerMapgen("v6",         new MapgenFactoryV6());
 	registerMapgen("v7",         new MapgenFactoryV7());
-	registerMapgen("indev",      new MapgenFactoryIndev());
 	registerMapgen("singlenode", new MapgenFactorySinglenode());
-	registerMapgen("math",       new MapgenFactoryMath());
 
-	this->ndef     = gamedef->getNodeDefManager();
-	this->biomedef = new BiomeDefManager();
-	this->gennotify = 0;
+	this->ndef      = gamedef->getNodeDefManager();
+	this->biomemgr  = new BiomeManager(gamedef);
+	this->oremgr    = new OreManager(gamedef);
+	this->decomgr   = new DecorationManager(gamedef);
+	this->schemmgr  = new SchematicManager(gamedef);
+	this->gen_notify_on = 0;
 
 	// Note that accesses to this variable are not synchronized.
 	// This is because the *only* thread ever starting or stopping
@@ -101,7 +105,7 @@ EmergeManager::EmergeManager(IGameDef *gamedef) {
 
 	// if unspecified, leave a proc for the main thread and one for
 	// some other misc thread
-	int nthreads = 0;
+	s16 nthreads = 0;
 	if (!g_settings->getS16NoEx("num_emerge_threads", nthreads))
 		nthreads = porting::getNumberOfProcessors() - 2;
 	if (nthreads < 1)
@@ -121,8 +125,8 @@ EmergeManager::EmergeManager(IGameDef *gamedef) {
 	if (qlimit_generate < 1)
 		qlimit_generate = 1;
 
-	for (int i = 0; i != nthreads; i++)
-		emergethread.push_back(new EmergeThread((Server *)gamedef, i));
+	for (s16 i = 0; i < nthreads; i++)
+		emergethread.push_back(new EmergeThread((Server *) gamedef, i));
 
 	infostream << "EmergeManager: using " << nthreads << " threads" << std::endl;
 }
@@ -141,21 +145,15 @@ EmergeManager::~EmergeManager() {
 	emergethread.clear();
 	mapgen.clear();
 
-	for (unsigned int i = 0; i < ores.size(); i++)
-		delete ores[i];
-	ores.clear();
-
-	for (unsigned int i = 0; i < decorations.size(); i++)
-		delete decorations[i];
-	decorations.clear();
-
-	for (std::map<std::string, MapgenFactory *>::iterator iter = mglist.begin();
-			iter != mglist.end(); iter ++) {
-		delete iter->second;
-	}
+	std::map<std::string, MapgenFactory *>::iterator it;
+	for (it = mglist.begin(); it != mglist.end(); ++it)
+		delete it->second;
 	mglist.clear();
 
-	delete biomedef;
+	delete biomemgr;
+	delete oremgr;
+	delete decomgr;
+	delete schemmgr;
 
 	if (params.sparams) {
 		delete params.sparams;
@@ -179,16 +177,6 @@ void EmergeManager::loadMapgenParams() {
 void EmergeManager::initMapgens() {
 	if (mapgen.size())
 		return;
-
-	// Resolve names of nodes for things that were registered
-	// (at this point, the registration period is over)
-	biomedef->resolveNodeNames(ndef);
-
-	for (size_t i = 0; i != ores.size(); i++)
-		ores[i]->resolveNodeNames(ndef);
-
-	for (size_t i = 0; i != decorations.size(); i++)
-		decorations[i]->resolveNodeNames(ndef);
 
 	if (!params.sparams) {
 		params.sparams = createMapgenParams(params.mg_name);
@@ -375,6 +363,8 @@ void EmergeManager::loadParamsFromSettings(Settings *settings) {
 	settings->getS16NoEx("water_level",  params.water_level);
 	settings->getS16NoEx("chunksize",    params.chunksize);
 	settings->getFlagStrNoEx("mg_flags", params.flags, flagdesc_mapgen);
+	settings->getNoiseParams("mg_biome_np_heat",     params.np_biome_heat);
+	settings->getNoiseParams("mg_biome_np_humidity", params.np_biome_humidity);
 
 	delete params.sparams;
 	params.sparams = createMapgenParams(params.mg_name);
@@ -389,6 +379,8 @@ void EmergeManager::saveParamsToSettings(Settings *settings) {
 	settings->setS16("water_level",  params.water_level);
 	settings->setS16("chunksize",    params.chunksize);
 	settings->setFlagStr("mg_flags", params.flags, flagdesc_mapgen, (u32)-1);
+	settings->setNoiseParams("mg_biome_np_heat",     params.np_biome_heat);
+	settings->setNoiseParams("mg_biome_np_humidity", params.np_biome_humidity);
 
 	if (params.sparams)
 		params.sparams->writeParams(settings);

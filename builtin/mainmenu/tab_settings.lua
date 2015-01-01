@@ -75,60 +75,91 @@ local function showconfirm_reset(tabview)
 	new_dlg:show()
 end
 
-local function gui_scale_index()
+local function gui_scale_to_scrollbar()
 
 	local current_value = tonumber(core.setting_get("gui_scaling"))
 
-	if (current_value == nil) then
+	if (current_value == nil) or current_value < 0.25 then
 		return 0
-	elseif current_value <= 0.5 then
-		return 1
-	elseif current_value <= 0.625 then
-		return 2
-	elseif current_value <= 0.75 then
-		return 3
-	elseif current_value <= 0.875 then
-		return 4
-	elseif current_value <= 1.0 then
-		return 5
-	elseif current_value <= 1.25 then
-		return 6
-	elseif current_value <= 1.5 then
-		return 7
-	else
-		return 8
 	end
+
+	if current_value <= 1.25 then
+		return ((current_value - 0.25)/ 1.0) * 700
+	end
+
+	if current_value <= 6 then
+		return ((current_value -1.25) * 100) + 700
+	end
+
+	return 1000
+end
+
+local function scrollbar_to_gui_scale(value)
+
+	value = tonumber(value)
+
+	if (value <= 700) then
+		return ((value / 700) * 1.0) + 0.25
+	end
+
+	if (value <=1000) then
+		return ((value - 700) / 100) + 1.25
+	end
+
+	return 1
 end
 
 local function formspec(tabview, name, tabdata)
+	local video_drivers = core.get_video_drivers()
+	
+	local video_driver_string = ""
+	local current_video_driver_idx = 0
+	local current_video_driver = core.setting_get("video_driver")
+	for i=1, #video_drivers, 1 do
+	
+		if i ~= 1 then
+			video_driver_string = video_driver_string .. ","
+		end
+		video_driver_string = video_driver_string .. video_drivers[i]
+		
+		local video_driver = string.gsub(video_drivers[i], " ", "")
+		if current_video_driver:lower() == video_driver:lower() then
+			current_video_driver_idx = i
+		end
+	end
+	
+	
 	local tab_string =
-		"vertlabel[0,-0.25;" .. fgettext("SETTINGS") .. "]" ..
-		"box[0.75,0;3.25,4;#999999]" ..
-		"checkbox[1,0;cb_fancy_trees;".. fgettext("Fancy Trees") .. ";"
-				.. dump(core.setting_getbool("new_style_leaves")) .. "]"..
-		"checkbox[1,0.5;cb_smooth_lighting;".. fgettext("Smooth Lighting")
+		"box[0,0;3.5,4;#999999]" ..
+		"checkbox[0.25,0;cb_smooth_lighting;".. fgettext("Smooth Lighting")
 				.. ";".. dump(core.setting_getbool("smooth_lighting")) .. "]"..
-		"checkbox[1,1;cb_3d_clouds;".. fgettext("3D Clouds") .. ";"
-				.. dump(core.setting_getbool("enable_3d_clouds")) .. "]"..
-		"checkbox[1,1.5;cb_opaque_water;".. fgettext("Opaque Water") .. ";"
-				.. dump(core.setting_getbool("opaque_water")) .. "]"..
-		"checkbox[1,2.0;cb_pre_ivis;".. fgettext("Preload item visuals") .. ";"
-				.. dump(core.setting_getbool("preload_item_visuals"))	.. "]"..
-		"checkbox[1,2.5;cb_particles;".. fgettext("Enable Particles") .. ";"
+		"checkbox[0.25,0.5;cb_particles;".. fgettext("Enable Particles") .. ";"
 				.. dump(core.setting_getbool("enable_particles"))	.. "]"..
-		"box[4.25,0;3.25,2.5;#999999]" ..
-		"checkbox[4.5,0;cb_mipmapping;".. fgettext("Mip-Mapping") .. ";"
+		"checkbox[0.25,1;cb_3d_clouds;".. fgettext("3D Clouds") .. ";"
+				.. dump(core.setting_getbool("enable_3d_clouds")) .. "]"..
+		"checkbox[0.25,1.5;cb_fancy_trees;".. fgettext("Fancy Trees") .. ";"
+				.. dump(core.setting_getbool("new_style_leaves")) .. "]"..
+		"checkbox[0.25,2.0;cb_opaque_water;".. fgettext("Opaque Water") .. ";"
+				.. dump(core.setting_getbool("opaque_water")) .. "]"..
+		"checkbox[0.25,2.5;cb_connected_glass;".. fgettext("Connected Glass") .. ";"
+				.. dump(core.setting_getbool("connected_glass"))	.. "]"..
+		"dropdown[0.25,3.25;3.25;dd_video_driver;"
+			.. video_driver_string .. ";" .. current_video_driver_idx .. "]" ..
+		"tooltip[dd_video_driver;" ..
+			fgettext("Restart minetest for driver change to take effect") .. "]" ..
+		"box[3.75,0;3.75,2.5;#999999]" ..
+		"checkbox[4,0;cb_mipmapping;".. fgettext("Mip-Mapping") .. ";"
 				.. dump(core.setting_getbool("mip_map")) .. "]"..
-		"checkbox[4.5,0.5;cb_anisotrophic;".. fgettext("Anisotropic Filtering") .. ";"
+		"checkbox[4,0.5;cb_anisotrophic;".. fgettext("Anisotropic Filtering") .. ";"
 				.. dump(core.setting_getbool("anisotropic_filter")) .. "]"..
-		"checkbox[4.5,1.0;cb_bilinear;".. fgettext("Bi-Linear Filtering") .. ";"
+		"checkbox[4,1.0;cb_bilinear;".. fgettext("Bi-Linear Filtering") .. ";"
 				.. dump(core.setting_getbool("bilinear_filter")) .. "]"..
-		"checkbox[4.5,1.5;cb_trilinear;".. fgettext("Tri-Linear Filtering") .. ";"
+		"checkbox[4,1.5;cb_trilinear;".. fgettext("Tri-Linear Filtering") .. ";"
 				.. dump(core.setting_getbool("trilinear_filter")) .. "]"..
 		"box[7.75,0;4,4;#999999]" ..
 		"checkbox[8,0;cb_shaders;".. fgettext("Shaders") .. ";"
 				.. dump(core.setting_getbool("enable_shaders")) .. "]"
-	if not ANDROID then
+	if PLATFORM ~= "Android" then
 		tab_string = tab_string ..
 		"button[8,4.75;3.75,0.5;btn_change_keys;".. fgettext("Change keys") .. "]"
 	else
@@ -136,12 +167,15 @@ local function formspec(tabview, name, tabdata)
 		"button[8,4.75;3.75,0.5;btn_reset_singleplayer;".. fgettext("Reset singleplayer world") .. "]"
 	end
 	tab_string = tab_string ..
-		"box[0.75,4.25;3.25,1.25;#999999]" ..
-		"label[1,4.25;" .. fgettext("GUI scale factor") .. "]" ..
-		"dropdown[1,4.75;3.0;dd_gui_scaling;0.5,0.625,0.75,0.875,1.0,1.25,1.5,2.0;"
-			.. gui_scale_index() .. "]"
+		"box[0,4.25;3.5,1.25;#999999]" ..
+		"label[0.25,4.25;" .. fgettext("GUI scale factor") .. "]" ..
+		"scrollbar[0.25,4.75;3,0.4;sb_gui_scaling;horizontal;" ..
+		 gui_scale_to_scrollbar() .. "]" ..
+		"tooltip[sb_gui_scaling;" ..
+			fgettext("Scaling factor applied to menu elements: ") ..
+			dump(core.setting_get("gui_scaling")) .. "]"
 
-	if ANDROID then
+	if PLATFORM == "Android" then
 		tab_string = tab_string ..
 		"box[4.25,2.75;3.25,2.15;#999999]" ..
 		"checkbox[4.5,2.75;cb_touchscreen_target;".. fgettext("Touch free target") .. ";"
@@ -224,8 +258,8 @@ local function handle_settings_buttons(this, fields, tabname, tabdata)
 		end
 		return true
 	end
-	if fields["cb_pre_ivis"] then
-		core.setting_set("preload_item_visuals", fields["cb_pre_ivis"])
+	if fields["cb_connected_glass"] then
+		core.setting_set("connected_glass", fields["cb_connected_glass"])
 		return true
 	end
 	if fields["cb_particles"] then
@@ -257,23 +291,34 @@ local function handle_settings_buttons(this, fields, tabname, tabdata)
 		core.show_keys_menu()
 		return true
 	end
+
+	if fields["sb_gui_scaling"] then
+		local event = core.explode_scrollbar_event(fields["sb_gui_scaling"])
+
+		if event.type == "CHG" then
+			local tosave = string.format("%.2f",scrollbar_to_gui_scale(event.value))
+			core.setting_set("gui_scaling",tosave)
+			return true
+		end
+	end
 	if fields["cb_touchscreen_target"] then
 		core.setting_set("touchtarget", fields["cb_touchscreen_target"])
 		return true
 	end
 	if fields["btn_reset_singleplayer"] then
-		print("sp reset")
 		showconfirm_reset(this)
 		return true
 	end
+
 	--Note dropdowns have to be handled LAST!
 	local ddhandled = false
 	if fields["dd_touchthreshold"] then
 		core.setting_set("touchscreen_threshold",fields["dd_touchthreshold"])
 		ddhandled = true
 	end
-	if fields["dd_gui_scaling"] then
-		core.setting_set("gui_scaling",fields["dd_gui_scaling"])
+	if fields["dd_video_driver"] then
+		local video_driver = string.gsub(fields["dd_video_driver"], " ", "")
+		core.setting_set("video_driver",string.lower(video_driver))
 		ddhandled = true
 	end
 	
