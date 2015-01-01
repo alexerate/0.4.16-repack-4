@@ -151,7 +151,7 @@ void ChatBuffer::reformat(u32 cols, u32 rows)
 	}
 	else if (cols != m_cols || rows != m_rows)
 	{
-		// TODO: Avoid reformatting ALL lines (even inivisble ones)
+		// TODO: Avoid reformatting ALL lines (even invisible ones)
 		// each time the console size changes.
 
 		// Find out the scroll position in *unformatted* lines
@@ -402,6 +402,15 @@ void ChatPrompt::input(wchar_t ch)
 {
 	m_line.insert(m_cursor, 1, ch);
 	m_cursor++;
+	clampView();
+	m_nick_completion_start = 0;
+	m_nick_completion_end = 0;
+}
+
+void ChatPrompt::input(const std::wstring &str)
+{
+	m_line.insert(m_cursor, str);
+	m_cursor += str.size();
 	clampView();
 	m_nick_completion_start = 0;
 	m_nick_completion_end = 0;

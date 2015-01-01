@@ -44,7 +44,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "craftdef.h"
 #include "emerge.h"
 #include "mapgen.h"
-#include "biome.h"
+#include "mg_biome.h"
 #include "content_mapnode.h"
 #include "content_nodemeta.h"
 #include "content_abm.h"
@@ -181,7 +181,6 @@ Server::Server(
 			this),
 	m_banmanager(NULL),
 	m_rollback(NULL),
-	m_rollback_sink_enabled(true),
 	m_enable_rollback_recording(false),
 	m_emerge(NULL),
 	m_script(NULL),
@@ -241,12 +240,11 @@ Server::Server(
 		throw ServerError("Failed to initialize world");
 
 	// Create ban manager
-	std::string ban_path = m_path_world+DIR_DELIM+"ipban.txt";
+	std::string ban_path = m_path_world + DIR_DELIM "ipban.txt";
 	m_banmanager = new BanManager(ban_path);
 
 	// Create rollback manager
-	std::string rollback_path = m_path_world+DIR_DELIM+"rollback.txt";
-	m_rollback = createRollbackManager(rollback_path, this);
+	m_rollback = new RollbackManager(m_path_world, this);
 
 	ModConfiguration modconf(m_path_world);
 	m_mods = modconf.getMods();
@@ -337,6 +335,9 @@ Server::Server(
 
 	// Apply item aliases in the node definition manager
 	m_nodedef->updateAliases(m_itemdef);
+
+	// Perform pending node name resolutions
+	m_nodedef->getResolver()->resolveNodes();
 
 	// Load the mapgen params from global settings now after any
 	// initial overrides have been set by the mods
@@ -567,7 +568,7 @@ void Server::AsyncRunStep(bool initial_step)
 		m_env->step(dtime);
 	}
 
-	const float map_timer_and_unload_dtime = 2.92;
+	static const float map_timer_and_unload_dtime = 2.92;
 	if(m_map_timer_and_unload_interval.step(dtime, map_timer_and_unload_dtime))
 	{
 		JMutexAutoLock lock(m_env_mutex);
@@ -663,7 +664,7 @@ void Server::AsyncRunStep(bool initial_step)
 		/*
 			Set the modified blocks unsent for all the clients
 		*/
-		if(modified_blocks.size() > 0)
+		if(!modified_blocks.empty())
 		{
 			SetBlocksNotSent(modified_blocks);
 		}
@@ -684,6 +685,7 @@ void Server::AsyncRunStep(bool initial_step)
 					m_env->getGameTime(),
 					m_lag,
 					m_gamespec.id,
+					m_emerge->params.mg_name,
 					m_mods);
 			counter = 0.01;
 		}
@@ -704,7 +706,14 @@ void Server::AsyncRunStep(bool initial_step)
 
 		// Radius inside which objects are active
 		s16 radius = g_settings->getS16("active_object_send_range_blocks");
+		s16 player_radius = g_settings->getS16("player_transfer_distance");
+
+		if (player_radius == 0 && g_settings->exists("unlimited_player_transfer_distance") &&
+				!g_settings->getBool("unlimited_player_transfer_distance"))
+			player_radius = radius;
+
 		radius *= MAP_BLOCKSIZE;
+		player_radius *= MAP_BLOCKSIZE;
 
 		for(std::map<u16, RemoteClient*>::iterator
 			i = clients.begin();
@@ -730,13 +739,13 @@ void Server::AsyncRunStep(bool initial_step)
 
 			std::set<u16> removed_objects;
 			std::set<u16> added_objects;
-			m_env->getRemovedActiveObjects(pos, radius,
+			m_env->getRemovedActiveObjects(pos, radius, player_radius,
 					client->m_known_objects, removed_objects);
-			m_env->getAddedActiveObjects(pos, radius,
+			m_env->getAddedActiveObjects(pos, radius, player_radius,
 					client->m_known_objects, added_objects);
 
 			// Ignore if nothing happened
-			if(removed_objects.size() == 0 && added_objects.size() == 0)
+			if(removed_objects.empty() && added_objects.empty())
 			{
 				//infostream<<"active objects: none changed"<<std::endl;
 				continue;
@@ -1042,7 +1051,7 @@ void Server::AsyncRunStep(bool initial_step)
 			/*
 				Set blocks not sent to far players
 			*/
-			if(far_players.size() > 0)
+			if(!far_players.empty())
 			{
 				// Convert list format to that wanted by SetBlocksNotSent
 				std::map<v3s16, MapBlock*> modified_blocks2;
@@ -1169,10 +1178,15 @@ PlayerSAO* Server::StageTwoClientInit(u16 peer_id)
 	std::string playername = "";
 	PlayerSAO *playersao = NULL;
 	m_clients.Lock();
-	RemoteClient* client = m_clients.lockedGetClientNoEx(peer_id, CS_InitDone);
-	if (client != NULL) {
-		playername = client->getName();
-		playersao = emergePlayer(playername.c_str(), peer_id);
+	try {
+		RemoteClient* client = m_clients.lockedGetClientNoEx(peer_id, CS_InitDone);
+		if (client != NULL) {
+			playername = client->getName();
+			playersao = emergePlayer(playername.c_str(), peer_id);
+		}
+	} catch (std::exception &e) {
+		m_clients.Unlock();
+		throw;
 	}
 	m_clients.Unlock();
 
@@ -1448,14 +1462,21 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 		/*
 			Set up player
 		*/
-
-		// Get player name
 		char playername[PLAYERNAME_SIZE];
-		for(u32 i=0; i<PLAYERNAME_SIZE-1; i++)
-		{
-			playername[i] = data[3+i];
+		unsigned int playername_length = 0;
+		for (; playername_length < PLAYERNAME_SIZE; playername_length++ ) {
+			playername[playername_length] = data[3+playername_length];
+			if (data[3+playername_length] == 0)
+				break;
 		}
-		playername[PLAYERNAME_SIZE-1] = 0;
+
+		if (playername_length == PLAYERNAME_SIZE) {
+			actionstream<<"Server: Player with name exceeding max length "
+					<<"tried to connect from "<<addr_s<<std::endl;
+			DenyAccess(peer_id, L"Name too long");
+			return;
+		}
+
 
 		if(playername[0]=='\0')
 		{
@@ -1732,14 +1753,20 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 
 		if (playersao == NULL) {
 			errorstream
-				<< "TOSERVER_CLIENT_READY stage 2 client init failed for peer "
+				<< "TOSERVER_CLIENT_READY stage 2 client init failed for peer_id: "
 				<< peer_id << std::endl;
+			m_con.DisconnectPeer(peer_id);
 			return;
 		}
 
 
-		if(datasize < 2+8)
+		if(datasize < 2+8) {
+			errorstream
+				<< "TOSERVER_CLIENT_READY client sent inconsistent data, disconnecting peer_id: "
+				<< peer_id << std::endl;
+			m_con.DisconnectPeer(peer_id);
 			return;
+		}
 
 		m_clients.setClientVersion(
 				peer_id,
@@ -2395,17 +2422,18 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 					somebody is cheating, by checking the timing.
 				*/
 				MapNode n(CONTENT_IGNORE);
-				try
-				{
-					n = m_env->getMap().getNode(p_under);
-				}
-				catch(InvalidPositionException &e)
-				{
+				bool pos_ok;
+				n = m_env->getMap().getNodeNoEx(p_under, &pos_ok);
+				if (pos_ok)
+					n = m_env->getMap().getNodeNoEx(p_under, &pos_ok);
+
+				if (!pos_ok) {
 					infostream<<"Server: Not punching: Node not found."
 							<<" Adding block to emerge queue."
 							<<std::endl;
 					m_emerge->enqueueBlockEmerge(peer_id, getNodeBlockPos(p_above), false);
 				}
+
 				if(n.getContent() != CONTENT_IGNORE)
 					m_script->node_on_punch(p_under, n, playersao, pointed);
 				// Cheat prevention
@@ -2450,16 +2478,12 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 			// Only digging of nodes
 			if(pointed.type == POINTEDTHING_NODE)
 			{
-				MapNode n(CONTENT_IGNORE);
-				try
-				{
-					n = m_env->getMap().getNode(p_under);
-				}
-				catch(InvalidPositionException &e)
-				{
-					infostream<<"Server: Not finishing digging: Node not found."
-							<<" Adding block to emerge queue."
-							<<std::endl;
+				bool pos_ok;
+				MapNode n = m_env->getMap().getNodeNoEx(p_under, &pos_ok);
+				if (!pos_ok) {
+					infostream << "Server: Not finishing digging: Node not found."
+					           << " Adding block to emerge queue."
+					           << std::endl;
 					m_emerge->enqueueBlockEmerge(peer_id, getNodeBlockPos(p_above), false);
 				}
 
@@ -2539,13 +2563,16 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 				if(is_valid_dig && n.getContent() != CONTENT_IGNORE)
 					m_script->node_on_dig(p_under, n, playersao);
 
+				v3s16 blockpos = getNodeBlockPos(floatToInt(pointed_pos_under, BS));
+				RemoteClient *client = getClient(peer_id);
 				// Send unusual result (that is, node not being removed)
 				if(m_env->getMap().getNodeNoEx(p_under).getContent() != CONTENT_AIR)
 				{
 					// Re-send block to revert change on client-side
-					RemoteClient *client = getClient(peer_id);
-					v3s16 blockpos = getNodeBlockPos(floatToInt(pointed_pos_under, BS));
 					client->SetBlockNotSent(blockpos);
+				}
+				else {
+					client->ResendBlockIfOnWire(blockpos);
 				}
 			}
 		} // action == 2
@@ -2588,13 +2615,19 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 
 			// If item has node placement prediction, always send the
 			// blocks to make sure the client knows what exactly happened
-			if(item.getDefinition(m_itemdef).node_placement_prediction != ""){
-				RemoteClient *client = getClient(peer_id);
-				v3s16 blockpos = getNodeBlockPos(floatToInt(pointed_pos_above, BS));
+			RemoteClient *client = getClient(peer_id);
+			v3s16 blockpos = getNodeBlockPos(floatToInt(pointed_pos_above, BS));
+			v3s16 blockpos2 = getNodeBlockPos(floatToInt(pointed_pos_under, BS));
+			if(item.getDefinition(m_itemdef).node_placement_prediction != "") {
 				client->SetBlockNotSent(blockpos);
-				v3s16 blockpos2 = getNodeBlockPos(floatToInt(pointed_pos_under, BS));
-				if(blockpos2 != blockpos){
+				if(blockpos2 != blockpos) {
 					client->SetBlockNotSent(blockpos2);
+				}
+			}
+			else {
+				client->ResendBlockIfOnWire(blockpos);
+				if(blockpos2 != blockpos) {
+					client->ResendBlockIfOnWire(blockpos2);
 				}
 			}
 		} // action == 3
@@ -2642,7 +2675,7 @@ void Server::ProcessData(u8 *data, u32 datasize, u16 peer_id)
 				continue;
 			ServerPlayingSound &psound = i->second;
 			psound.clients.erase(peer_id);
-			if(psound.clients.size() == 0)
+			if(psound.clients.empty())
 				m_playing_sounds.erase(i++);
 		}
 	}
@@ -3595,7 +3628,7 @@ s32 Server::playSound(const SimpleSoundSpec &spec,
 			dst_clients.push_back(*i);
 		}
 	}
-	if(dst_clients.size() == 0)
+	if(dst_clients.empty())
 		return -1;
 
 	// Create the sound
@@ -3847,7 +3880,7 @@ void Server::SendBlocks(float dtime)
 			RemoteClient *client = m_clients.lockedGetClientNoEx(*i, CS_Active);
 
 			if (client == NULL)
-				return;
+				continue;
 
 			total_sending += client->SendingCount();
 			client->GetNextBlocks(m_env,m_emerge, dtime, queue);
@@ -4289,7 +4322,7 @@ void Server::DeleteClient(u16 peer_id, ClientDeletionReason reason)
 		{
 			ServerPlayingSound &psound = i->second;
 			psound.clients.erase(peer_id);
-			if(psound.clients.size() == 0)
+			if(psound.clients.empty())
 				m_playing_sounds.erase(i++);
 			else
 				i++;
@@ -4435,7 +4468,7 @@ std::wstring Server::getStatusString()
 			name = narrow_to_wide(player->getName());
 		// Add name to information string
 		if(!first)
-			os<<L",";
+			os<<L", ";
 		else
 			first = false;
 		os<<name;
@@ -4574,8 +4607,13 @@ bool Server::hudSetFlags(Player *player, u32 flags, u32 mask) {
 
 	SendHUDSetFlags(player->peer_id, flags, mask);
 	player->hud_flags = flags;
+	
+	PlayerSAO* playersao = player->getPlayerSAO();
+	
+	if (playersao == NULL)
+		return false;
 
-	m_script->player_event(player->getPlayerSAO(),"hud_changed");
+	m_script->player_event(playersao, "hud_changed");
 	return true;
 }
 
@@ -4794,8 +4832,6 @@ bool Server::rollbackRevertActions(const std::list<RollbackAction> &actions,
 {
 	infostream<<"Server::rollbackRevertActions(len="<<actions.size()<<")"<<std::endl;
 	ServerMap *map = (ServerMap*)(&m_env->getMap());
-	// Disable rollback report sink while reverting
-	BoolScopeSet rollback_scope_disable(&m_rollback_sink_enabled, false);
 
 	// Fail if no actions to handle
 	if(actions.empty()){
@@ -4858,6 +4894,11 @@ IShaderSource* Server::getShaderSource()
 {
 	return NULL;
 }
+scene::ISceneManager* Server::getSceneManager()
+{
+	return NULL;
+}
+
 u16 Server::allocateUnknownNodeId(const std::string &name)
 {
 	return m_nodedef->allocateDummy(name);
@@ -4869,14 +4910,6 @@ ISoundManager* Server::getSoundManager()
 MtEventManager* Server::getEventManager()
 {
 	return m_event;
-}
-IRollbackReportSink* Server::getRollbackReportSink()
-{
-	if(!m_enable_rollback_recording)
-		return NULL;
-	if(!m_rollback_sink_enabled)
-		return NULL;
-	return m_rollback;
 }
 
 IWritableItemDefManager* Server::getWritableItemDefManager()
@@ -5006,15 +5039,17 @@ PlayerSAO* Server::emergePlayer(const char *name, u16 peer_id)
 	// Create player if it doesn't exist
 	if (!player) {
 		newplayer = true;
-		player = new RemotePlayer(this);
-		player->updateName(name);
-		/* Set player position */
+		player = new RemotePlayer(this, name);
+		// Set player position
 		infostream<<"Server: Finding spawn place for player \""
 				<<name<<"\""<<std::endl;
 		v3f pos = findSpawnPos(m_env->getServerMap());
 		player->setPosition(pos);
 
-		/* Add player to environment */
+		// Make sure the player is saved
+		player->setModified(true);
+
+		// Add player to environment
 		m_env->addPlayer(player);
 	}
 

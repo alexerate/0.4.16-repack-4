@@ -21,6 +21,37 @@ function basic_dump(o)
 	end
 end
 
+local keywords = {
+	["and"] = true,
+	["break"] = true,
+	["do"] = true,
+	["else"] = true,
+	["elseif"] = true,
+	["end"] = true,
+	["false"] = true,
+	["for"] = true,
+	["function"] = true,
+	["goto"] = true,  -- Lua 5.2
+	["if"] = true,
+	["in"] = true,
+	["local"] = true,
+	["nil"] = true,
+	["not"] = true,
+	["or"] = true,
+	["repeat"] = true,
+	["return"] = true,
+	["then"] = true,
+	["true"] = true,
+	["until"] = true,
+	["while"] = true,
+}
+local function is_valid_identifier(str)
+	if not str:find("^[a-zA-Z_][a-zA-Z0-9_]*$") or keywords[str] then
+		return false
+	end
+	return true
+end
+
 --------------------------------------------------------------------------------
 -- Dumps values in a line-per-value format.
 -- For example, {test = {"Testing..."}} becomes:
@@ -70,42 +101,86 @@ function dump2(o, name, dumped)
 end
 
 --------------------------------------------------------------------------------
--- This dumps values in a one-line format, like serialize().
--- For example, {test = {"Testing..."}} becomes {["test"] = {[1] = "Testing..."}}
+-- This dumps values in a one-statement format.
+-- For example, {test = {"Testing..."}} becomes:
+-- [[{
+-- 	test = {
+-- 		"Testing..."
+-- 	}
+-- }]]
 -- This supports tables as keys, but not circular references.
 -- It performs poorly with multiple references as it writes out the full
 -- table each time.
--- The dumped argument is internal-only.
+-- The indent field specifies a indentation string, it defaults to a tab.
+-- Use the empty string to disable indentation.
+-- The dumped and level arguments are internal-only.
 
-function dump(o, dumped)
-	-- Same as "dumped" in dump2.  The difference is that here it can only
-	-- contain boolean (and nil) values since multiple references aren't
-	-- handled properly.
-	dumped = dumped or {}
-	if type(o) == "table" then
-		if dumped[o] then
-			return "<circular reference>"
-		end
-		dumped[o] = true
-		local t = {}
-		for k, v in pairs(o) do
-			k = dump(k, dumped)
-			v = dump(v, dumped)
-			table.insert(t, string.format("[%s] = %s", k, v))
-		end
-		return string.format("{%s}", table.concat(t, ", "))
-	else
+function dump(o, indent, nested, level)
+	if type(o) ~= "table" then
 		return basic_dump(o)
 	end
+	-- Contains table -> true/nil of currently nested tables
+	nested = nested or {}
+	if nested[o] then
+		return "<circular reference>"
+	end
+	nested[o] = true
+	indent = indent or "\t"
+	level = level or 1
+	local t = {}
+	local dumped_indexes = {}
+	for i, v in ipairs(o) do
+		table.insert(t, dump(v, indent, nested, level + 1))
+		dumped_indexes[i] = true
+	end
+	for k, v in pairs(o) do
+		if not dumped_indexes[k] then
+			if type(k) ~= "string" or not is_valid_identifier(k) then
+				k = "["..dump(k, indent, nested, level + 1).."]"
+			end
+			v = dump(v, indent, nested, level + 1)
+			table.insert(t, k.." = "..v)
+		end
+	end
+	nested[o] = nil
+	if indent ~= "" then
+		local indent_str = "\n"..string.rep(indent, level)
+		local end_indent_str = "\n"..string.rep(indent, level - 1)
+		return string.format("{%s%s%s}",
+				indent_str,
+				table.concat(t, ","..indent_str),
+				end_indent_str)
+	end
+	return "{"..table.concat(t, ", ").."}"
 end
 
 --------------------------------------------------------------------------------
-function string:split(sep)
-	local sep, fields = sep or ",", {}
-	local pattern = string.format("([^%s]+)", sep)
-	self:gsub(pattern, function(c) fields[#fields+1] = c end)
+function string.split(str, delim, include_empty, max_splits)
+	delim = delim or ","
+	max_splits = max_splits or 0
+	local fields = {}
+	local num_splits = 0
+	local last_pos = 0
+	for part, pos in str:gmatch("(.-)[" .. delim .. "]()") do
+		last_pos = pos
+		if include_empty or part ~= "" then
+			num_splits = num_splits + 1
+			fields[num_splits] = part
+			if max_splits > 0 and num_splits + 1 >= max_splits then
+				break
+			end
+		end
+	end
+	-- Handle the last field
+	if max_splits <= 0 or num_splits <= max_splits then
+		local last_part = str:sub(last_pos)
+		if include_empty or last_part ~= "" then
+			fields[num_splits + 1] = last_part
+		end
+	end
 	return fields
 end
+
 
 --------------------------------------------------------------------------------
 function file_exists(filename)
@@ -138,60 +213,71 @@ function math.hypot(x, y)
 end
 
 --------------------------------------------------------------------------------
+function math.sign(x, tolerance)
+	tolerance = tolerance or 0
+	if x > tolerance then
+		return 1
+	elseif x < -tolerance then
+		return -1
+	end
+	return 0
+end
+
+--------------------------------------------------------------------------------
 function get_last_folder(text,count)
 	local parts = text:split(DIR_DELIM)
-	
+
 	if count == nil then
 		return parts[#parts]
 	end
-	
+
 	local retval = ""
 	for i=1,count,1 do
 		retval = retval .. parts[#parts - (count-i)] .. DIR_DELIM
 	end
-	
+
 	return retval
 end
 
 --------------------------------------------------------------------------------
 function cleanup_path(temppath)
-	
+
 	local parts = temppath:split("-")
-	temppath = ""	
+	temppath = ""
 	for i=1,#parts,1 do
 		if temppath ~= "" then
 			temppath = temppath .. "_"
 		end
 		temppath = temppath .. parts[i]
 	end
-	
+
 	parts = temppath:split(".")
-	temppath = ""	
+	temppath = ""
 	for i=1,#parts,1 do
 		if temppath ~= "" then
 			temppath = temppath .. "_"
 		end
 		temppath = temppath .. parts[i]
 	end
-	
+
 	parts = temppath:split("'")
-	temppath = ""	
+	temppath = ""
 	for i=1,#parts,1 do
 		if temppath ~= "" then
 			temppath = temppath .. ""
 		end
 		temppath = temppath .. parts[i]
 	end
-	
+
 	parts = temppath:split(" ")
-	temppath = ""	
+	temppath = ""
 	for i=1,#parts,1 do
 		if temppath ~= "" then
 			temppath = temppath
 		end
 		temppath = temppath .. parts[i]
 	end
-	
+
 	return temppath
 end
 
@@ -211,7 +297,7 @@ function core.splittext(text,charlimit)
 	local retval = {}
 
 	local current_idx = 1
-	
+
 	local start,stop = string.find(text," ",current_idx)
 	local nl_start,nl_stop = string.find(text,"\n",current_idx)
 	local gotnewline = false
@@ -226,30 +312,30 @@ function core.splittext(text,charlimit)
 			table.insert(retval,last_line)
 			last_line = ""
 		end
-		
+
 		if last_line ~= "" then
 			last_line = last_line .. " "
 		end
-		
+
 		last_line = last_line .. string.sub(text,current_idx,stop -1)
-		
+
 		if gotnewline then
 			table.insert(retval,last_line)
 			last_line = ""
 			gotnewline = false
 		end
 		current_idx = stop+1
-		
+
 		start,stop = string.find(text," ",current_idx)
 		nl_start,nl_stop = string.find(text,"\n",current_idx)
-	
+
 		if nl_start ~= nil and (start == nil or nl_start < start) then
 			start = nl_start
 			stop = nl_stop
 			gotnewline = true
 		end
 	end
-	
+
 	--add last part of text
 	if string.len(last_line) + (string.len(text) - current_idx) > charlimit then
 			table.insert(retval,last_line)
@@ -258,7 +344,7 @@ function core.splittext(text,charlimit)
 		last_line = last_line .. " " .. string.sub(text,current_idx)
 		table.insert(retval,last_line)
 	end
-	
+
 	return retval
 end
 
@@ -377,7 +463,8 @@ function core.explode_table_event(evt)
 			local t = parts[1]:trim()
 			local r = tonumber(parts[2]:trim())
 			local c = tonumber(parts[3]:trim())
-			if type(r) == "number" and type(c) == "number" and t ~= "INV" then
+			if type(r) == "number" and type(c) == "number"
+					and t ~= "INV" then
 				return {type=t, row=r, column=c}
 			end
 		end
@@ -400,8 +487,31 @@ function core.explode_textlist_event(evt)
 	return {type="INV", index=0}
 end
 
+--------------------------------------------------------------------------------
+function core.explode_scrollbar_event(evt)
+	local retval = core.explode_textlist_event(evt)
+
+	retval.value = retval.index
+	retval.index = nil
+
+	return retval
+end
+
+--------------------------------------------------------------------------------
 function core.pos_to_string(pos)
 	return "(" .. pos.x .. "," .. pos.y .. "," .. pos.z .. ")"
+end
+
+--------------------------------------------------------------------------------
+function table.copy(t, seen)
+	local n = {}
+	seen = seen or {}
+	seen[t] = n
+	for k, v in pairs(t) do
+		n[type(k) ~= "table" and k or seen[k] or table.copy(k, seen)] =
+			type(v) ~= "table" and v or seen[v] or table.copy(v, seen)
+	end
+	return n
 end
 
 --------------------------------------------------------------------------------
@@ -410,29 +520,31 @@ end
 if INIT == "mainmenu" then
 	function core.get_game(index)
 		local games = game.get_games()
-		
+
 		if index > 0 and index <= #games then
 			return games[index]
 		end
-		
+
 		return nil
 	end
-	
+
 	function fgettext(text, ...)
 		text = core.gettext(text)
 		local arg = {n=select('#', ...), ...}
 		if arg.n >= 1 then
 			-- Insert positional parameters ($1, $2, ...)
-			result = ''
-			pos = 1
+			local result = ''
+			local pos = 1
 			while pos <= text:len() do
-				newpos = text:find('[$]', pos)
+				local newpos = text:find('[$]', pos)
 				if newpos == nil then
 					result = result .. text:sub(pos)
 					pos = text:len() + 1
 				else
-					paramindex = tonumber(text:sub(newpos+1, newpos+1))
-					result = result .. text:sub(pos, newpos-1) .. tostring(arg[paramindex])
+					local paramindex =
+						tonumber(text:sub(newpos+1, newpos+1))
+					result = result .. text:sub(pos, newpos-1)
+						.. tostring(arg[paramindex])
 					pos = newpos + 2
 				end
 			end

@@ -2,6 +2,7 @@ project(minetest)
 cmake_minimum_required( VERSION 2.6 )
 
 INCLUDE(CheckCSourceRuns)
+INCLUDE(CheckIncludeFiles)
 
 # Set some random things default to not being visible in the GUI
 mark_as_advanced(EXECUTABLE_OUTPUT_PATH LIBRARY_OUTPUT_PATH)
@@ -133,8 +134,6 @@ if(WIN32)
 		set(FREETYPE_LIBRARY "${PROJECT_SOURCE_DIR}/../../freetype2/objs/win32/vc2005/freetype247.lib"
 				CACHE FILEPATH "Path to freetype247.lib")
 	endif(USE_FREETYPE)
-	set(MINGWM10_DLL ""
-			CACHE FILEPATH "Path to mingwm10.dll (for installation)")
 	if(ENABLE_SOUND)
 		set(OPENAL_DLL "" CACHE FILEPATH "Path to OpenAL32.dll for installation (optional)")
 		set(OGG_DLL "" CACHE FILEPATH "Path to libogg.dll for installation (optional)")
@@ -315,6 +314,11 @@ if(ENABLE_REDIS)
 	endif(REDIS_LIBRARY AND REDIS_INCLUDE_DIR)
 endif(ENABLE_REDIS)
 
+CHECK_INCLUDE_FILES(endian.h HAVE_ENDIAN_H)
+if(NOT HAVE_ENDIAN_H)
+  set(HAVE_ENDIAN_H 0)
+endif(NOT HAVE_ENDIAN_H)
+
 configure_file(
 	"${PROJECT_SOURCE_DIR}/cmake_config.h.in"
 	"${PROJECT_BINARY_DIR}/cmake_config.h"
@@ -335,76 +339,79 @@ add_subdirectory(script)
 add_subdirectory(util)
 
 set(common_SRCS
-	version.cpp
-	rollback_interface.cpp
-	rollback.cpp
-	genericobject.cpp
-	voxelalgorithms.cpp
-	sound.cpp
-	quicktune.cpp
-	subgame.cpp
-	inventorymanager.cpp
-	mods.cpp
-	content_abm.cpp
-	craftdef.cpp
-	nameidmapping.cpp
-	itemdef.cpp
-	nodedef.cpp
-	object_properties.cpp
-	log.cpp
-	content_sao.cpp
-	emerge.cpp
-	mapgen.cpp
-	mapgen_v6.cpp
-	mapgen_v7.cpp
-	mapgen_indev.cpp
-	mapgen_singlenode.cpp
-	mapgen_math.cpp
-	treegen.cpp
-	dungeongen.cpp
+	ban.cpp
+	base64.cpp
 	cavegen.cpp
-	content_nodemeta.cpp
-	content_mapnode.cpp
-	collision.cpp
-	nodemetadata.cpp
-	nodetimer.cpp
-	serverobject.cpp
-	noise.cpp
-	porting.cpp
-	tool.cpp
-	defaultsettings.cpp
-	mapnode.cpp
-	voxel.cpp
-	inventory.cpp
-	debug.cpp
-	serialization.cpp
-	light.cpp
-	filesys.cpp
-	connection.cpp
-	environment.cpp
-	server.cpp
 	clientiface.cpp
-	socket.cpp
-	mapblock.cpp
-	mapsector.cpp
-	map.cpp
-	database.cpp
+	collision.cpp
+	connection.cpp
+	content_abm.cpp
+	content_mapnode.cpp
+	content_nodemeta.cpp
+	content_sao.cpp
+	convert_json.cpp
+	craftdef.cpp
 	database-dummy.cpp
 	database-leveldb.cpp
-	database-sqlite3.cpp
 	database-redis.cpp
-	player.cpp
-	test.cpp
-	sha1.cpp
-	base64.cpp
-	ban.cpp
-	biome.cpp
-	staticobject.cpp
-	serverlist.cpp
-	pathfinder.cpp
-	convert_json.cpp
+	database-sqlite3.cpp
+	database.cpp
+	debug.cpp
+	defaultsettings.cpp
+	dungeongen.cpp
+	emerge.cpp
+	environment.cpp
+	filesys.cpp
+	genericobject.cpp
 	gettext.cpp
 	httpfetch.cpp
+	inventory.cpp
+	inventorymanager.cpp
+	itemdef.cpp
+	light.cpp
+	log.cpp
+	map.cpp
+	mapblock.cpp
+	mapgen.cpp
+	mapgen_singlenode.cpp
+	mapgen_v5.cpp
+	mapgen_v6.cpp
+	mapgen_v7.cpp
+	mapnode.cpp
+	mapsector.cpp
+	mg_biome.cpp
+	mg_decoration.cpp
+	mg_ore.cpp
+	mg_schematic.cpp
+	mods.cpp
+	nameidmapping.cpp
+	nodedef.cpp
+	nodemetadata.cpp
+	nodetimer.cpp
+	noise.cpp
+	object_properties.cpp
+	pathfinder.cpp
+	player.cpp
+	porting.cpp
+	quicktune.cpp
+	rollback.cpp
+	rollback_interface.cpp
+	serialization.cpp
+	server.cpp
+	serverlist.cpp
+	serverobject.cpp
+	settings.cpp
+	sha1.cpp
+	socket.cpp
+	sound.cpp
+	staticobject.cpp
+	subgame.cpp
+	test.cpp
+	tool.cpp
+	treegen.cpp
+	version.cpp
+	voxel.cpp
+	voxelalgorithms.cpp
 	${JTHREAD_SRCS}
 	${common_SCRIPT_SRCS}
 	${UTIL_SRCS}
@@ -433,38 +440,40 @@ endif()
 set(minetest_SRCS
 	${common_SRCS}
 	${sound_SRCS}
-	localplayer.cpp
-	sky.cpp
+	camera.cpp
+	chat.cpp
+	client.cpp
 	clientmap.cpp
+	clientmedia.cpp
+	clientobject.cpp
+	clouds.cpp
+	content_cao.cpp
 	content_cso.cpp
 	content_mapblock.cpp
-	content_cao.cpp
-	mesh.cpp
-	mapblock_mesh.cpp
-	keycode.cpp
-	camera.cpp
-	clouds.cpp
-	particles.cpp
-	clientobject.cpp
-	chat.cpp
-	hud.cpp
-	guiKeyChangeMenu.cpp
-	guiFormSpecMenu.cpp
-	guiTable.cpp
-	guiPasswordChange.cpp
-	guiVolumeChange.cpp
-	guiChatConsole.cpp
-	client.cpp
-	clientmedia.cpp
-	filecache.cpp
-	tile.cpp
-	shader.cpp
-	game.cpp
-	main.cpp
-	guiEngine.cpp
-	guiFileSelectMenu.cpp
 	convert_json.cpp
 	drawscene.cpp
+	filecache.cpp
+	fontengine.cpp
+	game.cpp
+	guiChatConsole.cpp
+	guiEngine.cpp
+	guiFileSelectMenu.cpp
+	guiFormSpecMenu.cpp
+	guiKeyChangeMenu.cpp
+	guiPasswordChange.cpp
+	guiTable.cpp
+	guiVolumeChange.cpp
+	hud.cpp
+	keycode.cpp
+	localplayer.cpp
+	main.cpp
+	mapblock_mesh.cpp
+	mesh.cpp
+	particles.cpp
+	shader.cpp
+	sky.cpp
+	tile.cpp
+	wieldmesh.cpp
 	${minetest_SCRIPT_SRCS}
 )
 list(SORT minetest_SRCS)
@@ -634,6 +643,16 @@ else()
 		if(HAS_UNUSED_BUT_SET_VARIABLE_WARNING)
 			set(WARNING_FLAGS "${WARNING_FLAGS} -Wno-unused-but-set-variable")
 		endif(HAS_UNUSED_BUT_SET_VARIABLE_WARNING)
+
+		CHECK_CXX_COMPILER_FLAG("-Wno-type-limits" HAS_TYPE_LIMITS_WARNING)
+		if(HAS_TYPE_LIMITS_WARNING)
+			set(WARNING_FLAGS "${WARNING_FLAGS} -Wno-type-limits")
+		endif(HAS_TYPE_LIMITS_WARNING)
+	endif()
+
+	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+		# clang does not understand __extern_always_inline but libc headers use it
+		set(OTHER_FLAGS "${OTHER_FLAGS} \"-D__extern_always_inline=extern __always_inline\"")
 	endif()
 
 	if(MINGW)
@@ -666,12 +685,6 @@ endif()
 # Installation
 #
 if(WIN32)
-	if(MINGWM10_DLL)
-		install(FILES ${MINGWM10_DLL} DESTINATION ${BINDIR})
-	endif()
-	if(DEFINED ZLIB_DLL)
-		install(FILES ${ZLIB_DLL} DESTINATION ${BINDIR})
-	endif()
 	if(USE_SOUND)
 		if(OPENAL_DLL)
 			install(FILES ${OPENAL_DLL} DESTINATION ${BINDIR})
@@ -689,11 +702,17 @@ if(WIN32)
 	if(CURL_DLL)
 		install(FILES ${CURL_DLL} DESTINATION ${BINDIR})
 	endif()
-	if (ZLIB_DLL)
+	if(ZLIB_DLL)
 		install(FILES ${ZLIB_DLL} DESTINATION ${BINDIR})
+	endif()
+	if(ZLIBWAPI_DLL)
+		install(FILES ${ZLIBWAPI_DLL} DESTINATION ${BINDIR})
 	endif()
 	if(FREETYPE_DLL)
 		install(FILES ${FREETYPE_DLL} DESTINATION ${BINDIR})
+	endif()
+	if(LEVELDB_DLL)
+		install(FILES ${LEVELDB_DLL} DESTINATION ${BINDIR})
 	endif()
 endif()
 

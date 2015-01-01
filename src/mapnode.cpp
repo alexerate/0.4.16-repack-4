@@ -26,6 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "serialization.h" // For ser_ver_supported
 #include "util/serialize.h"
 #include "log.h"
+#include "util/numeric.h"
 #include <string>
 #include <sstream>
 
@@ -77,19 +78,20 @@ u8 MapNode::getLight(enum LightBank bank, INodeDefManager *nodemgr) const
 {
 	// Select the brightest of [light source, propagated light]
 	const ContentFeatures &f = nodemgr->get(*this);
-	u8 light = 0;
+
+	u8 light;
 	if(f.param_type == CPT_LIGHT)
-	{
-		if(bank == LIGHTBANK_DAY)
-			light = param1 & 0x0f;
-		else if(bank == LIGHTBANK_NIGHT)
-			light = (param1>>4)&0x0f;
-		else
-			assert(0);
-	}
-	if(f.light_source > light)
-		light = f.light_source;
-	return light;
+		light = bank == LIGHTBANK_DAY ? param1 & 0x0f : (param1 >> 4) & 0x0f;
+	else
+		light = 0;
+
+	return MYMAX(f.light_source, light);
+}
+
+u8 MapNode::getLightNoChecks(enum LightBank bank, const ContentFeatures *f)
+{
+	return MYMAX(f->light_source,
+	             bank == LIGHTBANK_DAY ? param1 & 0x0f : (param1 >> 4) & 0x0f);
 }
 
 bool MapNode::getLightBanks(u8 &lightday, u8 &lightnight, INodeDefManager *nodemgr) const
@@ -352,6 +354,15 @@ std::vector<aabb3f> MapNode::getNodeBoxes(INodeDefManager *nodemgr) const
 {
 	const ContentFeatures &f = nodemgr->get(*this);
 	return transformNodeBox(*this, f.node_box, nodemgr);
+}
+
+std::vector<aabb3f> MapNode::getCollisionBoxes(INodeDefManager *nodemgr) const
+{
+	const ContentFeatures &f = nodemgr->get(*this);
+	if (f.collision_box.fixed.empty())
+		return transformNodeBox(*this, f.node_box, nodemgr);
+	else
+		return transformNodeBox(*this, f.collision_box, nodemgr);
 }
 
 std::vector<aabb3f> MapNode::getSelectionBoxes(INodeDefManager *nodemgr) const

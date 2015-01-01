@@ -41,7 +41,7 @@ class ServerMapSector;
 class MapBlock;
 class NodeMetadata;
 class IGameDef;
-class IRollbackReportSink;
+class IRollbackManager;
 class EmergeManager;
 class ServerEnvironment;
 struct BlockMakeData;
@@ -198,13 +198,12 @@ public:
 	bool isValidPosition(v3s16 p);
 
 	// throws InvalidPositionException if not found
-	MapNode getNode(v3s16 p);
-
-	// throws InvalidPositionException if not found
 	void setNode(v3s16 p, MapNode & n);
 
 	// Returns a CONTENT_IGNORE node if not found
-	MapNode getNodeNoEx(v3s16 p);
+	// If is_valid_position is not NULL then this will be set to true if the
+	// position is valid, otherwise false
+	MapNode getNodeNoEx(v3s16 p, bool *is_valid_position = NULL);
 
 	void unspreadLight(enum LightBank bank,
 			std::map<v3s16, u8> & from_nodes,
@@ -270,7 +269,7 @@ public:
 
 	// Server implements this.
 	// Client leaves it as no-op.
-	virtual void saveBlock(MapBlock *block){};
+	virtual bool saveBlock(MapBlock *block) { return false; };
 
 	/*
 		Updates usage timers and unloads unused blocks and sectors.
@@ -367,6 +366,12 @@ protected:
 
 	// Queued transforming water nodes
 	UniqueQueue<v3s16> m_transforming_liquid;
+
+private:
+	f32 m_transforming_liquid_loop_count_multiplier;
+	u32 m_unprocessed_count;
+	u32 m_inc_trending_up_start_time; // milliseconds
+	bool m_queue_size_timer_started;
 };
 
 /*
@@ -485,12 +490,15 @@ public:
 	// Returns true if sector now resides in memory
 	//bool deFlushSector(v2s16 p2d);
 
-	void saveBlock(MapBlock *block);
+	bool saveBlock(MapBlock *block, Database *db);
+	bool saveBlock(MapBlock *block);
 	// This will generate a sector with getSector if not found.
 	void loadBlock(std::string sectordir, std::string blockfile, MapSector *sector, bool save_after_load=false);
 	MapBlock* loadBlock(v3s16 p);
 	// Database version
 	void loadBlock(std::string *blob, v3s16 p3d, MapSector *sector, bool save_after_load=false);
+
+	void updateVManip(v3s16 pos);
 
 	// For debug printing
 	virtual void PrintInfo(std::ostream &out);
@@ -543,10 +551,13 @@ public:
 	{m_map = map;}
 
 	void initialEmerge(v3s16 blockpos_min, v3s16 blockpos_max,
-						bool load_if_inexistent = true);
+			bool load_if_inexistent = true);
 
 	// This is much faster with big chunks of generated data
-	void blitBackAll(std::map<v3s16, MapBlock*> * modified_blocks);
+	void blitBackAll(std::map<v3s16, MapBlock*> * modified_blocks,
+			bool overwrite_generated = true);
+
+	bool m_is_dirty;
 
 protected:
 	bool m_create_area;
@@ -559,4 +570,3 @@ protected:
 };
 
 #endif
-

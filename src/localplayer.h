@@ -32,14 +32,14 @@ enum LocalPlayerAnimations {NO_ANIM, WALK_ANIM, DIG_ANIM, WD_ANIM};  // no local
 class LocalPlayer : public Player
 {
 public:
-	LocalPlayer(IGameDef *gamedef);
+	LocalPlayer(IGameDef *gamedef, const char *name);
 	virtual ~LocalPlayer();
 
 	bool isLocal() const
 	{
 		return true;
 	}
-	
+
 	ClientActiveObject *parent;
 
 	bool isAttached;
@@ -70,6 +70,8 @@ public:
 
 	std::string hotbar_image;
 	std::string hotbar_selected_image;
+
+	video::SColor light_color;
 
 	GenericCAO* getCAO() const {
 		return m_cao;

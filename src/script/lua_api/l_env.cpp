@@ -35,10 +35,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "treegen.h"
 #include "pathfinder.h"
 
-
 #define GET_ENV_PTR ServerEnvironment* env =                                   \
 				dynamic_cast<ServerEnvironment*>(getEnv(L));                   \
-				if( env == NULL) return 0
+				if (env == NULL) return 0
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -160,16 +159,15 @@ int ModApiEnvMod::l_get_node_or_nil(lua_State *L)
 	// pos
 	v3s16 pos = read_v3s16(L, 1);
 	// Do it
-	try{
-		MapNode n = env->getMap().getNode(pos);
+	bool pos_ok;
+	MapNode n = env->getMap().getNodeNoEx(pos, &pos_ok);
+	if (pos_ok) {
 		// Return node
 		pushnode(L, n, env->getGameDef()->ndef());
-		return 1;
-	} catch(InvalidPositionException &e)
-	{
+	} else {
 		lua_pushnil(L);
-		return 1;
 	}
+	return 1;
 }
 
 // get_node_light(pos, timeofday)
@@ -186,16 +184,16 @@ int ModApiEnvMod::l_get_node_light(lua_State *L)
 		time_of_day = 24000.0 * lua_tonumber(L, 2);
 	time_of_day %= 24000;
 	u32 dnr = time_to_daynight_ratio(time_of_day, true);
-	try{
-		MapNode n = env->getMap().getNode(pos);
+
+	bool is_position_ok;
+	MapNode n = env->getMap().getNodeNoEx(pos, &is_position_ok);
+	if (is_position_ok) {
 		INodeDefManager *ndef = env->getGameDef()->ndef();
 		lua_pushinteger(L, n.getLightBlend(dnr, ndef));
-		return 1;
-	} catch(InvalidPositionException &e)
-	{
+	} else {
 		lua_pushnil(L);
-		return 1;
 	}
+	return 1;
 }
 
 // place_node(pos, node)
@@ -376,7 +374,7 @@ int ModApiEnvMod::l_add_entity(lua_State *L)
 	if(objectid == 0)
 		return 0;
 	// Return ObjectRef
-	getScriptApiBase(L)->objectrefGetOrCreate(obj);
+	getScriptApiBase(L)->objectrefGetOrCreate(L, obj);
 	return 1;
 }
 
@@ -441,7 +439,7 @@ int ModApiEnvMod::l_get_player_by_name(lua_State *L)
 		return 1;
 	}
 	// Put player on stack
-	getScriptApiBase(L)->objectrefGetOrCreate(sao);
+	getScriptApiBase(L)->objectrefGetOrCreate(L, sao);
 	return 1;
 }
 
@@ -460,7 +458,7 @@ int ModApiEnvMod::l_get_objects_inside_radius(lua_State *L)
 	for(u32 i = 0; iter != ids.end(); iter++) {
 		ServerActiveObject *obj = env->getActiveObject(*iter);
 		// Insert object reference into table
-		script->objectrefGetOrCreate(obj);
+		script->objectrefGetOrCreate(L, obj);
 		lua_rawseti(L, -2, ++i);
 	}
 	return 1;
@@ -592,12 +590,20 @@ int ModApiEnvMod::l_get_perlin(lua_State *L)
 {
 	GET_ENV_PTR;
 
-	int seeddiff = luaL_checkint(L, 1);
-	int octaves = luaL_checkint(L, 2);
-	float persistence = luaL_checknumber(L, 3);
-	float scale = luaL_checknumber(L, 4);
+	NoiseParams params;
 
-	LuaPerlinNoise *n = new LuaPerlinNoise(seeddiff + int(env->getServerMap().getSeed()), octaves, persistence, scale);
+	if (lua_istable(L, 1)) {
+		read_noiseparams(L, 1, &params);
+	} else {
+		params.seed    = luaL_checkint(L, 1);
+		params.octaves = luaL_checkint(L, 2);
+		params.persist = luaL_checknumber(L, 3);
+		params.spread  = v3f(1, 1, 1) * luaL_checknumber(L, 4);
+	}
+
+	params.seed += (int)env->getServerMap().getSeed();
+
+	LuaPerlinNoise *n = new LuaPerlinNoise(&params);
 	*(void **)(lua_newuserdata(L, sizeof(void *))) = n;
 	luaL_getmetatable(L, "PerlinNoise");
 	lua_setmetatable(L, -2);
@@ -610,13 +616,13 @@ int ModApiEnvMod::l_get_perlin_map(lua_State *L)
 {
 	GET_ENV_PTR;
 
-	NoiseParams *np = read_noiseparams(L, 1);
-	if (!np)
+	NoiseParams np;
+	if (!read_noiseparams(L, 1, &np))
 		return 0;
 	v3s16 size = read_v3s16(L, 2);
 
 	int seed = (int)(env->getServerMap().getSeed());
-	LuaPerlinNoiseMap *n = new LuaPerlinNoiseMap(np, seed, size);
+	LuaPerlinNoiseMap *n = new LuaPerlinNoiseMap(&np, seed, size);
 	*(void **)(lua_newuserdata(L, sizeof(void *))) = n;
 	luaL_getmetatable(L, "PerlinNoiseMap");
 	lua_setmetatable(L, -2);
@@ -747,7 +753,8 @@ int ModApiEnvMod::l_spawn_tree(lua_State *L)
 		}
 		getintfield(L, 2, "angle", tree_def.angle);
 		getintfield(L, 2, "iterations", tree_def.iterations);
-		getintfield(L, 2, "random_level", tree_def.iterations_random_level);
+		if (!getintfield(L, 2, "random_level", tree_def.iterations_random_level))
+			tree_def.iterations_random_level = 0;
 		getstringfield(L, 2, "trunk_type", tree_def.trunk_type);
 		getboolfield(L, 2, "thin_branches", tree_def.thin_branches);
 		tree_def.fruit_chance=0;
@@ -757,11 +764,20 @@ int ModApiEnvMod::l_spawn_tree(lua_State *L)
 			tree_def.fruitnode=ndef->getId(fruit);
 			getintfield(L, 2, "fruit_chance",tree_def.fruit_chance);
 		}
-		getintfield(L, 2, "seed", tree_def.seed);
+		tree_def.explicit_seed = getintfield(L, 2, "seed", tree_def.seed);
 	}
 	else
 		return 0;
-	treegen::spawn_ltree (env, p0, ndef, tree_def);
+
+	treegen::error e;
+	if ((e = treegen::spawn_ltree (env, p0, ndef, tree_def)) != treegen::SUCCESS) {
+		if (e == treegen::UNBALANCED_BRACKETS) {
+			luaL_error(L, "spawn_tree(): closing ']' has no matching opening bracket");
+		} else {
+			luaL_error(L, "spawn_tree(): unknown error");
+		}
+	}
+
 	return 1;
 }
 
@@ -795,6 +811,13 @@ int ModApiEnvMod::l_forceload_free_block(lua_State *L)
 	v3s16 blockpos = read_v3s16(L, 1);
 	env->getForceloadedBlocks()->erase(blockpos);
 	return 0;
+}
+
+// get_us_time()
+int ModApiEnvMod::l_get_us_time(lua_State *L)
+{
+	lua_pushnumber(L, porting::getTimeUs());
+	return 1;
 }
 
 void ModApiEnvMod::Initialize(lua_State *L, int top)
@@ -834,4 +857,5 @@ void ModApiEnvMod::Initialize(lua_State *L, int top)
 	API_FCT(transforming_liquid_add);
 	API_FCT(forceload_block);
 	API_FCT(forceload_free_block);
+	API_FCT(get_us_time);
 }

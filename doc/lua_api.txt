@@ -1,4 +1,4 @@
-Minetest Lua Modding API Reference 0.4.10
+Minetest Lua Modding API Reference 0.4.11
 ========================================
 More information at http://www.minetest.net/
 Developer Wiki: http://dev.minetest.net/
@@ -103,6 +103,7 @@ mods
 |   |-- screenshot.png
 |   |-- description.txt
 |   |-- init.lua
+|   |-- models
 |   |-- textures
 |   |   |-- modname_stuff.png
 |   |   `-- modname_something_else.png
@@ -136,6 +137,9 @@ init.lua:
 
   minetest.setting_get(name) and minetest.setting_getbool(name) can be used
   to read custom or existing settings at load time, if necessary.
+
+models:
+	Models for entities or meshnodes.
 
 textures, sounds, media:
   Media files (textures, sounds, whatever) that will be transferred to the
@@ -185,6 +189,86 @@ Textures are referred to by their complete name, or alternatively by
 stripping out the file extension:
   e.g. foomod_foothing.png
   e.g. foomod_foothing
+
+Texture modifiers
+-----------------
+There are various texture modifiers that can be used
+to generate textures on-the-fly.
+
+Texture overlaying:
+  Textures can be overlaid by putting a ^ between them.
+  Example: default_dirt.png^default_grass_side.png
+    default_grass_side.png is overlayed over default_dirt.png
+
+Texture grouping:
+  Textures can be grouped together by enclosing them in ( and ).
+  Example: cobble.png^(thing1.png^thing2.png)
+    A texture for 'thing1.png^thing2.png' is created and the resulting
+    texture is overlaid over cobble.png.
+
+Advanced texture modifiers:
+  [crack:<n>:<p>
+    n = animation frame count, p = current animation frame
+    Draw a step of the crack animation on the texture.
+    Example: default_cobble.png^[crack:10:1
+
+  [combine:<w>x<h>:<x1>,<y1>=<file1>:<x2>,<y2>=<file2>
+    w = width, h = height, x1/x2 = x position, y1/y1 = y position,
+    file1/file2 = texture to combine
+    Create a texture of size <w> x <h> and blit <file1> to (<x1>,<y1>)
+    and blit <file2> to (<x2>,<y2>).
+    Example: [combine:16x32:0,0=default_cobble.png:0,16=default_wood.png
+
+  [brighten
+    Brightens the texture.
+    Example: tnt_tnt_side.png^[brighten
+
+  [noalpha
+    Makes the texture completely opaque.
+    Example: default_leaves.png^[noalpha
+
+  [makealpha:<r>,<g>,<b>
+    Convert one color to transparency.
+    Example: default_cobble.png^[makealpha:128,128,128
+
+  [transform<t>
+    t = transformation(s) to apply
+    Rotates and/or flips the image.
+    <t> can be a number (between 0 and 7) or a transform name.
+	Rotations are counter-clockwise.
+     0  I      identity
+     1  R90    rotate by 90 degrees
+     2  R180   rotate by 180 degrees
+     3  R270   rotate by 270 degrees
+     4  FX     flip X
+     5  FXR90  flip X then rotate by 90 degrees
+     6  FY     flip Y
+     7  FYR90  flip Y then rotate by 90 degrees
+    Example: default_stone.png^[transformFXR90
+
+  [inventorycube{<top>{<left>{<right>
+     '^' is replaced by '&' in texture names
+    Create an inventory cube texture using the side textures.
+    Example: [inventorycube{grass.png{dirt.png&grass_side.png{dirt.png&grass_side.png
+     Creates an inventorycube with 'grass.png', 'dirt.png^grass_side.png' and
+     'dirt.png^grass_side.png' textures
+
+  [lowpart:<percent>:<file>
+    Blit the lower <percent>% part of <file> on the texture:
+    Example: base.png^[lowpart:25:overlay.png
+
+  [verticalframe:<t>:<n>
+    t = animation frame count, n = current animation frame
+    Crops the texture to a frame of a vertical animation.
+    Example: default_torch_animated.png^[verticalframe:16:8
+
+  [mask:<file>
+    Apply a mask to the base image.
+    The mask is applied using binary AND.
+
+  [colorize:<color>
+    Colorize the textures with given color
+    <color> as ColorString
 
 Sounds
 -------
@@ -324,14 +408,21 @@ param2 is reserved for the engine when any of these are used:
     0 = y+    1 = z+    2 = z-    3 = x+    4 = x-    5 = y-
     facedir's two less significant bits are rotation around the axis
   paramtype2 == "leveled"
-  ^ The drawn node level is read from param2, like flowingliquid
-
+  collision_box = {
+	type = "fixed",
+	fixed = {
+			{-0.5, -0.5, -0.5, 0.5, 0.5, 0.5},
+			},
+  },
+  ^ defines list of collision boxes for the node. If empty, collision boxes
+	will be the same as nodeboxes, in case of any other nodes will be full cube
+	as in the example above.
+ 			
 Nodes can also contain extra data. See "Node Metadata".
 
 Node drawtypes
 ---------------
-There are a bunch of different looking node types. These are mostly just
-copied from Minetest 0.3; more may be made in the future.
+There are a bunch of different looking node types.
 
 Look for examples in games/minimal or games/minetest_game.
 
@@ -341,14 +432,19 @@ Look for examples in games/minimal or games/minetest_game.
 - flowingliquid
 - glasslike
 - glasslike_framed
+- glasslike_framed_optional
 - allfaces
 - allfaces_optional
 - torchlike
 - signlike
 - plantlike
+- firelike
 - fencelike
 - raillike
 - nodebox -- See below. EXPERIMENTAL
+- mesh -- use models for nodes
+
+*_optional drawtypes need less rendering time if deactivated (always client side)
 
 Node boxes
 -----------
@@ -386,27 +482,90 @@ A box of a regular node would look like:
 
 type = "leveled" is same as "fixed", but y2 will be automatically set to level from param2
 
+
+Meshes
+-----------
+If drawtype "mesh" is used tiles should hold model materials textures.
+Only static meshes are implemented.
+For supported model formats see Irrlicht engine documentation.
+
+
+Noise Parameters
+--------------------
+Noise Parameters, or commonly called NoiseParams, define the properties of perlin noise.
+ - offset
+    Offset that the noise is translated by (i.e. added) after calculation.
+ - scale
+    Factor that the noise is scaled by (i.e. multiplied) after calculation.
+ - spread
+    Vector containing values by which each coordinate is divided by before calculation.
+    Higher spread values result in larger noise features.
+    A value of {x=250, y=250, z=250} is common.
+ - seed
+    Random seed for the noise.  Add the world seed to a seed offset for world-unique noise.
+    In the case of minetest.get_perlin(), this value has the world seed automatically added.
+ - octaves
+    Number of times the noise gradient is accumulated into the noise.
+    Increase this number to increase the amount of detail in the resulting noise.
+    A value of 6 is common.
+ - persistence
+    Factor by which the effect of the noise gradient function changes with each successive octave.
+    Values less than 1 make the details of successive octaves' noise diminish, while values
+    greater than 1 make successive octaves stronger.
+    A value of 0.6 is common.
+ - lacunarity
+    Factor by which the noise feature sizes change with each successive octave.
+    A value of 2.0 is common.
+ - flags
+    Leave this field unset for no special handling.
+    Currently supported are:
+    - defaults
+       Specify this if you would like to keep auto-selection of eased/not-eased while specifying
+       some other flags.
+    - eased
+       Maps noise gradient values onto a quintic S-curve before performing interpolation.
+       This results in smooth, rolling noise.  Disable this ("noeased") for sharp-looking noise.
+       If no flags are specified (or defaults is), 2D noise is eased and 3D noise is not eased.
+    - absvalue
+       Accumulates the absolute value of each noise gradient result.
+
+Noise parameters format example for 2D or 3D perlin noise or perlin noise maps:
+    np_terrain = {
+        offset = 0,
+        scale = 1,
+        spread = {x=500, y=500, z=500},
+        seed = 571347,
+        octaves = 5,
+        persist = 0.63,
+        lacunarity = 2.0,
+        flags = "defaults, absvalue"
+    }
+  ^ A single noise parameter table can be used to get 2D or 3D noise,
+    when getting 2D noise spread.z is ignored.
+
+
 Ore types
 ---------------
 These tell in what manner the ore is generated.
 All default ores are of the uniformly-distributed scatter type.
 
-- scatter
+ - scatter
     Randomly chooses a location and generates a cluster of ore.
     If noise_params is specified, the ore will be placed if the 3d perlin noise at
-    that point is greater than the noise_threshhold, giving the ability to create a non-equal
+    that point is greater than the noise_threshold, giving the ability to create a non-equal
     distribution of ore.
-- sheet
+ - sheet
     Creates a sheet of ore in a blob shape according to the 2d perlin noise described by noise_params.
     The relative height of the sheet can be controlled by the same perlin noise as well, by specifying
     a non-zero 'scale' parameter in noise_params.  IMPORTANT: The noise is not transformed by offset or
-    scale when comparing against the noise threshhold, but scale is used to determine relative height.
+    scale when comparing against the noise threshold, but scale is used to determine relative height.
     The height of the blob is randomly scattered, with a maximum height of clust_size.
     clust_scarcity and clust_num_ores are ignored.
     This is essentially an improved version of the so-called "stratus" ore seen in some unofficial mods.
-- claylike - NOT YET IMPLEMENTED
+ - claylike - NOT YET IMPLEMENTED
     Places ore if there are no more than clust_scarcity number of specified nodes within a Von Neumann
     neighborhood of clust_size radius.
+
 
 Ore attributes
 -------------------
@@ -432,6 +591,7 @@ The default value is simple, and is currently the only type supported.
     probability of a node randomly appearing when placed.  This decoration type is intended to be used
     for multi-node sized discrete structures, such as trees, cave spikes, rocks, and so on.
 
+
 Schematic specifier
 --------------------
     A schematic specifier identifies a schematic by either a filename to a Minetest Schematic file (.mts)
@@ -450,6 +610,7 @@ When passed to minetest.create_schematic, probability is an integer value rangin
 
 Important note: Node aliases cannot be used for a raw schematic provided when registering as a decoration.
 
+
 Schematic attributes
 ---------------------
 See section Flag Specifier Format.
@@ -460,6 +621,7 @@ Currently supported flags:  place_center_x, place_center_y, place_center_z
     Placement of this decoration is centered along the Y axis.
  - place_center_z
     Placement of this decoration is centered along the Z axis.
+
 
 HUD element types
 -------------------
@@ -769,7 +931,7 @@ tool_capabilities = {
     damage_groups = {fleshy=2},
 }
 
-This makes the tool be able to dig nodes that fulfill both of these:
+This makes the tool be able to dig nodes that fulfil both of these:
 - Have the **crumbly** group
 - Have a **level** group less or equal to 2
 
@@ -906,16 +1068,16 @@ list[<inventory location>;<list name>;<X>,<Y>;<W>,<H>;<starting item index>]
 ^ Show an inventory list
 
 listcolors[<slot_bg_normal>;<slot_bg_hover>]
-^ Sets background color of slots in HEX-Color format
+^ Sets background color of slots as ColorString
 ^ Sets background color of slots on mouse hovering
 
 listcolors[<slot_bg_normal>;<slot_bg_hover>;<slot_border>]
-^ Sets background color of slots in HEX-Color format
+^ Sets background color of slots as ColorString
 ^ Sets background color of slots on mouse hovering
 ^ Sets color of slots border
 
 listcolors[<slot_bg_normal>;<slot_bg_hover>;<slot_border>;<tooltip_bgcolor>;<tooltip_fontcolor>]
-^ Sets background color of slots in HEX-Color format
+^ Sets background color of slots as ColorString
 ^ Sets background color of slots on mouse hovering
 ^ Sets color of slots border
 ^ Sets default background color of tooltips
@@ -923,8 +1085,8 @@ listcolors[<slot_bg_normal>;<slot_bg_hover>;<slot_border>;<tooltip_bgcolor>;<too
 
 tooltip[<gui_element_name>;<tooltip_text>;<bgcolor>,<fontcolor>]
 ^ Adds tooltip for an element
-^ <bgcolor> tooltip background color in HEX-Color format (optional)
-^ <fontcolor> tooltip font color in HEX-Color format (optional)
+^ <bgcolor> tooltip background color as ColorString (optional)
+^ <fontcolor> tooltip font color as ColorString (optional)
 
 
 image[<X>,<Y>;<W>,<H>;<texture name>]
@@ -936,7 +1098,7 @@ item_image[<X>,<Y>;<W>,<H>;<item name>]
 ^ Position and size units are inventory slots
 
 bgcolor[<color>;<fullscreen>]
-^ Sets background color of formspec in HEX-Color format
+^ Sets background color of formspec as ColorString
 ^ If true the background color is drawn fullscreen (does not effect the size of the formspec)
 
 background[<X>,<Y>;<W>,<H>;<texture name>]
@@ -1047,7 +1209,7 @@ textlist[<X>,<Y>;<W>,<H>;<name>;<listelem 1>,<listelem 2>,...,<listelem n>;<sele
 tabheader[<X>,<Y>;<name>;<caption 1>,<caption 2>,...,<caption n>;<current_tab>;<transparent>;<draw_border>]
 ^ show a tabHEADER at specific position (ignores formsize)
 ^ x and y position the itemlist relative to the top left of the menu
-^ name fieldname data is transfered to Lua
+^ name fieldname data is transferred to Lua
 ^ caption 1... name shown on top of tab
 ^ current_tab index of selected tab 1...
 ^ transparent (optional) show transparent
@@ -1057,23 +1219,38 @@ box[<X>,<Y>;<W>,<H>;<color>]
 ^ simple colored semitransparent box
 ^ x and y position the box relative to the top left of the menu
 ^ w and h are the size of box
-^ color in HEX-Color format
+^ color as ColorString
 
 dropdown[<X>,<Y>;<W>;<name>;<item 1>,<item 2>, ...,<item n>;<selected idx>]
 ^ show a dropdown field
+^ IMPORTANT NOTE: There are two different operation modes:
+^     1) handle directly on change (only changed dropdown is submitted)
+^     2) read the value on pressing a button (all dropdown values are available)
 ^ x and y position of dropdown
 ^ width of dropdown
-^ fieldname data is transfered to Lua
+^ fieldname data is transferred to Lua
 ^ items to be shown in dropdown
 ^ index of currently selected dropdown item
 
 checkbox[<X>,<Y>;<name>;<label>;<selected>;<tooltip>]
 ^ show a checkbox
 ^ x and y position of checkbox
-^ name fieldname data is transfered to Lua
+^ name fieldname data is transferred to Lua
 ^ label to be shown left of checkbox
 ^ selected (optional) true/false
 ^ tooltip (optional)
+
+scrollbar[<X>,<Y>;<W>,<H>;<orientation>;<name>;<value>]
+^ show a scrollbar
+^ there are two ways to use it:
+^     1) handle the changed event (only changed scrollbar is available)
+^     2) read the value on pressing a button (all scrollbars are available)
+^ x and y position of trackbar
+^ width and height
+^ orientation vertical/horizontal
+^ fieldname data is transferred to lua
+^ value this trackbar is set to (0-1000)
+^ see also minetest.explode_scrollbar_event (main menu: engine.explode_scrollbar_event)
 
 table[<X>,<Y>;<W>,<H>;<name>;<cell 1>,<cell 2>,...,<cell n>;<selected idx>]
 ^ show scrollable table using options defined by the previous tableoptions[]
@@ -1088,15 +1265,15 @@ table[<X>,<Y>;<W>,<H>;<name>;<cell 1>,<cell 2>,...,<cell n>;<selected idx>]
 tableoptions[<opt 1>;<opt 2>;...]
 ^ sets options for table[]:
 ^ color=#RRGGBB
-^^ default text color (HEX-Color), defaults to #FFFFFF
+^^ default text color (ColorString), defaults to #FFFFFF
 ^ background=#RRGGBB
-^^ table background color (HEX-Color), defaults to #000000
+^^ table background color (ColorString), defaults to #000000
 ^ border=<true/false>
 ^^ should the table be drawn with a border? (default true)
 ^ highlight=#RRGGBB
-^^ highlight background color (HEX-Color), defaults to #466432
+^^ highlight background color (ColorString), defaults to #466432
 ^ highlight_text=#RRGGBB
-^^ highlight text color (HEX-Color), defaults to #FFFFFF
+^^ highlight text color (ColorString), defaults to #FFFFFF
 ^ opendepth=<value>
 ^^ all subtrees up to depth < value are open (default value = 0)
 ^^ only useful when there is a column of type "tree"
@@ -1106,7 +1283,7 @@ tablecolumns[<type 1>,<opt 1a>,<opt 1b>,...;<type 2>,<opt 2a>,<opt 2b>;...]
 ^ types: text, image, color, indent, tree
 ^^ text:   show cell contents as text
 ^^ image:  cell contents are an image index, use column options to define images
-^^ color:  cell contents are a HEX-Color and define color of following cell
+^^ color:  cell contents are a ColorString and define color of following cell
 ^^ indent: cell contents are a number and define indentation of following cell
 ^^ tree:   same as indent, but user can open and close subtrees (treeview-like)
 ^ column options:
@@ -1137,8 +1314,8 @@ Inventory location:
 - "nodemeta:<X>,<Y>,<Z>": Any node metadata
 - "detached:<name>": A detached inventory
 
-HEX-Color
----------
+ColorString
+-----------
 #RGB
 ^ defines a color in hexadecimal format
 #RGBA
@@ -1147,6 +1324,12 @@ HEX-Color
 ^ defines a color in hexadecimal format
 #RRGGBBAA
 ^ defines a color in hexadecimal format and alpha channel
+
+Named colors are also supported and are equivalent to "CSS Color Module Level 4"
+(http://dev.w3.org/csswg/css-color/#named-colors). To specify the value of the
+alpha channel, append #AA to the end of the color name (e.g. colorname#08). For
+named colors the hexadecimal string representing the alpha value must (always)
+be two hexadecimal digits.
 
 Vector helpers
 ---------------
@@ -1157,6 +1340,7 @@ vector.distance(p1, p2) -> number
 vector.length(v) -> number
 vector.normalize(v) -> vector
 vector.round(v) -> vector
+vector.apply(v, func) -> vector
 vector.equals(v1, v2) -> bool
 For the following functions x can be either a vector or a number.
 vector.add(v, x) -> vector
@@ -1173,6 +1357,9 @@ dump(obj, dumped={})
 math.hypot(x, y)
 ^ Get the hypotenuse of a triangle with legs x and y.
   Useful for distance calculation.
+math.sign(x, tolerance)
+^ Get the sign of a number
+  Optional: Also returns 0 when the absolute value is within the tolerance (default 0)
 string:split(separator)
 ^ e.g. string:split("a,b", ",") == {"a","b"}
 string:trim()
@@ -1180,11 +1367,15 @@ string:trim()
 minetest.pos_to_string({x=X,y=Y,z=Z}) -> "(X,Y,Z)"
 ^ Convert position to a printable string
 minetest.string_to_pos(string) -> position
-^ Same but in reverse
+^ Same but in reverse. Returns nil if the string can't be parsed to a position.
 minetest.formspec_escape(string) -> string
 ^ escapes characters [ ] \ , ;  that can not be used in formspecs
 minetest.is_yes(arg)
 ^ returns whether arg can be interpreted as yes
+minetest.get_us_time()
+^ returns time with microsecond precision
+table.copy(table) -> table
+^ returns a deep copy of a table
 
 minetest namespace reference
 -----------------------------
@@ -1378,6 +1569,7 @@ minetest.place_node(pos, node)
 ^ Place node with the same effects that a player would cause
 minetest.dig_node(pos)
 ^ Dig node with the same effects that a player would cause
+  Returns true if successful, false on failure (e.g. protected location)
 minetest.punch_node(pos)
 ^ Punch node with the same effects that a player would cause
 
@@ -1397,14 +1589,16 @@ minetest.find_node_near(pos, radius, nodenames) -> pos or nil
 ^ nodenames: e.g. {"ignore", "group:tree"} or "default:dirt"
 minetest.find_nodes_in_area(minp, maxp, nodenames) -> list of positions
 ^ nodenames: e.g. {"ignore", "group:tree"} or "default:dirt"
+minetest.get_perlin(noiseparams)
 minetest.get_perlin(seeddiff, octaves, persistence, scale)
 ^ Return world-specific perlin noise (int(worldseed)+seeddiff)
 minetest.get_voxel_manip()
 ^ Return voxel manipulator object
-minetest.set_gen_notify(flags)
+minetest.set_gen_notify(flags, {deco_ids})
 ^ Set the types of on-generate notifications that should be collected
-^ flags is a comma-delimited combination of:
-^ dungeon, temple, cave_begin, cave_end, large_cave_begin, large_cave_end
+^ flags is a flag field with the available flags:
+^   dungeon, temple, cave_begin, cave_end, large_cave_begin, large_cave_end, decoration
+^ The second parameter is a list of IDS of decorations which notification is requested for
 minetest.get_mapgen_object(objectname)
 ^ Return requested mapgen object if available (see Mapgen objects)
 minetest.set_mapgen_params(MapgenParams)
@@ -1414,10 +1608,10 @@ minetest.set_mapgen_params(MapgenParams)
 ^ Leave field unset to leave that parameter unchanged
 ^ flags contains a comma-delimited string of flags to set, or if the prefix "no" is attached, clears instead.
 ^ flags is in the same format and has the same options as 'mg_flags' in minetest.conf
-minetest.set_noiseparam_defaults({np1=NoiseParams, np2= NoiseParams, ...})
-^ Sets the default value of a noiseparam setting
-^ Takes a table as an argument that maps one or more setting names to NoiseParams structures
-^ Possible setting names consist of any NoiseParams setting exposed through the global settings
+minetest.set_noiseparams(name, noiseparams, set_default)
+^ Sets the noiseparams setting of 'name' to the noiseparams table specified in 'noiseparams'.
+^ 'set_default', is an optional boolean (default of true) that specifies whether the setting
+^ should be applied to the default config or current active config
 minetest.clear_objects()
 ^ clear all objects in the environments
 minetest.line_of_sight(pos1, pos2, stepsize) -> true/false, pos
@@ -1472,6 +1666,9 @@ minetest.explode_table_event(string) -> table
 minetest.explode_textlist_event(string) -> table
 ^ returns e.g. {type="CHG", index=1}
 ^ type: "INV" (no row selected), "CHG" (selected) or "DCL" (double-click)
+minetest.explode_scrollbar_event(string) -> table
+^ returns e.g. {type="CHG", value=500}
+^ type: "INV" (something failed), "CHG" (has been changed) or "VAL" (not changed)
 
 Item handling:
 minetest.inventorycube(img1, img2, img3)
@@ -1623,7 +1820,7 @@ minetest.place_schematic(pos, schematic, rotation, replacements, force_placement
 ^ Place the schematic specified by schematic (see: Schematic specifier) at pos.
 ^ Rotation can be "0", "90", "180", "270", or "random".
 ^ If the rotation parameter is omitted, the schematic is not rotated.
-^ replacements = {{"oldname", "convert_to"}, ...}
+^ replacements = {["old_name"] = "convert_to", ...}
 ^ force_placement is a boolean indicating whether nodes other than air and
 ^ ignore are replaced by the schematic
 
@@ -1650,7 +1847,7 @@ minetest.parse_json(string[, nullvalue]) -> something
 minetest.write_json(data[, styled]) -> string or nil and error message
 ^ Convert a Lua table into a JSON string
 ^ styled: Outputs in a human-readable format if this is set, defaults to false
-^ Un-serializable things like functions and userdata are saved as null.
+^ Unserializable things like functions and userdata are saved as null.
 ^ Warning: JSON is more strict than the Lua table format.
     1. You can only use strings and positive integers of at least one as keys.
     2. You can not mix string and integer keys.
@@ -1667,6 +1864,18 @@ minetest.deserialize(string) -> table
 ^ Example: deserialize('return { ["foo"] = "bar" }') -> {foo='bar'}
 ^ Example: deserialize('print("foo")') -> nil (function call fails)
   ^ error:[string "print("foo")"]:1: attempt to call global 'print' (a nil value)
+minetest.compress(data, method, ...) -> compressed_data
+^ Compress a string of data.
+^ `method` is a string identifying the compression method to be used.
+^ Supported compression methods:
+^     Deflate (zlib): "deflate"
+^ `...` indicates method-specific arguments.  Currently defined arguments are:
+^     Deflate: `level` - Compression level, 0-9 or nil.
+minetest.decompress(compressed_data, method, ...) -> data
+^ Decompress a string of data (using ZLib).
+^ See documentation on minetest.compress() for supported compression methods.
+^ currently supported.
+^ `...` indicates method-specific arguments.  Currently, no methods use this.
 minetest.is_protected(pos, name) -> bool
 ^ This function should be overridden by protection mods and should be used to
   check if a player can interact at a position.
@@ -1743,7 +1952,7 @@ Class reference
 ----------------
 NodeMetaRef: Node metadata - reference extra data and functionality stored
              in a node
-- Can be gotten via minetest.get_nodemeta(pos)
+- Can be gotten via minetest.get_meta(pos)
 methods:
 - set_string(name, value)
 - get_string(name)
@@ -1910,8 +2119,11 @@ methods:
     can be fully added to the list
 - contains_item(listname, stack): returns true if the stack of items
     can be fully taken from the list
-  remove_item(listname, stack): take as many items as specified from the list,
-    returns the items that were actually removed (as an ItemStack)
+- remove_item(listname, stack): take as many items as specified from the list,
+    returns the items that were actually removed (as an ItemStack) - note that
+    any item metadata is ignored, so attempting to remove a specific unique
+    item this way will likely remove the wrong one - to do that use set_stack
+    with an empty ItemStack
 - get_location() -> location compatible to minetest.get_inventory(location)
                  -> {type="undefined"} in case location is not known
 
@@ -1958,8 +2170,8 @@ methods:
                   implementation making bad distribution otherwise.
 
 PerlinNoise: A perlin noise generator
-- Can be created via PerlinNoise(seed, octaves, persistence, scale)
-- Also minetest.get_perlin(seeddiff, octaves, persistence, scale)
+- Can be created via PerlinNoise(seed, octaves, persistence, scale) or PerlinNoise(noiseparams)
+- Also minetest.get_perlin(seeddiff, octaves, persistence, scale) or minetest.get_perlin(noiseparams)
 methods:
 - get2d(pos) -> 2d noise value at pos={x=,y=}
 - get3d(pos) -> 3d noise value at pos={x=,y=,z=}
@@ -1967,6 +2179,10 @@ methods:
 PerlinNoiseMap: A fast, bulk perlin noise generator
 - Can be created via PerlinNoiseMap(noiseparams, size)
 - Also minetest.get_perlin_map(noiseparams, size)
+- Format of 'size' for 3D perlin maps: {x=dimx, y=dimy, z=dimz}
+- Format of 'size' for 2D perlin maps: {x=dimx, y=dimy}
+  ^ where dimx, dimy, dimz are the array dimensions
+  ^ for 3D perlin maps the z component of 'size' must be larger than 1 otherwise 'nil' is returned
 methods:
 - get2dMap(pos) -> <size.x>X<size.y> 2d array of 2d noise values starting at pos={x=,y=}
 - get3dMap(pos) -> <size.x>X<size.y>X<size.z> 3d array of 3d noise values starting at pos={x=,y=,z=}
@@ -1981,6 +2197,8 @@ methods:
   ^ returns actual emerged pmin, actual emerged pmax
 - write_to_map():  Writes the data loaded from the VoxelManip back to the map.
   ^ important: data must be set using VoxelManip:set_data before calling this
+- get_node_at(pos): Returns a MapNode table of the node currently loaded in the VoxelManip at that position
+- set_node_at(pos, node): Sets a specific MapNode in the VoxelManip at that position
 - get_data():  Gets the data read into the VoxelManip object
   ^ returns raw node data is in the form of an array of node content ids
 - set_data(data):  Sets the data contents of the VoxelManip object
@@ -1992,7 +2210,7 @@ methods:
   ^ To be used only by a VoxelManip object from minetest.get_mapgen_object
   ^ (p1, p2) is the area in which lighting is set; defaults to the whole area if left out
 - get_light_data(): Gets the light data read into the VoxelManip object
-  ^ Returns an array (indicies 1 to volume) of integers ranging from 0 to 255
+  ^ Returns an array (indices 1 to volume) of integers ranging from 0 to 255
   ^ Each value is the bitwise combination of day and night light values (0..15 each)
   ^ light = day + (night * 16)
 - set_light_data(light_data):  Sets the param1 (light) contents of each node in the VoxelManip
@@ -2003,6 +2221,8 @@ methods:
   ^ To be used only by a VoxelManip object from minetest.get_mapgen_object
   ^ (p1, p2) is the area in which lighting is set; defaults to the whole area if left out
 - update_liquids():  Update liquid flow
+- was_modified(): Returns true or false if the data in the voxel manipulator had been modified since
+  the last read from map, due to a call to minetest.set_data() on the loaded area elsewhere
 
 VoxelArea: A helper class for voxel areas
 - Can be created via VoxelArea:new{MinEdge=pmin, MaxEdge=pmax}
@@ -2066,7 +2286,9 @@ current mapgen.
     Returns a table mapping requested generation notification types to arrays of positions at which the
 corresponding generated structures are located at within the current chunk.  To set the capture of positions
 of interest to be recorded on generate, use minetest.set_gen_notify().
-Possible fields of the table returned are:  dungeon, temple, cave_begin, cave_end, large_cave_begin, large_cave_end
+Possible fields of the table returned are:
+	dungeon, temple, cave_begin, cave_end, large_cave_begin, large_cave_end, decoration
+Decorations have a key in the format of "decoration#id", where id is the numeric unique decoration ID.
 
 Registered entities
 --------------------
@@ -2078,7 +2300,9 @@ Registered entities
   - on_activate(self, staticdata)
     ^ Called when the object is instantiated.
   - on_step(self, dtime)
-    ^ Called on every server tick (dtime is usually 0.1 seconds)
+    ^ Called on every server tick, after movement and collision processing.
+      dtime is usually 0.1 seconds, as per the dedicated_server_step setting
+      in minetest.conf.
   - on_punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
     ^ Called when somebody punches the object.
     ^ Note that you probably want to handle most punches using the
@@ -2112,7 +2336,7 @@ treedef={
   thin_branches, - boolean true -> use thin (1 node) branches
   fruit,         - string  fruit node name
   fruit_chance,  - num     chance (0-100) to replace leaves with fruit node
-  seed,          - num     random seed
+  seed,          - num     random seed; if no seed is provided, the engine will create one
   }
 
 Key for Special L-System Symbols used in Axioms
@@ -2286,7 +2510,7 @@ Node definition (register_node)
 
     drawtype = "normal", -- See "Node drawtypes"
     visual_scale = 1.0,
-    ^ Supported for drawtypes "plantlike", "signlike", "torchlike".
+    ^ Supported for drawtypes "plantlike", "signlike", "torchlike", "mesh".
     ^ For plantlike, the image will start at the bottom of the node; for the
     ^ other drawtypes, the image will be centered on the node.
     ^ Note that positioning for "torchlike" may still change.
@@ -2308,7 +2532,6 @@ Node definition (register_node)
     diggable = true, -- If false, can never be dug
     climbable = false, -- If true, can be climbed on (ladder)
     buildable_to = false, -- If true, placed nodes can replace this node
-    drop = "", -- alternatively drop = { max_items = ..., items = { ... } }
     liquidtype = "none", -- "none"/"source"/"flowing"
     liquid_alternative_flowing = "", -- Flowing version of source liquid
     liquid_alternative_source = "", -- Source version of flowing liquid
@@ -2321,6 +2544,7 @@ Node definition (register_node)
     light_source = 0, -- Amount of light emitted by node
     damage_per_second = 0, -- If player is inside node, this damage is caused
     node_box = {type="regular"}, -- See "Node boxes"
+    mesh = "model",
     selection_box = {type="regular"}, -- See "Node boxes"
     ^ If drawtype "nodebox" is used and selection_box is nil, then node_box is used
     legacy_facedir_simple = false, -- Support maps made in and before January 2012
@@ -2330,6 +2554,17 @@ Node definition (register_node)
         dig = <SimpleSoundSpec>, -- "__group" = group-based sound (default)
         dug = <SimpleSoundSpec>,
         place = <SimpleSoundSpec>,
+    },
+    drop = "",  -- Name of dropped node when dug. Default is the node itself.
+    -- Alternatively:
+    drop = {
+        max_items = 1,  -- Maximum number of items to drop.
+        items = { -- Choose max_items randomly from this list.
+            {
+                items = {"foo:bar", "baz:frob"},  -- Choose one item randomly from this list.
+                rarity = 1,  -- Probability of getting is 1 / rarity.
+            },
+        },
     },
 
     on_construct = func(pos),
@@ -2343,7 +2578,7 @@ Node definition (register_node)
     ^ Node destructor; always called after removing node
     ^ default: nil
 
-    after_place_node = func(pos, placer, itemstack, pointed_thing),
+    after_place_node = func(pos, placer, itemstack, pointed_thing)
     ^ Called after constructing node when node was placed using
       minetest.item_place_node / minetest.place_node
     ^ If return true no item is taken from itemstack
@@ -2474,7 +2709,7 @@ Ore definition (register_ore)
     flags = "",
     ^ Attributes for this ore generation
     noise_threshhold = 0.5,
-    ^ If noise is above this threshhold, ore is placed.  Not needed for a uniform distribution
+    ^ If noise is above this threshold, ore is placed.  Not needed for a uniform distribution
     noise_params = {offset=0, scale=1, spread={x=100, y=100, z=100}, seed=23, octaves=3, persist=0.70}
     ^ NoiseParams structure describing the perlin noise used for ore distribution.
     ^ Needed for sheet ore_type.  Omit from scatter ore_type for a uniform ore distribution
@@ -2534,7 +2769,7 @@ Decoration definition (register_decoration)
         },
     },
     ^ See 'Schematic specifier' for details.
-    replacements = {{"oldname", "convert_to"}, ...},
+    replacements = {["oldname"] = "convert_to", ...},
     flags = "place_center_x, place_center_z",
     ^ Flags for schematic decorations.  See 'Schematic attributes'.
     rotation = "90" -- rotate schematic 90 degrees on placement
@@ -2641,3 +2876,4 @@ ParticleSpawner definition (add_particlespawner)
     playername = "singleplayer"
     ^ Playername is optional, if specified spawns particle only on the player's client
 }
+

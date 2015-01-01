@@ -36,6 +36,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 	#include <sys/utsname.h>
 #endif
 
+#if !defined(_WIN32) && !defined(__APPLE__) && \
+	!defined(__ANDROID__) && !defined(SERVER)
+	#define XORG_USED
+#endif
+
+#ifdef XORG_USED
+	#include <X11/Xlib.h>
+	#include <X11/Xutil.h>
+#endif
+
 #include "config.h"
 #include "debug.h"
 #include "filesys.h"
@@ -480,7 +490,7 @@ void initializePaths()
 			bindir + DIR_DELIM + ".." + DIR_DELIM + "share" + DIR_DELIM + PROJECT_NAME);
 	trylist.push_back(bindir + DIR_DELIM + "..");
 #ifdef __ANDROID__
-	trylist.push_back(DIR_DELIM "sdcard" DIR_DELIM PROJECT_NAME);
+	trylist.push_back(path_user);
 #endif
 
 	for(std::list<std::string>::const_iterator i = trylist.begin();
@@ -502,8 +512,6 @@ void initializePaths()
 	}
 #ifndef __ANDROID__
 	path_user = std::string(getenv("HOME")) + DIR_DELIM + "." + PROJECT_NAME;
-#else
-	path_user = std::string(DIR_DELIM "sdcard" DIR_DELIM PROJECT_NAME DIR_DELIM);
 #endif
 
 	/*
@@ -520,7 +528,7 @@ void initializePaths()
 	{
 		dstream<<"Bundle resource path: "<<path<<std::endl;
 		//chdir(path);
-		path_share = std::string(path) + DIR_DELIM + "share";
+		path_share = std::string(path) + DIR_DELIM + STATIC_SHAREDIR;
 	}
 	else
 	{
@@ -547,6 +555,20 @@ void initIrrlicht(irr::IrrlichtDevice * _device) {
 	device = _device;
 }
 
+void setXorgClassHint(const video::SExposedVideoData &video_data,
+	const std::string &name)
+{
+#ifdef XORG_USED
+	XClassHint *classhint = XAllocClassHint();
+	classhint->res_name  = (char *)name.c_str();
+	classhint->res_class = (char *)name.c_str();
+
+	XSetClassHint((Display *)video_data.OpenGLLinux.X11Display,
+		video_data.OpenGLLinux.X11Window, classhint);
+	XFree(classhint);
+#endif
+}
+
 #ifndef SERVER
 v2u32 getWindowSize() {
 	return device->getVideoDriver()->getScreenSize();
@@ -555,16 +577,7 @@ v2u32 getWindowSize() {
 #ifndef __ANDROID__
 
 float getDisplayDensity() {
-	float gui_scaling = g_settings->getFloat("gui_scaling");
-	// using Y here feels like a bug, this needs to be discussed later!
-	if (getWindowSize().Y <= 800) {
-		return (2.0/3.0) * gui_scaling;
-	}
-	if (getWindowSize().Y <= 1280) {
-		return 1.0 * gui_scaling;
-	}
-
-	return (4.0/3.0) * gui_scaling;
+	return g_settings->getFloat("screen_dpi")/96.0;
 }
 
 v2u32 getDisplaySize() {
