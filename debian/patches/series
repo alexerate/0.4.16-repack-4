@@ -8,6 +8,6 @@ gcc47.patch
 mapper.patch
 shared_mods
 rawlua
-hurd.patch
+#hurd.patch
 #jthread-changed.patch
 
