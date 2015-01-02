@@ -21,6 +21,7 @@ Build-Depends:
  libopenal-dev,
  libsqlite3-dev,
  libvorbis-dev,
+ libx11-dev,
  zlib1g-dev
 Standards-Version: 3.9.6
 Homepage: http://minetest.net/
