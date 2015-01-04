@@ -1,7 +1,9 @@
-From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+From: P. J. McDermott" <pjm@nac.net>
 Date: Sun, 4 Jan 2015 20:49:22 +0100
 Subject: gcc47
 
+Fix FTBFS with gcc-4.7
+Bug: http://bugs.debian.org/667280
 ---
  src/filesys.cpp | 1 +
  1 file changed, 1 insertion(+)

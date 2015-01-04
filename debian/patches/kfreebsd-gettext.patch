@@ -1,7 +1,8 @@
-From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+From: Matthew Bekkema <mat8913ftw@gmail.com>
 Date: Sun, 4 Jan 2015 20:49:22 +0100
 Subject: kfreebsd-gettext
 
+Fix the build on kFreeBSD as it uses glibc
 ---
  cmake/Modules/FindGettextLib.cmake | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

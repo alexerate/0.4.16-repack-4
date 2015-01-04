@@ -2,6 +2,7 @@ From: Markus Koschany <apo@gambaru.de>
 Date: Sun, 4 Jan 2015 21:03:07 +0100
 Subject: hurd
 
+Make Minetest compile on GNU/Hurd.
 ---
  src/cguittfont/irrUString.h        |  2 +-
  src/jthread/jevent.h               |  4 ++--

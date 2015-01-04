@@ -1,7 +1,9 @@
-From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+From: Martin Quinson
 Date: Sun, 4 Jan 2015 20:49:22 +0100
 Subject: i18n
 
+Search for translation in the default path
+Forwarded: not-needed
 ---
  src/main.cpp | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

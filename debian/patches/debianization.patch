@@ -2,6 +2,8 @@ From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
 Date: Sun, 4 Jan 2015 20:49:22 +0100
 Subject: debianization
 
+Link against Debian's Irrlicht engine.
+
 ---
  cmake/Modules/FindIrrlicht.cmake | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
