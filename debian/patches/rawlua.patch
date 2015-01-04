@@ -1,5 +1,5 @@
-From: Martin Quinson
-Date: Sun, 4 Jan 2015 20:49:23 +0100
+From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Date: Sun, 4 Jan 2015 22:05:52 +0100
 Subject: rawlua
 
 use the right version of lua when not using luajit

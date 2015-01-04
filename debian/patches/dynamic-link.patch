@@ -4,7 +4,6 @@ Subject: dynamic-link
 
 Changes the static linking of external libraries to dynamic link
 Original patch by Matthew Bekkema <mat8913ftw@gmail.com>
-
 ---
  cmake/Modules/FindJson.cmake | 24 +++++++++++-------------
  src/CMakeLists.txt           |  3 ---
