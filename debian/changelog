@@ -20,7 +20,7 @@ minetest (0.4.11+repack-1) unstable; urgency=medium
 
  -- Markus Koschany <apo@gambaru.de>  Sun, 04 Jan 2015 23:14:08 +0100
 
-minetest (0.4.10+repack-3) experimental; urgency=medium
+minetest (0.4.10+repack-3) unstable; urgency=medium
 
   * Team upload.
 
