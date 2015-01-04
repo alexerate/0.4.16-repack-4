@@ -44,10 +44,10 @@ index a9178a2..1c0fe50 100644
 +	MESSAGE(FAIL "Cannot find system-wide jsoncpp library")
 +ENDIF(JSON_FOUND)
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index 63b73a6..b308ad2 100644
+index b647f43..4981f6d 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -264,7 +264,6 @@ if(NOT USE_LUAJIT)
+@@ -265,7 +265,6 @@ if(NOT USE_LUAJIT)
  	message (STATUS "LuaJIT not found, using bundled Lua.")
  	set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
  	set(LUA_LIBRARY "lua")
@@ -55,7 +55,7 @@ index 63b73a6..b308ad2 100644
  endif(NOT USE_LUAJIT)
  
  mark_as_advanced(LUA_LIBRARY)
-@@ -770,7 +769,6 @@ endif(USE_GETTEXT)
+@@ -771,7 +770,6 @@ endif(USE_GETTEXT)
  
  if (SQLITE3_FOUND)
  else (SQLITE3_FOUND)
@@ -63,7 +63,7 @@ index 63b73a6..b308ad2 100644
  endif (SQLITE3_FOUND)
  
  if (BUILD_CLIENT AND USE_FREETYPE)
-@@ -779,7 +777,6 @@ endif (BUILD_CLIENT AND USE_FREETYPE)
+@@ -780,7 +778,6 @@ endif (BUILD_CLIENT AND USE_FREETYPE)
  
  if (JSON_FOUND)
  else (JSON_FOUND)

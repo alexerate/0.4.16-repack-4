@@ -16,10 +16,10 @@ Forwarded: not-needed
  1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index b308ad2..37dd3f9 100644
+index 4981f6d..c88299e 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -261,9 +261,9 @@ if(LUA_LIBRARY AND LUA_INCLUDE_DIR)
+@@ -262,9 +262,9 @@ if(LUA_LIBRARY AND LUA_INCLUDE_DIR)
  endif (LUA_LIBRARY AND LUA_INCLUDE_DIR)
  
  if(NOT USE_LUAJIT)

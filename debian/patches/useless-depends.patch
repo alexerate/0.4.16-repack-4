@@ -8,18 +8,17 @@ no symbol were used.
 
 Forwarded: no
 ---
- src/CMakeLists.txt | 6 ------
- 1 file changed, 6 deletions(-)
+ src/CMakeLists.txt | 5 -----
+ 1 file changed, 5 deletions(-)
 
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index 47fa5e2..63b73a6 100644
+index 47fa5e2..b647f43 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -143,11 +143,6 @@ if(WIN32)
- else()
+@@ -144,10 +144,6 @@ else()
  	# Unix probably
  	if(BUILD_CLIENT)
--		find_package(X11 REQUIRED)
+ 		find_package(X11 REQUIRED)
 -		find_package(OpenGL REQUIRED)
 -		find_package(JPEG REQUIRED)
 -		find_package(BZip2 REQUIRED)
@@ -27,7 +26,7 @@ index 47fa5e2..63b73a6 100644
  		if(APPLE)
  			FIND_LIBRARY(CARBON_LIB Carbon)
  			FIND_LIBRARY(COCOA_LIB Cocoa)
-@@ -169,7 +164,6 @@ else()
+@@ -169,7 +165,6 @@ else()
  	endif(APPLE)
  	#set(CLIENT_PLATFORM_LIBS -lXxf86vm)
  	# This way Xxf86vm is found on OpenBSD too
