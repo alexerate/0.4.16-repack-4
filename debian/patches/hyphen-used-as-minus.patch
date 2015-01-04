@@ -1,0 +1,21 @@
+From: Markus Koschany <apo@gambaru.de>
+Date: Sun, 4 Jan 2015 22:48:24 +0100
+Subject: hyphen used as minus
+
+---
+ doc/minetest.6 | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/doc/minetest.6 b/doc/minetest.6
+index ff54520..cd818e1 100644
+--- a/doc/minetest.6
++++ b/doc/minetest.6
+@@ -81,7 +81,7 @@ Set world path
+ .TP
+ \-\-migrate <value>
+ Migrate from current map backend to another. Possible values are sqlite3
+-and leveldb. Only works when using --server.
++and leveldb. Only works when using \-\-server.
+ 
+ .SH ENVIRONMENT VARIABLES
+ 
