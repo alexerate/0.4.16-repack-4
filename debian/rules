@@ -1,5 +1,8 @@
 #!/usr/bin/make -f
 
+# avoid useless dependencies
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
 # upstream version
 version=$(shell uscan --report-status | head -2 | tail -1 | cut -d' ' -f7 | cut -d, -f1)
 tmpdir:=$(shell mktemp -d)
