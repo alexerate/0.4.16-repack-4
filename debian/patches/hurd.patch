@@ -1,0 +1,215 @@
+From: Markus Koschany <apo@gambaru.de>
+Date: Sun, 4 Jan 2015 21:03:07 +0100
+Subject: hurd
+
+---
+ src/cguittfont/irrUString.h        |  2 +-
+ src/jthread/jevent.h               |  4 ++--
+ src/jthread/jsemaphore.h           |  4 ++--
+ src/jthread/pthread/jevent.cpp     |  2 +-
+ src/jthread/pthread/jsemaphore.cpp | 20 ++++++++++----------
+ src/porting.h                      |  9 ++++++---
+ 6 files changed, 22 insertions(+), 19 deletions(-)
+
+diff --git a/src/cguittfont/irrUString.h b/src/cguittfont/irrUString.h
+index 32efaa6..fc04187 100644
+--- a/src/cguittfont/irrUString.h
++++ b/src/cguittfont/irrUString.h
+@@ -45,7 +45,7 @@
+ #define __BYTE_ORDER 0
+ #define __LITTLE_ENDIAN 0
+ #define __BIG_ENDIAN 1
+-#elif __MACH__
++#elif defined(__MACH__) && defined(__APPLE__)
+ #include <machine/endian.h>
+ #else
+ #include <endian.h>
+diff --git a/src/jthread/jevent.h b/src/jthread/jevent.h
+index f97e09c..9ea7ebd 100644
+--- a/src/jthread/jevent.h
++++ b/src/jthread/jevent.h
+@@ -30,7 +30,7 @@
+ 
+ #ifdef _WIN32
+ #include <windows.h>
+-#elif __MACH__
++#elif defined(__MACH__) && defined(__APPLE__)
+ #include <mach/mach.h>
+ #include <mach/task.h>
+ #include <mach/semaphore.h>
+@@ -43,7 +43,7 @@
+ class Event {
+ #ifdef _WIN32
+ 	HANDLE hEvent;
+-#elif __MACH__
++#elif defined(__MACH__) && defined(__APPLE__)
+ 	semaphore_t sem;
+ #else
+ 	sem_t sem;
+diff --git a/src/jthread/jsemaphore.h b/src/jthread/jsemaphore.h
+index 4ab006a..32e9bc2 100644
+--- a/src/jthread/jsemaphore.h
++++ b/src/jthread/jsemaphore.h
+@@ -24,7 +24,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
+ #include <windows.h>
+ #include <assert.h>
+ #define MAX_SEMAPHORE_COUNT 1024
+-#elif __MACH__
++#elif defined(__MACH__) && defined(__APPLE__)
+ #include <pthread.h>
+ #include <mach/mach.h>
+ #include <mach/task.h>
+@@ -52,7 +52,7 @@ public:
+ private:
+ #if defined(WIN32)
+ 	HANDLE m_hSemaphore;
+-#elif __MACH__
++#elif defined(__MACH__) && defined(__APPLE__)
+ 	semaphore_t m_semaphore;
+ 	int semcount;
+ #else
+diff --git a/src/jthread/pthread/jevent.cpp b/src/jthread/pthread/jevent.cpp
+index 6a45a37..e1d40f4 100644
+--- a/src/jthread/pthread/jevent.cpp
++++ b/src/jthread/pthread/jevent.cpp
+@@ -29,7 +29,7 @@
+ 
+ #define UNUSED(expr) do { (void)(expr); } while (0)
+ 
+-#ifdef __MACH__
++#if defined(__MACH__) && defined(__APPLE__)
+ #undef sem_t
+ #define sem_t semaphore_t
+ #undef sem_init
+diff --git a/src/jthread/pthread/jsemaphore.cpp b/src/jthread/pthread/jsemaphore.cpp
+index 16e001e..15281ba 100644
+--- a/src/jthread/pthread/jsemaphore.cpp
++++ b/src/jthread/pthread/jsemaphore.cpp
+@@ -20,13 +20,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
+ #include <errno.h>
+ #include <sys/time.h>
+ #include "jthread/jsemaphore.h"
+-#ifdef __MACH__
++#if defined(__MACH__) && defined(__APPLE__)
+ #include <unistd.h>
+ #endif
+ 
+ #define UNUSED(expr) do { (void)(expr); } while (0)
+ 
+-#ifdef __MACH__
++#if defined(__MACH__) && defined(__APPLE__)
+ #undef sem_t
+ #undef sem_init
+ #undef sem_wait
+@@ -44,7 +44,7 @@ JSemaphore::JSemaphore() {
+ 	int sem_init_retval = sem_init(&m_semaphore,0,0);
+ 	assert(sem_init_retval == 0);
+ 	UNUSED(sem_init_retval);
+-#ifdef __MACH__
++#if defined(__MACH__) && defined(__APPLE__)
+ 	semcount = 0;
+ #endif
+ }
+@@ -73,7 +73,7 @@ void JSemaphore::Post() {
+ 	int sem_post_retval = sem_post(&m_semaphore);
+ 	assert(sem_post_retval == 0);
+ 	UNUSED(sem_post_retval);
+-#ifdef __MACH__
++#if defined(__MACH__) && defined(__APPLE__)
+ 	pthread_mutex_lock(&semcount_mutex);
+ 	semcount++;
+ 	pthread_mutex_unlock(&semcount_mutex);
+@@ -84,7 +84,7 @@ void JSemaphore::Wait() {
+ 	int sem_wait_retval = sem_wait(&m_semaphore);
+ 	assert(sem_wait_retval == 0);
+ 	UNUSED(sem_wait_retval);
+-#ifdef __MACH__
++#if defined(__MACH__) && defined(__APPLE__)
+ 	pthread_mutex_lock(&semcount_mutex);
+ 	semcount--;
+ 	pthread_mutex_unlock(&semcount_mutex);
+@@ -92,7 +92,7 @@ void JSemaphore::Wait() {
+ }
+ 
+ bool JSemaphore::Wait(unsigned int time_ms) {
+-#ifdef __MACH__
++#if defined(__MACH__) && defined(__APPLE__)
+ 	mach_timespec_t waittime;
+ 	waittime.tv_sec = time_ms / 1000;
+ 	waittime.tv_nsec = 1000000 * (time_ms % 1000);
+@@ -106,14 +106,14 @@ bool JSemaphore::Wait(unsigned int time_ms) {
+ 		return false;
+ 	}
+ 
+-#ifndef __MACH__
++#if !(defined(__MACH__) && defined(__APPLE__))
+ 	waittime.tv_nsec = ((time_ms % 1000) * 1000 * 1000) + (now.tv_usec * 1000);
+ 	waittime.tv_sec  = (time_ms / 1000) + (waittime.tv_nsec / (1000*1000*1000)) + now.tv_sec;
+ 	waittime.tv_nsec %= 1000*1000*1000;
+ #endif
+ 
+ 	errno = 0;
+-#ifdef __MACH__
++#if defined(__MACH__) && defined(__APPLE__)
+ 	int sem_wait_retval = semaphore_timedwait(m_semaphore, waittime);
+ 	if (sem_wait_retval == KERN_OPERATION_TIMED_OUT) {
+ 		errno = ETIMEDOUT;
+@@ -128,7 +128,7 @@ bool JSemaphore::Wait(unsigned int time_ms) {
+ 
+ 	if (sem_wait_retval == 0)
+ 	{
+-#ifdef __MACH__
++#if defined(__MACH__) && defined(__APPLE__)
+ 		pthread_mutex_lock(&semcount_mutex);
+ 		semcount--;
+ 		pthread_mutex_unlock(&semcount_mutex);
+@@ -144,7 +144,7 @@ bool JSemaphore::Wait(unsigned int time_ms) {
+ 
+ int JSemaphore::GetValue() {
+ 	int retval = 0;
+-#ifdef __MACH__
++#if defined(__MACH__) && defined(__APPLE__)
+ 	pthread_mutex_lock(&semcount_mutex);
+ 	retval = semcount;
+ 	pthread_mutex_unlock(&semcount_mutex);
+diff --git a/src/porting.h b/src/porting.h
+index a184af8..a579968 100644
+--- a/src/porting.h
++++ b/src/porting.h
+@@ -59,7 +59,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
+ 	#include <unistd.h>
+ 	#include <stdint.h> //for uintptr_t
+ 
+-	#if (defined(linux) || defined(__linux)) && !defined(_GNU_SOURCE)
++#if (defined(linux) || defined(__linux) || defined(__GNU__)) && !defined(_GNU_SOURCE)
+ 		#define _GNU_SOURCE
+ 	#endif
+ 
+@@ -227,7 +227,7 @@ void initIrrlicht(irr::IrrlichtDevice * );
+ #else // Posix
+ #include <sys/time.h>
+ #include <time.h>
+-#ifdef __MACH__
++#if defined(__MACH__) && defined(__APPLE__)
+ #include <mach/clock.h>
+ #include <mach/mach.h>
+ #endif
+@@ -257,7 +257,7 @@ void initIrrlicht(irr::IrrlichtDevice * );
+ 	{
+ 		struct timespec ts;
+ 		// from http://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
+-#ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
++#if defined(__MACH__) && defined(__APPLE__) // OS X does not have clock_gettime, use clock_get_time
+ 		clock_serv_t cclock;
+ 		mach_timespec_t mts;
+ 		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+@@ -359,6 +359,9 @@ inline u32 getDeltaMs(u32 old_time_ms, u32 new_time_ms)
+ 	}
+ #elif defined(_WIN32)
+ 	inline void setThreadName(const char* name) {}
++#elif defined(__GNU__)
++//#warning "GNU/Hurd platform, pthread_setname_np not yet supported"
++inline void setThreadName(const char* name) {}
+ #else
+ 	#warning "Unrecognized platform, thread names will not be available."
+ 	inline void setThreadName(const char* name) {}

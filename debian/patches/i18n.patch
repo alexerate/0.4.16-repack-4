@@ -1,16 +1,16 @@
-Description: Search for translation in the default path
-Author: Martin Quinson
-Forwarded: upstream won't take it as they install to non-standard paths
+From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Date: Sun, 4 Jan 2015 20:49:22 +0100
+Subject: i18n
 
 ---
- src/main.cpp |    2 +-
+ src/main.cpp | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-Index: b/src/main.cpp
-===================================================================
+diff --git a/src/main.cpp b/src/main.cpp
+index 0c5f73b..120c23b 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
-@@ -1034,7 +1034,7 @@ int main(int argc, char *argv[])
+@@ -1109,7 +1109,7 @@ static bool init_common(int *log_level, const Settings &cmd_args, int argc, char
  	init_gettext((porting::path_share + DIR_DELIM + "locale").c_str(),
  		g_settings->get("language"), argc, argv);
  #else

@@ -1,41 +1,14 @@
-Description: Changes the static linking of external libraries to dynamic link
-Author: Matthew Bekkema <mat8913ftw@gmail.com>
+From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Date: Sun, 4 Jan 2015 20:49:22 +0100
+Subject: dynamic-link
 
 ---
- cmake/Modules/FindJson.cmake |   24 +++++++++++-------------
- src/CMakeLists.txt           |    3 ---
+ cmake/Modules/FindJson.cmake | 24 +++++++++++-------------
+ src/CMakeLists.txt           |  3 ---
  2 files changed, 11 insertions(+), 16 deletions(-)
 
-Index: b/src/CMakeLists.txt
-===================================================================
---- a/src/CMakeLists.txt
-+++ b/src/CMakeLists.txt
-@@ -265,7 +265,6 @@ if(NOT USE_LUAJIT)
- 	message (STATUS "LuaJIT not found, using bundled Lua.")
- 	set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
- 	set(LUA_LIBRARY "lua")
--	add_subdirectory(lua)
- endif(NOT USE_LUAJIT)
- 
- mark_as_advanced(LUA_LIBRARY)
-@@ -751,7 +750,6 @@ endif(USE_GETTEXT)
- 
- if (SQLITE3_FOUND)
- else (SQLITE3_FOUND)
--	add_subdirectory(sqlite)
- endif (SQLITE3_FOUND)
- 
- if (BUILD_CLIENT AND USE_FREETYPE)
-@@ -760,7 +758,6 @@ endif (BUILD_CLIENT AND USE_FREETYPE)
- 
- if (JSON_FOUND)
- else (JSON_FOUND)
--	add_subdirectory(json)
- endif (JSON_FOUND)
- 
- #end
-Index: b/cmake/Modules/FindJson.cmake
-===================================================================
+diff --git a/cmake/Modules/FindJson.cmake b/cmake/Modules/FindJson.cmake
+index a9178a2..1c0fe50 100644
 --- a/cmake/Modules/FindJson.cmake
 +++ b/cmake/Modules/FindJson.cmake
 @@ -1,18 +1,16 @@
@@ -68,3 +41,31 @@ Index: b/cmake/Modules/FindJson.cmake
 +ELSE(JSON_FOUND)
 +	MESSAGE(FAIL "Cannot find system-wide jsoncpp library")
 +ENDIF(JSON_FOUND)
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 63b73a6..b308ad2 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -264,7 +264,6 @@ if(NOT USE_LUAJIT)
+ 	message (STATUS "LuaJIT not found, using bundled Lua.")
+ 	set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
+ 	set(LUA_LIBRARY "lua")
+-	add_subdirectory(lua)
+ endif(NOT USE_LUAJIT)
+ 
+ mark_as_advanced(LUA_LIBRARY)
+@@ -770,7 +769,6 @@ endif(USE_GETTEXT)
+ 
+ if (SQLITE3_FOUND)
+ else (SQLITE3_FOUND)
+-	add_subdirectory(sqlite)
+ endif (SQLITE3_FOUND)
+ 
+ if (BUILD_CLIENT AND USE_FREETYPE)
+@@ -779,7 +777,6 @@ endif (BUILD_CLIENT AND USE_FREETYPE)
+ 
+ if (JSON_FOUND)
+ else (JSON_FOUND)
+-	add_subdirectory(json)
+ endif (JSON_FOUND)
+ 
+ #end

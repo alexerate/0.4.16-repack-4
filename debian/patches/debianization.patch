@@ -1,14 +1,16 @@
-Description: install binaries to /usr/games and don't install changelog twice
-Author: Michael Gilbert <michael.s.gilbert@gmail.com>
+From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Date: Sun, 4 Jan 2015 20:49:22 +0100
+Subject: debianization
+
 ---
- cmake/Modules/FindIrrlicht.cmake |    2 +-
+ cmake/Modules/FindIrrlicht.cmake | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-Index: b/cmake/Modules/FindIrrlicht.cmake
-===================================================================
+diff --git a/cmake/Modules/FindIrrlicht.cmake b/cmake/Modules/FindIrrlicht.cmake
+index bd00422..f94159a 100644
 --- a/cmake/Modules/FindIrrlicht.cmake
 +++ b/cmake/Modules/FindIrrlicht.cmake
-@@ -50,7 +50,7 @@
+@@ -50,7 +50,7 @@ else()
  		/usr/include/irrlicht
  	)
  

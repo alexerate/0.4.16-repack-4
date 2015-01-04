@@ -1,20 +1,16 @@
-Description: Removes the useless dependancies
- This was reported by dpkg-shlibs, that warned that our binary was
- marked as depending on various libs without any reason as no symbol
- were used.
-Author: Matthew Bekkema <mat8913ftw@gmail.com>
-Forwarded: no (we should do it)
-
+From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Date: Sun, 4 Jan 2015 20:49:22 +0100
+Subject: useless-depends
 
 ---
- src/CMakeLists.txt |    6 ------
+ src/CMakeLists.txt | 6 ------
  1 file changed, 6 deletions(-)
 
-Index: b/src/CMakeLists.txt
-===================================================================
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 47fa5e2..63b73a6 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -144,11 +144,6 @@ if(WIN32)
+@@ -143,11 +143,6 @@ if(WIN32)
  else()
  	# Unix probably
  	if(BUILD_CLIENT)
@@ -26,7 +22,7 @@ Index: b/src/CMakeLists.txt
  		if(APPLE)
  			FIND_LIBRARY(CARBON_LIB Carbon)
  			FIND_LIBRARY(COCOA_LIB Cocoa)
-@@ -170,7 +165,6 @@ else()
+@@ -169,7 +164,6 @@ else()
  	endif(APPLE)
  	#set(CLIENT_PLATFORM_LIBS -lXxf86vm)
  	# This way Xxf86vm is found on OpenBSD too

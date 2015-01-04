@@ -1,9 +1,13 @@
+From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Date: Sun, 4 Jan 2015 20:49:23 +0100
+Subject: mapper
+
 ---
- util/minetestmapper.py |    4 ++--
+ util/minetestmapper.py | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-Index: b/util/minetestmapper.py
-===================================================================
+diff --git a/util/minetestmapper.py b/util/minetestmapper.py
+index 9d364e1..d10f8e7 100755
 --- a/util/minetestmapper.py
 +++ b/util/minetestmapper.py
 @@ -1,4 +1,4 @@
@@ -12,7 +16,7 @@ Index: b/util/minetestmapper.py
  # -*- coding: utf-8 -*-
  
  # This program is free software. It comes without any warranty, to
-@@ -203,7 +203,7 @@ if path[-1:] != "/" and path[-1:] != "\\
+@@ -203,7 +203,7 @@ if path[-1:] != "/" and path[-1:] != "\\":
  # Load color information for the blocks.
  colors = {}
  try:

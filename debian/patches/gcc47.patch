@@ -1,18 +1,16 @@
-Description: Fix FTBFS with gcc-4.7
- Fix missing inclusion of <unistd.h> in src/filesys.cpp.
-Author: "P. J. McDermott" <pjm@nac.net>
-Bug-Debian: http://bugs.debian.org/667280
-Last-Update: 2012-04-19
+From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Date: Sun, 4 Jan 2015 20:49:22 +0100
+Subject: gcc47
 
 ---
- src/filesys.cpp |    1 +
+ src/filesys.cpp | 1 +
  1 file changed, 1 insertion(+)
 
-Index: b/src/filesys.cpp
-===================================================================
+diff --git a/src/filesys.cpp b/src/filesys.cpp
+index 7847156..e5fec32 100644
 --- a/src/filesys.cpp
 +++ b/src/filesys.cpp
-@@ -232,6 +232,7 @@ std::string TempPath()
+@@ -193,6 +193,7 @@ std::string TempPath()
  
  #else // POSIX
  

@@ -1,15 +1,16 @@
-Description: Fix the build on kFreeBSD as it uses glibc
-Author: Matthew Bekkema <mat8913ftw@gmail.com>
+From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Date: Sun, 4 Jan 2015 20:49:22 +0100
+Subject: kfreebsd-gettext
 
 ---
- cmake/Modules/FindGettextLib.cmake |    2 +-
+ cmake/Modules/FindGettextLib.cmake | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-Index: b/cmake/Modules/FindGettextLib.cmake
-===================================================================
+diff --git a/cmake/Modules/FindGettextLib.cmake b/cmake/Modules/FindGettextLib.cmake
+index c6f731e..6ed74e4 100644
 --- a/cmake/Modules/FindGettextLib.cmake
 +++ b/cmake/Modules/FindGettextLib.cmake
-@@ -61,8 +61,8 @@ IF(GETTEXT_INCLUDE_DIR AND GETTEXT_MSGFM
+@@ -61,8 +61,8 @@ IF(GETTEXT_INCLUDE_DIR AND GETTEXT_MSGFMT)
  		ENDIF()
  	ELSE(WIN32)
  		# *BSD variants require special linkage as they don't use glibc
