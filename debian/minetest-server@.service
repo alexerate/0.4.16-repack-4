@@ -4,6 +4,7 @@ Documentation=man:minetestserver(6)
 After=network.target
 
 [Service]
+Restart=on-failure
 User=Debian-minetest
 Group=games
 ExecStart=/usr/lib/minetest/minetestserver --config /etc/minetest/%i.conf --logfile /var/log/minetest/%i.log
