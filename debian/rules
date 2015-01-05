@@ -58,6 +58,7 @@ override_dh_auto_configure:
 	LDFLAGS="${LDFLAGS}" \
 	CXXFLAGS="${CXXFLAGS} ${CPPFLAGS}" \
 		cmake -DRUN_IN_PLACE=0 \
+		-DCMAKE_VERBOSE_MAKEFILE=ON \
 		-DENABLE_GETTEXT=1 \
 		-DENABLE_FREETYPE=1 \
 		-DFREETYPE_INCLUDE_DIRS=/usr/include/freetype2 \
