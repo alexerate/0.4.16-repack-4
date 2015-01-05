@@ -1,6 +1,6 @@
 minetest (0.4.11+repack-1) unstable; urgency=medium
 
-  * Imported Upstream version 0.4.11+repack.
+  * Imported Upstream version 0.4.11+repack. (Closes: #774662)
   * Add myself to Uploaders.
   * debian/control:
     - Add libx11-dev to Build-Depends to prevent a FTBFS.
