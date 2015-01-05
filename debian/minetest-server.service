@@ -1,5 +1,5 @@
 [Unit]
-Description=Minetest multiplayer server w/ minetest.conf server config
+Description=Minetest multiplayer server minetest.conf server config
 Documentation=man:minetestserver(6)
 After=network.target
 
