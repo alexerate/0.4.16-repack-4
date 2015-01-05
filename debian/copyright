@@ -1,77 +1,24 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: minetest-c55
-Source: http://c55.me/minetest
+Upstream-Name: Minetest
+Source: https://github.com/minetest/minetest
 
 Files: *
-Copyright: 2010-2012 celeron55, Perttu Ahola <celeron55@gmail.com>
+Copyright: 2010-2014, celeron55, Perttu Ahola <celeron55@gmail.com>
+           and contributors
 License: LGPL-2.1+
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation; either version 2.1 of the License, or
- (at your option) any later version.
- .
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
- .
- You should have received a copy of the GNU Lesser General Public License along
- with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- .
- On Debian systems, the complete text of the GNU Lesser General Public
- License version 2 can be found in "/usr/share/common-licenses/LGPL-2.1".
 
-Files: src/sha1.cpp src/sha1.h
+Files: src/sha1.cpp
+       src/sha1.h
 Copyright: Copyright (c) 2005 Michael D. Leonhard (http://tamale.net)
-License: MIT
- Permission is hereby granted, free of charge, to any person obtaining a copy of
- this software and associated documentation files (the "Software"), to deal in
- the Software without restriction, including without limitation the rights to
- use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
- of the Software, and to permit persons to whom the Software is furnished to do
- so, subject to the following conditions:
- .
- The above copyright notice and this permission notice shall be included in all
- copies or substantial portions of the Software.
- .
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
+License: Expat
 
 Files:
- /src/shader.cpp
- /src/shader.h
+ src/guiPasswordChange.*
+ src/guiVolumeChange.*
 Copyright:
- 2012, Kahrl <kahrl@gmx.net>
- 2012, celeron55, Perttu Ahola <celeron55@gmail.com>
-License: GPL-2+
- This package is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 2 of the License, or
- (at your option) any later version.
- .
- This package is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- .
- You should have received a copy of the GNU General Public License
- along with this program. If not, see <http://www.gnu.org/licenses/>
- .
- On Debian systems, the complete text of the GNU General
- Public License version 2 can be found in "/usr/share/common-licenses/GPL-2".
-
-Files:
- /src/guiPasswordChange.cpp
- /src/guiPasswordChange.h
-Copyright:
- 2010-2011 celeron55, Perttu Ahola <celeron55@gmail.com>
- 2011, Ciaran Gultnieks <ciaran@ciarang.com>
+ 2010-2011, 2013, celeron55, Perttu Ahola <celeron55@gmail.com>
+ 2011, 2013,      Ciaran Gultnieks <ciaran@ciarang.com>
+ 2013,            RealBadAngel, Maciej Kasatkin <mk@realbadangel.pl>
 License: ISC
  Permission to use, copy, modify, and/or distribute this software for
  any purpose with or without fee is hereby granted, provided that the
@@ -87,127 +34,9 @@ License: ISC
  TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  PERFORMANCE OF THIS SOFTWARE.
 
-Files:
- /src/guiKeyChangeMenu.cpp
- /src/guiKeyChangeMenu.h
-Copyright:
- 2010-11 celeron55, Perttu Ahola <celeron55@gmail.com>
- 2011, Ciaran Gultnieks <ciaran@ciarang.com>
- 2011, teddydestodes <derkomtur@schattengang.net>
-License: LGPL-2.1+
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation; either version 2.1 of the License, or
- (at your option) any later version.
- .
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
- .
- You should have received a copy of the GNU Lesser General Public License along
- with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- .
- On Debian systems, the complete text of the GNU Lesser General Public
- License version 2 can be found in "/usr/share/common-licenses/LGPL-2.1".
-
-Files:
- /src/filecache.cpp
- /src/filecache.h
-Copyright:
- 2010, celeron55, Perttu Ahola <celeron55@gmail.com>
- 2012, Jonathan NeuschÃ¤fer <j.neuschaefer@gmx.net>
-License: LGPL-2.1+
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation; either version 2.1 of the License, or
- (at your option) any later version.
- .
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
- .
- You should have received a copy of the GNU Lesser General Public License along
- with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- .
- On Debian systems, the complete text of the GNU Lesser General Public
- License version 2 can be found in "/usr/share/common-licenses/LGPL-2.1".
-
-Files:
- /src/itemdef.cpp
- /src/itemdef.h
-Copyright:
- 2010-2011, celeron55, Perttu Ahola <celeron55@gmail.com>
- 2011, Kahrl <kahrl@gmx.net>
-License: LGPL-2.1+
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation; either version 2.1 of the License, or
- (at your option) any later version.
- .
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
- .
- You should have received a copy of the GNU Lesser General Public License along
- with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- .
- On Debian systems, the complete text of the GNU Lesser General Public
- License version 2 can be found in "/usr/share/common-licenses/LGPL-2.1".
-
-Files: /src/sound_openal.cpp
-Copyright:
- 2011, Cyriaque 'Cisoun' Skrapits <cysoun@gmail.com>
- 2011, Giuseppe Bilotta <giuseppe.bilotta@gmail.com>
- 2011, Sebastian 'Bahamada' RÃ¼hl
- 2012, celeron55, Perttu Ahola <celeron55@gmail.com>
-License: LGPL-2.1+
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation; either version 2.1 of the License, or
- (at your option) any later version.
- .
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
- .
- You should have received a copy of the GNU Lesser General Public License along
- with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- .
- On Debian systems, the complete text of the GNU Lesser General Public
- License version 2 can be found in "/usr/share/common-licenses/LGPL-2.1".
-
-Files: /src/hex.h
-Copyright: 2012, Jonathan NeuschÃ¤fer <j.neuschaefer@gmx.net>
-License: LGPL-2.1+
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as published by
- the Free Software Foundation; either version 2.1 of the License, or
- (at your option) any later version.
- .
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU Lesser General Public License for more details.
- .
- You should have received a copy of the GNU Lesser General Public License along
- with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- .
- On Debian systems, the complete text of the GNU Lesser General Public
- License version 2 can be found in "/usr/share/common-licenses/LGPL-2.1".
-
-Files: /src/base64.cpp
-Copyright: Other
- 2004-2008, René Nyffenegger
- Nyffenegger rene.nyffenegger@adp-gmbh.ch
+Files: src/base64.*
+Copyright: 2004-2008, René Nyffenegger
+           Nyffenegger rene.nyffenegger@adp-gmbh.ch
 License: zlib
  This source code is provided 'as-is', without any express or implied
  warranty. In no event will the author be held liable for any damages
@@ -263,8 +92,82 @@ License: zlib
     3. This notice may not be removed or altered from any source
     distribution.
 
+Files: src/noise.*
+Copyright: 2010-2014, celeron55, Perttu Ahola <celeron55@gmail.com>
+           2010-2014, kwolekr, Ryan Kwolek <kwolekr@minetest.net>
+License: BSD-2-clause
+ All rights reserved.
+ .
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
+  1. Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution.
+ .
+ THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND ANY
+ EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR ANY
+ DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Files: src/jthread/*
+Copyright: 2000-2006, Jori Liesenborgs (jori.liesenborgs@gmail.com)
+License: Expat
+
+License: Expat
+ Permission is hereby granted, free of charge, to any person obtaining a copy of
+ this software and associated documentation files (the "Software"), to deal in
+ the Software without restriction, including without limitation the rights to
+ use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ of the Software, and to permit persons to whom the Software is furnished to do
+ so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+
+License: LGPL-2.1+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation; either version 2.1 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public License along
+ with this program; if not, write to the Free Software Foundation, Inc.,
+ 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ .
+ On Debian systems, the complete text of the GNU Lesser General Public
+ License version 2 can be found in "/usr/share/common-licenses/LGPL-2.1".
+
+Files: debian/patches/*
+Copyright: 2011-2012, Michael Gilbert <michael.s.gilbert@gmail.com>
+           2013-2015, Martin Quinson <mquinson@debian.org>
+           2014-2015, Markus Koschany <apo@gambaru.de>
+License: LGPL-2.1+
+
 Files: debian/*
-Copyright: 2011 Michael Gilbert <michael.s.gilbert@gmail.com>
+Copyright: 2011-2012, Michael Gilbert <michael.s.gilbert@gmail.com>
+           2013-2015, Martin Quinson <mquinson@debian.org>
+           2014-2015, Markus Koschany <apo@gambaru.de>
 License: GPL-2+
  This package is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
