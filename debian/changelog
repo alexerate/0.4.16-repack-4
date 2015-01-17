@@ -1,5 +1,6 @@
-minetest (0.4.11+repack-1) unstable; urgency=medium
+minetest (0.4.11+repack-1) experimental; urgency=medium
 
+  * Upload to experimental.
   * Imported Upstream version 0.4.11+repack. (Closes: #774662)
   * Add myself to Uploaders.
   * debian/control:
