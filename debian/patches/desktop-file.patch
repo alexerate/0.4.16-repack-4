@@ -2,6 +2,7 @@ From: Markus Koschany <apo@gambaru.de>
 Date: Sun, 4 Jan 2015 22:57:24 +0100
 Subject: desktop file
 
+Forwarded: https://github.com/minetest/minetest/pull/2165
 ---
  misc/minetest.desktop | 1 +
  1 file changed, 1 insertion(+)

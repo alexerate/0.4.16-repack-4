@@ -3,6 +3,7 @@ Date: Sun, 4 Jan 2015 20:49:22 +0100
 Subject: debianization
 
 Link against Debian's Irrlicht engine.
+Forwarded: https://github.com/minetest/minetest/issues/2163
 ---
  cmake/Modules/FindIrrlicht.cmake | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

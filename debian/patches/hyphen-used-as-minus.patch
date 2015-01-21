@@ -2,6 +2,7 @@ From: Markus Koschany <apo@gambaru.de>
 Date: Sun, 4 Jan 2015 22:48:24 +0100
 Subject: hyphen used as minus
 
+Forwarded: https://github.com/minetest/minetest/pull/2166
 ---
  doc/minetest.6 | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
