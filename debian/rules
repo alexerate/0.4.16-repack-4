@@ -80,11 +80,11 @@ override_dh_install:
 	done
 	# copy the logo
 	mkdir -p debian/minetest/usr/share/icons/hicolor/24x24/apps/
-	cp misc/minetest-icon-24x24.png debian/minetest/usr/share/icons/hicolor/24x24/apps/minetest.png
-	convert debian/minetest/usr/share/icons/hicolor/24x24/apps/minetest.png \
-	        debian/minetest/usr/share/icons/hicolor/24x24/apps/minetest.xpm
+	cp misc/minetest-icon-24x24.png debian/minetest/usr/share/icons/hicolor/24x24/apps/minetest-icon.png
+	convert debian/minetest/usr/share/icons/hicolor/24x24/apps/minetest-icon.png \
+		debian/minetest/usr/share/pixmaps/minetest.xpm
 	mkdir -p debian/minetest/usr/share/icons/hicolor/scalable/apps/
-	cp misc/minetest-icon.svg       debian/minetest/usr/share/icons/hicolor/scalable/apps/minetest.svg
+	cp misc/minetest-icon.svg debian/minetest/usr/share/icons/hicolor/scalable/apps/
 	# take care of the fonts we need
 	mkdir -p debian/minetest-data/usr/share/games/minetest/fonts/
 	ln -s /usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf \
