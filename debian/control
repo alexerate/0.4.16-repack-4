@@ -12,8 +12,10 @@ Build-Depends:
  dh-systemd (>= 1.5),
  gettext,
  imagemagick,
+ libbz2-dev,
  libcurl4-gnutls-dev,
  libfreetype6-dev,
+ libglu1-mesa-dev,
  libirrlicht-dev (>= 1.7.0),
  libjsoncpp-dev,
  libleveldb-dev,
@@ -52,7 +54,7 @@ Package: minetest-dbg
 Architecture: any
 Section: debug
 Depends:
- minetest (= ${binary:Version}) |  minetest-server (= ${binary:Version}),
+ minetest (= ${binary:Version}) | minetest-server (= ${binary:Version}),
  ${misc:Depends}
 Description: Multiplayer infinite-world block sandbox (debugging symbols)
  Minetest is a minecraft-inspired game written from scratch and licensed
