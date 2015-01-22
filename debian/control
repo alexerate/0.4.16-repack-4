@@ -18,6 +18,8 @@ Build-Depends:
  libglu1-mesa-dev,
  libirrlicht-dev (>= 1.7.0),
  libjsoncpp-dev,
+ libjpeg-dev,
+ libpng-dev,
  libleveldb-dev,
  libluajit-5.1-dev [i386 amd64 kfreebsd-i386 armel armhf powerpc powerpcspe mips] | liblua5.1-dev,
  libogg-dev,
