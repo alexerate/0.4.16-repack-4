@@ -72,12 +72,11 @@ override_dh_auto_configure:
 override_dh_auto_build:
 	dh_auto_build --parallel
 
+override_dh_installchangelogs:
+	dh_installchangelogs debian/changelog.upstream
+
 override_dh_install:
 	dh_install --list-missing -X.gitignore
-	for bpkg in minetest minetest-data minetest-dbg minetest-server ; do \
-	mkdir -p debian/$${bpkg}/usr/share/doc/$${bpkg} ; \
-	cp debian/changelog.upstream debian/$${bpkg}/usr/share/doc/$${bpkg}/changelog ; \
-	done
 	# copy the logo
 	mkdir -p debian/minetest/usr/share/icons/hicolor/24x24/apps/
 	cp misc/minetest-icon-24x24.png debian/minetest/usr/share/icons/hicolor/24x24/apps/minetest-icon.png
