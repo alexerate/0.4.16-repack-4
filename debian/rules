@@ -54,10 +54,8 @@ override_dh_auto_clean:
 	rm -rf ${cleanremovals}
 
 override_dh_auto_configure:
-	CFLAGS="${CFLAGS}" \
-	LDFLAGS="${LDFLAGS}" \
-	CXXFLAGS="${CXXFLAGS} ${CPPFLAGS}" \
-		cmake -DRUN_IN_PLACE=0 \
+	dh_auto_configure -- \
+		-DRUN_IN_PLACE=0 \
 		-DCMAKE_VERBOSE_MAKEFILE=ON \
 		-DENABLE_GETTEXT=1 \
 		-DENABLE_FREETYPE=1 \
@@ -67,7 +65,7 @@ override_dh_auto_configure:
 		-DLEVELDB_INCLUDE_DIR=/usr/include/leveldb \
 		-DCUSTOM_LOCALEDIR=/usr/share/locale \
 		-DCUSTOM_SHAREDIR=/usr/share/games/minetest \
-		-DCMAKE_INSTALL_PREFIX=/usr .
+		-DCMAKE_INSTALL_PREFIX=/usr
 
 override_dh_installchangelogs:
 	dh_installchangelogs debian/changelog.upstream
