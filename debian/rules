@@ -69,9 +69,6 @@ override_dh_auto_configure:
 		-DCUSTOM_SHAREDIR=/usr/share/games/minetest \
 		-DCMAKE_INSTALL_PREFIX=/usr .
 
-override_dh_auto_build:
-	dh_auto_build --parallel
-
 override_dh_installchangelogs:
 	dh_installchangelogs debian/changelog.upstream
 
@@ -123,4 +120,4 @@ get-orig-source:
 	@echo "successfully created new tarball: ${wrkdir}/../minetest_${version}+repack.orig.tar.gz"
 
 %:
-	dh ${@} --with systemd
+	dh ${@} --parallel --with systemd
