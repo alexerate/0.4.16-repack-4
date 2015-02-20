@@ -166,6 +166,29 @@ public:
 			}
 		}
 	}
+	void raiseModified(u32 mod, const char *reason)
+	{
+		if (mod > m_modified){
+			m_modified = mod;
+			m_modified_reason = reason;
+			m_modified_reason_too_long = false;
+
+			if (m_modified >= MOD_STATE_WRITE_AT_UNLOAD){
+				m_disk_timestamp = m_timestamp;
+			}
+		}
+		else if (mod == m_modified){
+			if (!m_modified_reason_too_long){
+				if (m_modified_reason.size() < 40)
+					m_modified_reason += ", " + std::string(reason);
+				else{
+					m_modified_reason += "...";
+					m_modified_reason_too_long = true;
+				}
+			}
+		}
+	}
+
 	u32 getModified()
 	{
 		return m_modified;
@@ -471,6 +494,7 @@ public:
 	
 	// These don't write or read version by itself
 	// Set disk to true for on-disk format, false for over-the-network format
+	// Precondition: version >= SER_FMT_CLIENT_VER_LOWEST
 	void serialize(std::ostream &os, u8 version, bool disk);
 	// If disk == true: In addition to doing other things, will add
 	// unknown blocks from id-name mapping to wndef
@@ -617,6 +641,16 @@ inline v2s16 getNodeSectorPos(v2s16 p)
 inline s16 getNodeBlockY(s16 y)
 {
 	return getContainerPos(y, MAP_BLOCKSIZE);
+}
+
+inline void getNodeBlockPosWithOffset(const v3s16 &p, v3s16 &block, v3s16 &offset)
+{
+	getContainerPosWithOffset(p, MAP_BLOCKSIZE, block, offset);
+}
+
+inline void getNodeSectorPosWithOffset(const v2s16 &p, v2s16 &block, v2s16 &offset)
+{
+	getContainerPosWithOffset(p, MAP_BLOCKSIZE, block, offset);
 }
 
 /*

@@ -46,21 +46,15 @@ VoxelManipulator::VoxelManipulator():
 VoxelManipulator::~VoxelManipulator()
 {
 	clear();
-	if(m_data)
-		delete[] m_data;
-	if(m_flags)
-		delete[] m_flags;
 }
 
 void VoxelManipulator::clear()
 {
 	// Reset area to volume=0
 	m_area = VoxelArea();
-	if(m_data)
-		delete[] m_data;
+	delete[] m_data;
 	m_data = NULL;
-	if(m_flags)
-		delete[] m_flags;
+	delete[] m_flags;
 	m_flags = NULL;
 }
 
@@ -145,7 +139,7 @@ void VoxelManipulator::print(std::ostream &o, INodeDefManager *ndef,
 void VoxelManipulator::addArea(const VoxelArea &area)
 {
 	// Cancel if requested area has zero volume
-	if(area.getExtent() == v3s16(0,0,0))
+	if (area.hasEmptyExtent())
 		return;
 
 	// Cancel if m_area already contains the requested area
@@ -157,7 +151,7 @@ void VoxelManipulator::addArea(const VoxelArea &area)
 	// Calculate new area
 	VoxelArea new_area;
 	// New area is the requested area if m_area has zero volume
-	if(m_area.getExtent() == v3s16(0,0,0))
+	if(m_area.hasEmptyExtent())
 	{
 		new_area = area;
 	}
@@ -179,10 +173,8 @@ void VoxelManipulator::addArea(const VoxelArea &area)
 	dstream<<", new_size="<<new_size;
 	dstream<<std::endl;*/
 
-	// Allocate and clear new data
-	// FIXME: UGLY KLUDGE because MapNode default constructor is FUBAR; it
-	//        initialises data that is going to be overwritten anyway
-	MapNode *new_data = (MapNode*)new char[new_size * sizeof (*new_data)];
+	// Allocate new data and clear flags
+	MapNode *new_data = new MapNode[new_size];
 	assert(new_data);
 	u8 *new_flags = new u8[new_size];
 	assert(new_flags);
@@ -215,10 +207,8 @@ void VoxelManipulator::addArea(const VoxelArea &area)
 	m_data = new_data;
 	m_flags = new_flags;
 
-	if(old_data)
-		delete[] old_data;
-	if(old_flags)
-		delete[] old_flags;
+	delete[] old_data;
+	delete[] old_flags;
 
 	//dstream<<"addArea done"<<std::endl;
 }

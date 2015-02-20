@@ -28,9 +28,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "porting.h"
 #include "tile.h"
 #include "fontengine.h"
-#include <string>
-
+#include "log.h"
 #include "gettext.h"
+#include <string>
 
 #if USE_FREETYPE
 #include "xCGUITTFont.h"
@@ -72,24 +72,21 @@ GUIChatConsole::GUIChatConsole(
 	m_animate_time_old = getTimeMs();
 
 	// load background settings
-	bool console_color_set = !g_settings->get("console_color").empty();
 	s32 console_alpha = g_settings->getS32("console_alpha");
+	m_background_color.setAlpha(clamp_u8(console_alpha));
 
 	// load the background texture depending on settings
-	m_background_color.setAlpha(clamp_u8(console_alpha));
-	if (console_color_set)
-	{
+	ITextureSource *tsrc = client->getTextureSource();
+	if (tsrc->isKnownSourceImage("background_chat.jpg")) {
+		m_background = tsrc->getTexture("background_chat.jpg");
+		m_background_color.setRed(255);
+		m_background_color.setGreen(255);
+		m_background_color.setBlue(255);
+	} else {
 		v3f console_color = g_settings->getV3F("console_color");
 		m_background_color.setRed(clamp_u8(myround(console_color.X)));
 		m_background_color.setGreen(clamp_u8(myround(console_color.Y)));
 		m_background_color.setBlue(clamp_u8(myround(console_color.Z)));
-	}
-	else
-	{
-		m_background = env->getVideoDriver()->getTexture(getTexturePath("background_chat.jpg").c_str());
-		m_background_color.setRed(255);
-		m_background_color.setGreen(255);
-		m_background_color.setBlue(255);
 	}
 
 	m_font = g_fontengine->getFont(FONT_SIZE_UNSPECIFIED, FM_Mono);
@@ -102,7 +99,7 @@ GUIChatConsole::GUIChatConsole(
 	{
 		core::dimension2d<u32> dim = m_font->getDimension(L"M");
 		m_fontsize = v2u32(dim.Width, dim.Height);
-		dstream << "Font size: " << m_fontsize.X << " " << m_fontsize.Y << std::endl;
+		m_font->grab();
 	}
 	m_fontsize.X = MYMAX(m_fontsize.X, 1);
 	m_fontsize.Y = MYMAX(m_fontsize.Y, 1);
@@ -112,7 +109,10 @@ GUIChatConsole::GUIChatConsole(
 }
 
 GUIChatConsole::~GUIChatConsole()
-{}
+{
+	if (m_font)
+		m_font->drop();
+}
 
 void GUIChatConsole::openConsole(f32 height)
 {

@@ -16,7 +16,7 @@ endif
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := curl
-LOCAL_SRC_FILES := deps/curl-7.35.0/lib/.libs/libcurl.a
+LOCAL_SRC_FILES := deps/curl/lib/.libs/libcurl.a
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
@@ -41,13 +41,13 @@ include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := ssl
-LOCAL_SRC_FILES := deps/openssl-android/libs/$(TARGET_LIBDIR)/libssl.so
-include $(PREBUILT_SHARED_LIBRARY)
+LOCAL_SRC_FILES := deps/openssl/libssl.a
+include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := crypto
-LOCAL_SRC_FILES := deps/openssl-android/libs/$(TARGET_LIBDIR)/libcrypto.so
-include $(PREBUILT_SHARED_LIBRARY)
+LOCAL_SRC_FILES := deps/openssl/libcrypto.a
+include $(PREBUILT_STATIC_LIBRARY)
 
 
 include $(CLEAR_VARS)
@@ -94,10 +94,11 @@ LOCAL_C_INCLUDES :=                               \
 		jni/src/cguittfont                        \
 		deps/irrlicht/include                     \
 		deps/freetype2-android/include            \
-		deps/curl-7.35.0/include                  \
+		deps/curl/include                         \
 		deps/openal-soft/jni/OpenAL/include       \
 		deps/libvorbis-libogg-android/jni/include \
 		deps/leveldb/include                      \
+		deps/sqlite/
 
 LOCAL_SRC_FILES :=                                \
 		jni/src/ban.cpp                           \
@@ -290,7 +291,7 @@ LOCAL_SRC_FILES +=                                \
 		jni/src/lua/src/print.c
 
 # sqlite
-LOCAL_SRC_FILES += jni/src/sqlite/sqlite3.c
+LOCAL_SRC_FILES += deps/sqlite/sqlite3.c
 
 # jthread
 LOCAL_SRC_FILES +=                                \
@@ -302,8 +303,8 @@ LOCAL_SRC_FILES +=                                \
 # json
 LOCAL_SRC_FILES += jni/src/json/jsoncpp.cpp
 
-LOCAL_SHARED_LIBRARIES := openal ogg vorbis ssl crypto
-LOCAL_STATIC_LIBRARIES := Irrlicht freetype curl android_native_app_glue $(PROFILER_LIBS)
+LOCAL_SHARED_LIBRARIES := openal ogg vorbis
+LOCAL_STATIC_LIBRARIES := Irrlicht freetype curl ssl crypto android_native_app_glue $(PROFILER_LIBS)
 
 ifeq ($(HAVE_LEVELDB), 1)
 	LOCAL_STATIC_LIBRARIES += LevelDB

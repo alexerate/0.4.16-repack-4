@@ -114,7 +114,11 @@
 #    Enable smooth lighting with simple ambient occlusion.
 #    Disable for speed or for different looks.
 #smooth_lighting = true
-#    Path to texture directory. All textures are first searched from here.
+#    Adjust the gamma encoding for the light tables. Valid values are in the range
+#    1.1 to 3.0 (inclusive); lower numbers are brighter.  This setting is for the
+#    client only and is ignored by the server
+#display_gamma = 1.8
+# Path to texture directory. All textures are first searched from here.
 #texture_path =
 #    Video back-end.
 #    Possible values: null, software, burningsvideo, direct3d8, direct3d9, opengl.
@@ -212,6 +216,11 @@
 #    Set to true enables waving plants. Requires shaders enabled.
 #enable_waving_plants = false
 #    Enables caching of facedir rotated meshes
+#ambient_occlusion_gamma = 2.2
+#    The strength (darkness) of node ambient-occlusion shading.
+#    Lower is darker, Higher is lighter. The valid range of values for this
+#    setting is 0.25 to 4.0 inclusive. If the value is out of range it will be
+#    set to the nearest valid value.
 #enable_mesh_cache = true
 #    The time in seconds it takes between repeated
 #    right clicks when holding the right mouse button.
@@ -220,7 +229,7 @@
 #directional_colored_fog = true
 #    Delay showing tooltips, stated in milliseconds
 #tooltip_show_delay = 400
-#    Adjust dpi configuration to your screen (Desktop only) e.g. for 4k screens
+#    Adjust dpi configuration to your screen (non X11/Android only) e.g. for 4k screens
 #screen_dpi = 72
 #    Default timeout for cURL, stated in milliseconds.
 #    Only has an effect if compiled with cURL.
@@ -243,16 +252,16 @@
 #freetype = true
 #    Path to TrueTypeFont or bitmap
 #font_path = fonts/liberationsans.ttf
-#font_size = 13
+#font_size = 15
 #    Font shadow offset, if 0 then shadow will not be drawn
 #font_shadow = 1
 #    Font shadow alpha (opaqueness, between 0 and 255)
 #font_shadow_alpha = 128
 #mono_font_path = fonts/liberationmono.ttf
-#mono_font_size = 13
+#mono_font_size = 15
 #    This font will be used for certain languages
 #fallback_font_path = fonts/DroidSansFallbackFull.ttf
-#fallback_font_size = 13
+#fallback_font_size = 15
 #fallback_font_shadow = 1
 #fallback_font_shadow_alpha = 128
 #    Override language. When no value is provided (default) system language is used.
@@ -328,6 +337,7 @@
 #    If true, disable cheat prevention in multiplayer
 #disable_anticheat = false
 #    If true, actions are recorded for rollback
+#    This option is only read when server starts
 #enable_rollback_recording = false
 #    Handling for deprecated lua api calls:
 #        "legacy" = (try to) mimic old behaviour (default for release).
@@ -538,10 +548,11 @@
 #mgv7_np_filler_depth = 0, 1.2, (150, 150, 150), 261, 4, 0.7, 2.0
 #mgv7_np_mount_height = 100, 30, (500, 500, 500), 72449, 4, 0.6, 2.0
 #mgv7_np_ridge_uwater = 0, 1, (500, 500, 500), 85039, 4, 0.6, 2.0
-#mgv7_np_mountain = 0, 1, (250, 350, 250), 5333, 5, 0.68, 2.0
+#mgv7_np_mountain = -0.6, 1, (250, 350, 250), 5333, 5, 0.68, 2.0
 #mgv7_np_ridge = 0, 1, (100, 100, 100), 6467, 4, 0.75, 2.0
+#mgv7_np_cave1 = 0, 12, (100, 100, 100), 52534, 4, 0.5, 2.0
+#mgv7_np_cave2 = 0, 12, (100, 100, 100), 10325, 4, 0.5, 2.0
 
 #    Noise parameters for biome API temperature and humidity
 #mg_biome_np_heat = 50, 50, (500, 500, 500), 5349, 3, 0.5, 2.0
 #mg_biome_np_humidity = 50, 50, (500, 500, 500), 842, 3, 0.5, 2.0
-
