@@ -9,10 +9,10 @@ Forwarded: not-needed
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/main.cpp b/src/main.cpp
-index 0c5f73b..120c23b 100644
+index bbf88e8..b2b37b1 100644
 --- a/src/main.cpp
 +++ b/src/main.cpp
-@@ -1109,7 +1109,7 @@ static bool init_common(int *log_level, const Settings &cmd_args, int argc, char
+@@ -1111,7 +1111,7 @@ static bool init_common(int *log_level, const Settings &cmd_args, int argc, char
  	init_gettext((porting::path_share + DIR_DELIM + "locale").c_str(),
  		g_settings->get("language"), argc, argv);
  #else
