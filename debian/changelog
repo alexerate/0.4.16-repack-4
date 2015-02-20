@@ -1,4 +1,4 @@
-minetest (0.4.12+repack-1) UNRELEASED; urgency=medium
+minetest (0.4.12+repack-1) experimental; urgency=medium
 
   * Imported Upstream version 0.4.12+repack.
   * Drop the following patches. They were merged upstream.
@@ -10,7 +10,8 @@ minetest (0.4.12+repack-1) UNRELEASED; urgency=medium
     is a better location for xpm files.
   * Use dh_installchangelogs override for installing the upstream changelog.
   * Drop useless-depends.patch. Add missing build-dependencies instead.
-  * Add libbz2-dev, libglu1-mesa-dev, libpng-dev and libjpeg-dev to Build-Depends.
+  * Add libbz2-dev, libglu1-mesa-dev, libpng-dev and libjpeg-dev to
+    Build-Depends.
   * wrap-and-sort -sa.
   * Drop gcc47.patch because it is obsolete.
   * Create directory for minetest.xpm in debian/rules and improve formatting.
@@ -18,6 +19,10 @@ minetest (0.4.12+repack-1) UNRELEASED; urgency=medium
   * Use dh_auto_configure command to pass on build flags. Do not call cmake
     manually.
   * Drop debianization.patch. It is not needed to find the Irrlicht library.
+  * Drop dynamic-link.patch and rawlua.patch. Add FindJson.cmake.patch instead.
+    - Remove unnecessary hunks and patch only FindJson.cmake module. This
+      ensures that Debian's system json library will be used and simplifies
+      future updates.
 
  -- Markus Koschany <apo@gambaru.de>  Fri, 20 Feb 2015 19:53:41 +0100
 
