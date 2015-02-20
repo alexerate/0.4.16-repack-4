@@ -19,7 +19,7 @@ minetest (0.4.12+repack-1) experimental; urgency=medium
   * Use dh_auto_configure command to pass on build flags. Do not call cmake
     manually.
   * Drop debianization.patch. It is not needed to find the Irrlicht library.
-  * Drop dynamic-link.patch and rawlua.patch. Add FindJson.cmake.patch instead.
+  * Drop dynamic-link.patch. Add FindJson.cmake.patch instead.
     - Remove unnecessary hunks and patch only FindJson.cmake module. This
       ensures that Debian's system json library will be used and simplifies
       future updates.
