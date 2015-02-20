@@ -1,3 +1,26 @@
+minetest (0.4.12+repack-1) UNRELEASED; urgency=medium
+
+  * Imported Upstream version 0.4.12+repack.
+  * Drop the following patches. They were merged upstream.
+    - desktop-file.patch
+    - hurd.patch
+    - hyphen-used-as-minus.patch
+  * Drop desktop-file-fix-icon.patch. Instead rename minetest icons and use
+    the upstream name again. Install minetest.xpm to /usr/share/pixmaps which
+    is a better location for xpm files.
+  * Use dh_installchangelogs override for installing the upstream changelog.
+  * Drop useless-depends.patch. Add missing build-dependencies instead.
+  * Add libbz2-dev, libglu1-mesa-dev, libpng-dev and libjpeg-dev to Build-Depends.
+  * wrap-and-sort -sa.
+  * Drop gcc47.patch because it is obsolete.
+  * Create directory for minetest.xpm in debian/rules and improve formatting.
+  * Remove dh_auto_build override. Use --parallel with main dh invocation.
+  * Use dh_auto_configure command to pass on build flags. Do not call cmake
+    manually.
+  * Drop debianization.patch. It is not needed to find the Irrlicht library.
+
+ -- Markus Koschany <apo@gambaru.de>  Fri, 20 Feb 2015 19:53:41 +0100
+
 minetest (0.4.11+repack-1) experimental; urgency=medium
 
   * Upload to experimental.
