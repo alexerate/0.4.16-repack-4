@@ -1,6 +1,5 @@
 kfreebsd-gettext.patch
 i18n.patch
-dynamic-link.patch
 mapper.patch
 shared_mods.patch
 rawlua.patch
