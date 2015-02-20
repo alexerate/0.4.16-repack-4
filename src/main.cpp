@@ -780,6 +780,8 @@ int main(int argc, char *argv[])
 {
 	int retval;
 
+	debug_set_exception_handler();
+
 	log_add_output_maxlev(&main_stderr_log_out, LMT_ACTION);
 	log_add_output_all_levs(&main_dstream_no_stderr_log_out);
 
@@ -1682,7 +1684,7 @@ bool ClientLauncher::run(GameParams &game_params, const Settings &cmd_args)
 	while (device->run() && !*kill && !g_gamecallback->shutdown_requested)
 	{
 		// Set the window caption
-		wchar_t *text = wgettext("Main Menu");
+		const wchar_t *text = wgettext("Main Menu");
 		device->setWindowCaption((std::wstring(L"Minetest [") + text + L"]").c_str());
 		delete[] text;
 
@@ -1859,6 +1861,10 @@ bool ClientLauncher::launch_game(std::wstring *error_message,
 	if (!skip_main_menu) {
 		main_menu(&menudata);
 
+		// Skip further loading if there was an exit signal.
+		if (*porting::signal_handler_killstatus())
+			return false;
+
 		address = menudata.address;
 		int newport = stoi(menudata.port);
 		if (newport != 0)
@@ -1867,7 +1873,6 @@ bool ClientLauncher::launch_game(std::wstring *error_message,
 		simple_singleplayer_mode = menudata.simple_singleplayer_mode;
 
 		std::vector<WorldSpec> worldspecs = getAvailableWorlds();
-		worldspecs = getAvailableWorlds();
 
 		if (menudata.selected_world >= 0
 				&& menudata.selected_world < (int)worldspecs.size()) {
@@ -1995,22 +2000,6 @@ void ClientLauncher::main_menu(MainMenuData *menudata)
 
 bool ClientLauncher::create_engine_device(int log_level)
 {
-	static const char *driverids[] = {
-		"null",
-		"software",
-		"burningsvideo",
-		"direct3d8",
-		"direct3d9",
-		"opengl"
-#ifdef _IRR_COMPILE_WITH_OGLES1_
-		,"ogles1"
-#endif
-#ifdef _IRR_COMPILE_WITH_OGLES2_
-		,"ogles2"
-#endif
-		,"invalid"
-	};
-
 	static const irr::ELOG_LEVEL irr_log_level[5] = {
 		ELL_NONE,
 		ELL_ERROR,
@@ -2035,19 +2024,20 @@ bool ClientLauncher::create_engine_device(int log_level)
 
 	// Determine driver
 	video::E_DRIVER_TYPE driverType = video::EDT_OPENGL;
-
 	std::string driverstring = g_settings->get("video_driver");
-	for (size_t i = 0; i < sizeof driverids / sizeof driverids[0]; i++) {
-		if (strcasecmp(driverstring.c_str(), driverids[i]) == 0) {
-			driverType = (video::E_DRIVER_TYPE) i;
+	std::vector<video::E_DRIVER_TYPE> drivers
+		= porting::getSupportedVideoDrivers();
+	u32 i;
+	for (i = 0; i != drivers.size(); i++) {
+		if (!strcasecmp(driverstring.c_str(),
+			porting::getVideoDriverName(drivers[i]))) {
+			driverType = drivers[i];
 			break;
 		}
-
-		if (strcasecmp("invalid", driverids[i]) == 0) {
-			errorstream << "WARNING: Invalid video_driver specified;"
-			            << " defaulting to opengl" << std::endl;
-			break;
-		}
+	}
+	if (i == drivers.size()) {
+		errorstream << "Invalid video_driver specified; "
+			"defaulting to opengl" << std::endl;
 	}
 
 	SIrrlichtCreationParameters params = SIrrlichtCreationParameters();

@@ -89,17 +89,25 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // Maximum hit points of a player
 #define PLAYER_MAX_HP 20
 
+// Maximal breath of a player
+#define PLAYER_MAX_BREATH 11
+
 // Number of different files to try to save a player to if the first fails
 // (because of a case-insensitive filesystem)
 // TODO: Use case-insensitive player names instead of this hack.
 #define PLAYER_FILE_ALTERNATE_TRIES 1000
 
 /*
- *    GUI related things
- */
-#define LEGACY_SCALING                                     (2./3.)
-#define TTF_DEFAULT_FONT_SIZE              (12.0 / LEGACY_SCALING)
-#define DEFAULT_FONT_SIZE                                     (14)
+    GUI related things
+*/
+
+// TODO: implement dpi-based scaling for windows and remove this hack
+#if defined(_WIN32)
+	#define TTF_DEFAULT_FONT_SIZE   (18)
+#else
+	#define TTF_DEFAULT_FONT_SIZE	(15)
+#endif
+#define DEFAULT_FONT_SIZE       (10)
 
 #endif
 

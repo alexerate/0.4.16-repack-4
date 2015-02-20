@@ -22,14 +22,19 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "numeric.h"
 #include "log.h"
 
-#include <sstream>
-#include <iomanip>
-#include <map>
-
 #include "../sha1.h"
 #include "../base64.h"
 #include "../hex.h"
 #include "../porting.h"
+
+#include <algorithm>
+#include <sstream>
+#include <iomanip>
+#include <map>
+
+#if defined(_WIN32)
+#include <windows.h>  // MultiByteToWideChar
+#endif
 
 static bool parseHexColorString(const std::string &value, video::SColor &color);
 static bool parseNamedColorString(const std::string &value, video::SColor &color);
@@ -57,50 +62,75 @@ int wctomb(char *s, wchar_t wc)
 
 int mbtowc(wchar_t *pwc, const char *s, size_t n)
 {
-	std::wstring intermediate = narrow_to_wide(s);
+	const wchar_t *tmp = narrow_to_wide_c(s);
 
-	if (intermediate.length() > 0) {
-		*pwc = intermediate[0];
+	if (tmp[0] != '\0') {
+		*pwc = tmp[0];
 		return 1;
-	}
-	else {
+	} else {
 		return -1;
 	}
 }
 
-std::wstring narrow_to_wide(const std::string& mbs) {
-	size_t wcl = mbs.size();
+// You must free the returned string!
+const wchar_t *narrow_to_wide_c(const char *mbs)
+{
+	size_t mbl = strlen(mbs);
+	wchar_t *wcs = new wchar_t[mbl + 1];
 
-	std::wstring retval = L"";
-
-	for (unsigned int i = 0; i < wcl; i++) {
-		if (((unsigned char) mbs[i] >31) &&
-		 ((unsigned char) mbs[i] < 127)) {
-
-			retval += wide_chars[(unsigned char) mbs[i] -32];
+	for (size_t i = 0; i < mbl; i++) {
+		if (((unsigned char) mbs[i] > 31) &&
+				((unsigned char) mbs[i] < 127)) {
+			wcs[i] = wide_chars[(unsigned char) mbs[i] - 32];
 		}
 		//handle newline
 		else if (mbs[i] == '\n') {
-			retval += L'\n';
+			wcs[i] = L'\n';
 		}
 	}
 
-	return retval;
+	return wcs;
 }
+
 #else
+
+// You must free the returned string!
+const wchar_t *narrow_to_wide_c(const char *mbs)
+{
+	wchar_t *wcs = NULL;
+#if defined(_WIN32)
+	int nResult = MultiByteToWideChar(CP_UTF8, 0, (LPCSTR) mbs, -1, 0, 0);
+	if (nResult == 0) {
+		errorstream << "gettext: MultiByteToWideChar returned null" << std::endl;
+	} else {
+		wcs = new wchar_t[nResult];
+		MultiByteToWideChar(CP_UTF8, 0, (LPCSTR) mbs, -1, (WCHAR *) wcs, nResult);
+	}
+#else
+	size_t wcl = mbstowcs(NULL, mbs, 0);
+	if (wcl == (size_t) -1)
+		return NULL;
+	wcs = new wchar_t[wcl + 1];
+	size_t l = mbstowcs(wcs, mbs, wcl);
+	assert(l != (size_t) -1); // Should never happen if the last call worked
+	wcs[l] = '\0';
+#endif
+
+	return wcs;
+}
+
+#endif
 
 std::wstring narrow_to_wide(const std::string& mbs)
 {
 	size_t wcl = mbs.size();
-	Buffer<wchar_t> wcs(wcl+1);
+	Buffer<wchar_t> wcs(wcl + 1);
 	size_t l = mbstowcs(*wcs, mbs.c_str(), wcl);
-	if(l == (size_t)(-1))
+	if (l == (size_t)(-1))
 		return L"<invalid multibyte string>";
 	wcs[l] = 0;
 	return *wcs;
 }
-
-#endif
 
 #ifdef __ANDROID__
 std::string wide_to_narrow(const std::wstring& wcs) {
@@ -577,3 +607,9 @@ static bool parseNamedColorString(const std::string &value, video::SColor &color
 
 	return true;
 }
+
+void str_replace(std::string &str, char from, char to)
+{
+	std::replace(str.begin(), str.end(), from, to);
+}
+

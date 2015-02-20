@@ -74,55 +74,6 @@ static unsigned int font_line_height(gui::IGUIFont *font)
 	return font->getDimension(L"Ay").Height + font->getKerningHeight();
 }
 
-static gui::IGUIFont *select_font_by_line_height(double target_line_height)
-{
-	return g_fontengine->getFont();
-
-/* I have no idea what this is trying to achieve, but scaling the font according
- * to the size of a formspec/dialog does not seem to be a standard (G)UI
- * design and AFAIK no existing nor proposed GUI does this. Besides that it:
- * a) breaks most (current) formspec layouts
- * b) font sizes change depending on the size of the formspec/dialog (see above)
- *    meaning that there is no UI consistency
- * c) the chosen fonts are, in general, probably too large
- *
- * Disabling for now.
- *
- * FIXME
- */
-#if 0
-	// We don't get to directly select a font according to its
-	// baseline-to-baseline height.  Rather, we select by em size.
-	// The ratio between these varies between fonts.  The font
-	// engine also takes its size parameter not specified in pixels,
-	// as we want, but scaled by display density and gui_scaling,
-	// so invert that scaling here.  Use a binary search among
-	// requested sizes to find the right font.  Our starting bounds
-	// are an em height of 1 (being careful not to request size 0,
-	// which crashes the freetype system) and an em height of the
-	// target baseline-to-baseline height.
-	unsigned int loreq = ceil(1 / porting::getDisplayDensity()
-				/ g_settings->getFloat("gui_scaling"));
-	unsigned int hireq = ceil(target_line_height
-				/ porting::getDisplayDensity()
-				/ g_settings->getFloat("gui_scaling"));
-	unsigned int lohgt = font_line_height(g_fontengine->getFont(loreq));
-	unsigned int hihgt = font_line_height(g_fontengine->getFont(hireq));
-	while(hireq - loreq > 1 && lohgt != hihgt) {
-		unsigned int nureq = (loreq + hireq) >> 1;
-		unsigned int nuhgt = font_line_height(g_fontengine->getFont(nureq));
-		if(nuhgt < target_line_height) {
-			loreq = nureq;
-			lohgt = nuhgt;
-		} else {
-			hireq = nureq;
-			hihgt = nuhgt;
-		}
-	}
-	return g_fontengine->getFont(target_line_height - lohgt < hihgt - target_line_height ? loreq : hireq);
-#endif
-}
-
 GUIFormSpecMenu::GUIFormSpecMenu(irr::IrrlichtDevice* dev,
 		gui::IGUIElement* parent, s32 id, IMenuManager *menumgr,
 		InventoryManager *invmgr, IGameDef *gamedef,
@@ -146,6 +97,7 @@ GUIFormSpecMenu::GUIFormSpecMenu(irr::IrrlichtDevice* dev,
 	m_form_src(fsrc),
 	m_text_dst(tdst),
 	m_formspec_version(0),
+	m_focused_element(L""),
 	m_font(NULL)
 #ifdef __ANDROID__
 	,m_JavaDialogFieldName(L"")
@@ -401,7 +353,7 @@ void GUIFormSpecMenu::parseCheckbox(parserData* data,std::string element)
 {
 	std::vector<std::string> parts = split(element,';');
 
-	if (((parts.size() >= 3) || (parts.size() <= 4)) ||
+	if (((parts.size() >= 3) && (parts.size() <= 4)) ||
 		((parts.size() > 4) && (m_formspec_version > FORMSPEC_API_VERSION)))
 	{
 		std::vector<std::string> v_pos = split(parts[0],',');
@@ -423,7 +375,7 @@ void GUIFormSpecMenu::parseCheckbox(parserData* data,std::string element)
 		if (selected == "true")
 			fselected = true;
 
-		std::wstring wlabel = narrow_to_wide(label.c_str());
+		std::wstring wlabel = narrow_to_wide(label);
 
 		core::rect<s32> rect = core::rect<s32>(
 				pos.X, pos.Y + ((imgsize.Y/2) - m_btn_height),
@@ -431,7 +383,7 @@ void GUIFormSpecMenu::parseCheckbox(parserData* data,std::string element)
 				pos.Y + ((imgsize.Y/2) + m_btn_height));
 
 		FieldSpec spec(
-				narrow_to_wide(name.c_str()),
+				narrow_to_wide(name),
 				wlabel, //Needed for displaying text on MSVC
 				wlabel,
 				258+m_fields.size()
@@ -483,7 +435,7 @@ void GUIFormSpecMenu::parseScrollBar(parserData* data, std::string element)
 				core::rect<s32>(pos.X, pos.Y, pos.X + dim.X, pos.Y + dim.Y);
 
 		FieldSpec spec(
-				narrow_to_wide(name.c_str()),
+				narrow_to_wide(name),
 				L"",
 				L"",
 				258+m_fields.size()
@@ -621,10 +573,10 @@ void GUIFormSpecMenu::parseButton(parserData* data,std::string element,
 
 		label = unescape_string(label);
 
-		std::wstring wlabel = narrow_to_wide(label.c_str());
+		std::wstring wlabel = narrow_to_wide(label);
 
 		FieldSpec spec(
-			narrow_to_wide(name.c_str()),
+			narrow_to_wide(name),
 			wlabel,
 			L"",
 			258+m_fields.size()
@@ -746,7 +698,7 @@ void GUIFormSpecMenu::parseTable(parserData* data,std::string element)
 
 		core::rect<s32> rect = core::rect<s32>(pos.X, pos.Y, pos.X+geom.X, pos.Y+geom.Y);
 
-		std::wstring fname_w = narrow_to_wide(name.c_str());
+		std::wstring fname_w = narrow_to_wide(name);
 
 		FieldSpec spec(
 			fname_w,
@@ -820,7 +772,7 @@ void GUIFormSpecMenu::parseTextList(parserData* data,std::string element)
 
 		core::rect<s32> rect = core::rect<s32>(pos.X, pos.Y, pos.X+geom.X, pos.Y+geom.Y);
 
-		std::wstring fname_w = narrow_to_wide(name.c_str());
+		std::wstring fname_w = narrow_to_wide(name);
 
 		FieldSpec spec(
 			fname_w,
@@ -885,7 +837,7 @@ void GUIFormSpecMenu::parseDropDown(parserData* data,std::string element)
 		core::rect<s32> rect = core::rect<s32>(pos.X, pos.Y,
 				pos.X + width, pos.Y + (m_btn_height * 2));
 
-		std::wstring fname_w = narrow_to_wide(name.c_str());
+		std::wstring fname_w = narrow_to_wide(name);
 
 		FieldSpec spec(
 			fname_w,
@@ -948,10 +900,10 @@ void GUIFormSpecMenu::parsePwdField(parserData* data,std::string element)
 
 		label = unescape_string(label);
 
-		std::wstring wlabel = narrow_to_wide(label.c_str());
+		std::wstring wlabel = narrow_to_wide(label);
 
 		FieldSpec spec(
-			narrow_to_wide(name.c_str()),
+			narrow_to_wide(name),
 			wlabel,
 			L"",
 			258+m_fields.size()
@@ -966,7 +918,7 @@ void GUIFormSpecMenu::parsePwdField(parserData* data,std::string element)
 
 		if (label.length() >= 1)
 		{
-			int font_height = font_line_height(m_font);
+			int font_height = g_fontengine->getTextHeight();
 			rect.UpperLeftCorner.Y -= font_height;
 			rect.LowerRightCorner.Y = rect.UpperLeftCorner.Y + font_height;
 			Environment->addStaticText(spec.flabel.c_str(), rect, false, true, this, 0);
@@ -1014,12 +966,12 @@ void GUIFormSpecMenu::parseSimpleField(parserData* data,
 	default_val = unescape_string(default_val);
 	label = unescape_string(label);
 
-	std::wstring wlabel = narrow_to_wide(label.c_str());
+	std::wstring wlabel = narrow_to_wide(label);
 
 	FieldSpec spec(
-		narrow_to_wide(name.c_str()),
+		narrow_to_wide(name),
 		wlabel,
-		narrow_to_wide(default_val.c_str()),
+		narrow_to_wide(default_val),
 		258+m_fields.size()
 	);
 
@@ -1049,7 +1001,7 @@ void GUIFormSpecMenu::parseSimpleField(parserData* data,
 
 		if (label.length() >= 1)
 		{
-			int font_height = font_line_height(m_font);
+			int font_height = g_fontengine->getTextHeight();
 			rect.UpperLeftCorner.Y -= font_height;
 			rect.LowerRightCorner.Y = rect.UpperLeftCorner.Y + font_height;
 			Environment->addStaticText(spec.flabel.c_str(), rect, false, true, this, 0);
@@ -1104,12 +1056,12 @@ void GUIFormSpecMenu::parseTextArea(parserData* data,
 	default_val = unescape_string(default_val);
 	label = unescape_string(label);
 
-	std::wstring wlabel = narrow_to_wide(label.c_str());
+	std::wstring wlabel = narrow_to_wide(label);
 
 	FieldSpec spec(
-		narrow_to_wide(name.c_str()),
+		narrow_to_wide(name),
 		wlabel,
-		narrow_to_wide(default_val.c_str()),
+		narrow_to_wide(default_val),
 		258+m_fields.size()
 	);
 
@@ -1146,7 +1098,7 @@ void GUIFormSpecMenu::parseTextArea(parserData* data,
 
 		if (label.length() >= 1)
 		{
-			int font_height = font_line_height(m_font);
+			int font_height = g_fontengine->getTextHeight();
 			rect.UpperLeftCorner.Y -= font_height;
 			rect.LowerRightCorner.Y = rect.UpperLeftCorner.Y + font_height;
 			Environment->addStaticText(spec.flabel.c_str(), rect, false, true, this, 0);
@@ -1193,8 +1145,6 @@ void GUIFormSpecMenu::parseLabel(parserData* data,std::string element)
 		if(!data->explicit_size)
 			errorstream<<"WARNING: invalid use of label without a size[] element"<<std::endl;
 
-		int font_height = font_line_height(m_font);
-
 		text = unescape_string(text);
 		std::vector<std::string> lines = split(text, '\n');
 
@@ -1209,11 +1159,11 @@ void GUIFormSpecMenu::parseLabel(parserData* data,std::string element)
 			// in the integer cases: 0.4 is not exactly
 			// representable in binary floating point.
 			s32 posy = pos.Y + ((float)i) * spacing.Y * 2.0 / 5.0;
-			std::wstring wlabel = narrow_to_wide(lines[i].c_str());
+			std::wstring wlabel = narrow_to_wide(lines[i]);
 			core::rect<s32> rect = core::rect<s32>(
-				pos.X, posy - font_height,
+				pos.X, posy - m_btn_height,
 				pos.X + m_font->getDimension(wlabel.c_str()).Width,
-				posy + font_height);
+				posy + m_btn_height);
 			FieldSpec spec(
 				L"",
 				wlabel,
@@ -1330,12 +1280,12 @@ void GUIFormSpecMenu::parseImageButton(parserData* data,std::string element,
 		pressed_image_name = unescape_string(pressed_image_name);
 		label = unescape_string(label);
 
-		std::wstring wlabel = narrow_to_wide(label.c_str());
+		std::wstring wlabel = narrow_to_wide(label);
 
 		FieldSpec spec(
-			narrow_to_wide(name.c_str()),
+			narrow_to_wide(name),
 			wlabel,
-			narrow_to_wide(image_name.c_str()),
+			narrow_to_wide(image_name),
 			258+m_fields.size()
 		);
 		spec.ftype = f_Button;
@@ -1395,7 +1345,7 @@ void GUIFormSpecMenu::parseTabHeader(parserData* data,std::string element)
 		}
 
 		FieldSpec spec(
-			narrow_to_wide(name.c_str()),
+			narrow_to_wide(name),
 			L"",
 			L"",
 			258+m_fields.size()
@@ -1482,16 +1432,16 @@ void GUIFormSpecMenu::parseItemImageButton(parserData* data,std::string element)
 		item.deSerialize(item_name, idef);
 		video::ITexture *texture = idef->getInventoryTexture(item.getDefinition(idef).name, m_gamedef);
 
-		m_tooltips[narrow_to_wide(name.c_str())] =
+		m_tooltips[narrow_to_wide(name)] =
 			TooltipSpec (item.getDefinition(idef).description,
 						m_default_tooltip_bgcolor,
 						m_default_tooltip_color);
 
 		label = unescape_string(label);
 		FieldSpec spec(
-			narrow_to_wide(name.c_str()),
-			narrow_to_wide(label.c_str()),
-			narrow_to_wide(item_name.c_str()),
+			narrow_to_wide(name),
+			narrow_to_wide(label),
+			narrow_to_wide(item_name),
 			258+m_fields.size()
 		);
 
@@ -1601,13 +1551,13 @@ void GUIFormSpecMenu::parseTooltip(parserData* data, std::string element)
 	std::vector<std::string> parts = split(element,';');
 	if (parts.size() == 2) {
 		std::string name = parts[0];
-		m_tooltips[narrow_to_wide(name.c_str())] = TooltipSpec (parts[1], m_default_tooltip_bgcolor, m_default_tooltip_color);
+		m_tooltips[narrow_to_wide(name)] = TooltipSpec (parts[1], m_default_tooltip_bgcolor, m_default_tooltip_color);
 		return;
 	} else if (parts.size() == 4) {
 		std::string name = parts[0];
 		video::SColor tmp_color1, tmp_color2;
 		if ( parseColorString(parts[2], tmp_color1, false) && parseColorString(parts[3], tmp_color2, false) ) {
-			m_tooltips[narrow_to_wide(name.c_str())] = TooltipSpec (parts[1], tmp_color1, tmp_color2);
+			m_tooltips[narrow_to_wide(name)] = TooltipSpec (parts[1], tmp_color1, tmp_color2);
 			return;
 		}
 	}
@@ -1808,8 +1758,6 @@ void GUIFormSpecMenu::parseElement(parserData* data, std::string element)
 		<<std::endl;
 }
 
-
-
 void GUIFormSpecMenu::regenerateGui(v2u32 screensize)
 {
 	/* useless to regenerate without a screensize */
@@ -1825,6 +1773,10 @@ void GUIFormSpecMenu::regenerateGui(v2u32 screensize)
 		GUITable *table = m_tables[i].second;
 		mydata.table_dyndata[tablename] = table->getDynamicData();
 	}
+
+	//set focus
+	if (!m_focused_element.empty())
+		mydata.focused_fieldname = m_focused_element;
 
 	//preserve focus
 	gui::IGUIElement *focused_element = Environment->getFocus();
@@ -1951,7 +1903,7 @@ void GUIFormSpecMenu::regenerateGui(v2u32 screensize)
 			// wide, including border) just fit into the
 			// default window (800 pixels wide) at 96 DPI
 			// and default scaling (1.00).
-			use_imgsize = 0.53 * screen_dpi * gui_scaling;
+			use_imgsize = 0.5555 * screen_dpi * gui_scaling;
 		} else {
 			// In variable-size mode, we prefer to make the
 			// inventory image size 1/15 of screen height,
@@ -1990,10 +1942,9 @@ void GUIFormSpecMenu::regenerateGui(v2u32 screensize)
 		imgsize = v2s32(use_imgsize, use_imgsize);
 		spacing = v2s32(use_imgsize*5.0/4, use_imgsize*15.0/13);
 		padding = v2s32(use_imgsize*3.0/8, use_imgsize*3.0/8);
-		double target_font_height = use_imgsize*15.0/13 * 0.4;
 		m_btn_height = use_imgsize*15.0/13 * 0.35;
 
-		m_font = select_font_by_line_height(target_font_height);
+		m_font = g_fontengine->getFont();
 
 		mydata.size = v2s32(
 			padding.X*2+spacing.X*(mydata.invsize.X-1.0)+imgsize.X,
@@ -2052,7 +2003,7 @@ void GUIFormSpecMenu::regenerateGui(v2u32 screensize)
 			mydata.rect =
 					core::rect<s32>(size.X/2-70, pos.Y,
 							(size.X/2-70)+140, pos.Y + (m_btn_height*2));
-			wchar_t* text = wgettext("Proceed");
+			const wchar_t *text = wgettext("Proceed");
 			Environment->addButton(mydata.rect, this, 257, text);
 			delete[] text;
 		}
