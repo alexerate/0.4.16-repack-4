@@ -4,3 +4,4 @@ mapper.patch
 shared_mods.patch
 FindJson.cmake.patch
 rawlua.patch
+FindIrrlicht.cmake.patch
