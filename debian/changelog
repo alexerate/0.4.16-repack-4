@@ -1,4 +1,4 @@
-minetest (0.4.12+repack-1) UNRELEASED; urgency=medium
+minetest (0.4.12+repack-1) experimental; urgency=medium
 
   * Imported Upstream version 0.4.12+repack. (Closes: #778853)
   * Drop the following patches. They were merged upstream.
@@ -25,7 +25,7 @@ minetest (0.4.12+repack-1) UNRELEASED; urgency=medium
       ensures that Debian's system json library will be used and simplifies
       future updates.
 
- -- Markus Koschany <apo@gambaru.de>  Fri, 20 Feb 2015 19:53:41 +0100
+ -- Markus Koschany <apo@gambaru.de>  Mon, 16 Mar 2015 18:47:04 +0100
 
 minetest (0.4.11+repack-1) experimental; urgency=medium
 
