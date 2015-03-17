@@ -1,3 +1,11 @@
+minetest (0.4.12+repack-2) unstable; urgency=medium
+
+  * Fix FTBFS on architectures where luajit is not available.
+    Update rawlua.patch. Do not add embedded lua subdirectory
+    to build because it was removed.
+
+ -- Markus Koschany <apo@gambaru.de>  Tue, 17 Mar 2015 18:15:33 +0100
+
 minetest (0.4.12+repack-1) experimental; urgency=medium
 
   * Imported Upstream version 0.4.12+repack. (Closes: #778853)
