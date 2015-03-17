@@ -3,23 +3,24 @@ Date: Fri, 20 Feb 2015 22:46:25 +0100
 Subject: rawlua
 
 ---
- src/CMakeLists.txt | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ src/CMakeLists.txt | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
 
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index 93083f3..5536eb9 100644
+index 93083f3..9bcab4e 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -284,9 +284,9 @@ if(LUA_LIBRARY AND LUA_INCLUDE_DIR)
+@@ -284,10 +284,9 @@ if(LUA_LIBRARY AND LUA_INCLUDE_DIR)
  endif (LUA_LIBRARY AND LUA_INCLUDE_DIR)
  
  if(NOT USE_LUAJIT)
 -	message (STATUS "LuaJIT not found, using bundled Lua.")
 -	set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
 -	set(LUA_LIBRARY "lua")
-+    message (STATUS "LuaJIT not found, using the version of Lua provided by the system.")
+-	add_subdirectory(lua)
++	message (STATUS "LuaJIT not found, using the version of Lua provided by the system.")
 +	set(LUA_INCLUDE_DIR "/usr/include/lua5.1/")
 +	set(LUA_LIBRARY "lua5.1")
- 	add_subdirectory(lua)
  endif(NOT USE_LUAJIT)
  
+ mark_as_advanced(LUA_LIBRARY)

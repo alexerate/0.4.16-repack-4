@@ -8,7 +8,7 @@ Forwarded: https://github.com/minetest/minetest/pull/2371
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/cmake/Modules/FindIrrlicht.cmake b/cmake/Modules/FindIrrlicht.cmake
-index dce78fb..bc781a2 100644
+index dce78fb..a84765d 100644
 --- a/cmake/Modules/FindIrrlicht.cmake
 +++ b/cmake/Modules/FindIrrlicht.cmake
 @@ -44,7 +44,7 @@ else()
