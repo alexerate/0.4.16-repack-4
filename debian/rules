@@ -59,7 +59,7 @@ override_dh_auto_configure:
 		-DCMAKE_VERBOSE_MAKEFILE=ON \
 		-DENABLE_GETTEXT=1 \
 		-DENABLE_FREETYPE=1 \
-		-DFREETYPE_INCLUDE_DIRS=/usr/include/freetype2 \
+		-DFREETYPE_INCLUDE_DIR_freetype2=/usr/include/freetype2 \
 		-DFREETYPE_INCLUDE_DIR_ft2build=/usr/include \
 		-DENABLE_LEVELDB=1 \
 		-DLEVELDB_INCLUDE_DIR=/usr/include/leveldb \
