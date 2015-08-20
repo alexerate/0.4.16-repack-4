@@ -1,9 +1,10 @@
-minetest (0.4.12+repack-3) unstable; urgency=medium
+minetest (0.4.13+repack-1) UNRELEASED; urgency=medium
 
+  * New upstream release.
   * Fix freetype2 include dir variable name as per README.txt.
     Patch from Robert Bruce Park (Closes: #794823).
 
- -- Martin Quinson <mquinson@debian.org>  Fri, 07 Aug 2015 23:27:31 +0200
+ -- Martin Quinson <mquinson@debian.org>  Thu, 20 Aug 2015 21:36:40 +0200
 
 minetest (0.4.12+repack-2) unstable; urgency=medium
 
