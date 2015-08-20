@@ -1,6 +1,9 @@
 minetest (0.4.13+repack-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * Drop the following patches. They were merged upstream.
+    - FindIrrlicht.cmake.patch, merged upstream.
+    - FindJson.cmake.patch, upstream added -DENABLE_SYSTEM_JSONCPP=1
   * Fix freetype2 include dir variable name as per README.txt.
     Patch from Robert Bruce Park (Closes: #794823).
 

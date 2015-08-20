@@ -57,6 +57,8 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 		-DRUN_IN_PLACE=0 \
 		-DCMAKE_VERBOSE_MAKEFILE=ON \
+		-DENABLE_SYSTEM_JSONCPP=1 \
+		-DJSON_INCLUDE_DIR=/usr/include/jsoncpp \
 		-DENABLE_GETTEXT=1 \
 		-DENABLE_FREETYPE=1 \
 		-DFREETYPE_INCLUDE_DIR_freetype2=/usr/include/freetype2 \

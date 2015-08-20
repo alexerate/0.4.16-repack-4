@@ -4,14 +4,14 @@ Subject: shared_mods
 
 Also look under /usr/share/games/minetest for mods, so that minetest-mod-* packages actually work
 ---
- builtin/mainmenu/modmgr.lua | 1 +
+ builtin/mainmenu/modmgr.lua |    1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/builtin/mainmenu/modmgr.lua b/builtin/mainmenu/modmgr.lua
-index f293868..ea33941 100644
+Index: b/builtin/mainmenu/modmgr.lua
+===================================================================
 --- a/builtin/mainmenu/modmgr.lua
 +++ b/builtin/mainmenu/modmgr.lua
-@@ -407,6 +407,7 @@ function modmgr.preparemodlist(data)
+@@ -409,6 +409,7 @@ function modmgr.preparemodlist(data)
  		modpath ~= "" then
  		get_mods(modpath,global_mods)
  	end

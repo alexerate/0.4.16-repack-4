@@ -5,14 +5,14 @@ Subject: i18n
 Search for translation in the default path
 Forwarded: not-needed
 ---
- src/main.cpp | 2 +-
+ src/main.cpp |    2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/src/main.cpp b/src/main.cpp
-index bbf88e8..b2b37b1 100644
+Index: b/src/main.cpp
+===================================================================
 --- a/src/main.cpp
 +++ b/src/main.cpp
-@@ -1111,7 +1111,7 @@ static bool init_common(int *log_level, const Settings &cmd_args, int argc, char
+@@ -475,7 +475,7 @@ static bool init_common(int *log_level,
  	init_gettext((porting::path_share + DIR_DELIM + "locale").c_str(),
  		g_settings->get("language"), argc, argv);
  #else
