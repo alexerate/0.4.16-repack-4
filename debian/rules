@@ -67,7 +67,8 @@ override_dh_auto_configure:
 		-DLEVELDB_INCLUDE_DIR=/usr/include/leveldb \
 		-DCUSTOM_LOCALEDIR=/usr/share/locale \
 		-DCUSTOM_SHAREDIR=/usr/share/games/minetest \
-		-DCMAKE_INSTALL_PREFIX=/usr
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DBUILD_SERVER=1
 
 override_dh_installchangelogs:
 	dh_installchangelogs debian/changelog.upstream
