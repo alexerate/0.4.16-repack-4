@@ -10,7 +10,7 @@ License: LGPL-2.1+
 Files: debian/*
 Copyright: 2011-2012, Michael Gilbert <michael.s.gilbert@gmail.com>
            2013-2015, Martin Quinson <mquinson@debian.org>
-           2014-2015, Markus Koschany <apo@gambaru.de>
+           2014-2016, Markus Koschany <apo@debian.org>
 License: GPL-2+
 
 Files: debian/patches/*
