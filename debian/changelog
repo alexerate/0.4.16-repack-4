@@ -1,3 +1,16 @@
+minetest (0.4.13+repack-2) unstable; urgency=medium
+
+  * service files: Add RequiresMountsFor=/var/games/minetest-server.
+  * Vcs-Browser: Use https.
+  * Update my e-mail address.
+  * Declare compliance with Debian Policy 3.9.7.
+  * Vcs-Git: Use https.
+  * Update minetest.conf: Mention default value for ipv6_server.
+    (Closes: #814012)
+  * Update debian/copyright and add missing licenses. (Closes: #815098)
+
+ -- Markus Koschany <apo@gambaru.de>  Sat, 27 Feb 2016 18:37:45 +0100
+
 minetest (0.4.13+repack-1) unstable; urgency=medium
 
   * New upstream release.
