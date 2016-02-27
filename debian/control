@@ -28,7 +28,7 @@ Build-Depends:
  libvorbis-dev,
  libx11-dev,
  zlib1g-dev
-Standards-Version: 3.9.6
+Standards-Version: 3.9.7
 Homepage: http://minetest.net/
 Vcs-Git: git://anonscm.debian.org/pkg-games/minetest-v04x.git
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-games/minetest-v04x.git
