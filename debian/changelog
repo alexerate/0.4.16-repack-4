@@ -9,7 +9,7 @@ minetest (0.4.13+repack-2) unstable; urgency=medium
     (Closes: #814012)
   * Update debian/copyright and add missing licenses. (Closes: #815098)
 
- -- Markus Koschany <apo@gambaru.de>  Sat, 27 Feb 2016 18:37:45 +0100
+ -- Markus Koschany <apo@debian.org>  Sat, 27 Feb 2016 18:59:09 +0100
 
 minetest (0.4.13+repack-1) unstable; urgency=medium
 
