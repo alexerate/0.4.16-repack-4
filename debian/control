@@ -30,7 +30,7 @@ Build-Depends:
  zlib1g-dev
 Standards-Version: 3.9.7
 Homepage: http://minetest.net/
-Vcs-Git: git://anonscm.debian.org/pkg-games/minetest-v04x.git
+Vcs-Git: https://anonscm.debian.org/git/pkg-games/minetest-v04x.git
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-games/minetest-v04x.git
 
 Package: minetest
