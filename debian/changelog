@@ -1,3 +1,9 @@
+minetest (0.4.14+repack-1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+
+ -- Martin Quinson <mquinson@debian.org>  Tue, 17 May 2016 06:59:24 +0200
+
 minetest (0.4.13+repack-1) unstable; urgency=medium
 
   * New upstream release.
