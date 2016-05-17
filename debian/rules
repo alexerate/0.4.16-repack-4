@@ -92,5 +92,8 @@ override_dh_strip:
 get-orig-source:
 	uscan --verbose --force-download
 
+clean:
+	dh ${@} # Without systemd as it may not be there yet
+
 %:
 	dh ${@} --parallel --with systemd
