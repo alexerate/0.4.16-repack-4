@@ -32,7 +32,7 @@ If so, I see this split as a convinience for the developers, but I
 think that it is expected that we merge the elements back into the
 source package in Debian.
 
-I diregarded the creation of several upstream tarballs as it breaks
+I disregarded the creation of several upstream tarballs as it breaks
 git-buildpackage. I think that a team-managed package must be as much
 automatized as possible. git-buildpackage makes it impossible to have
 dissemblable compilation environment among team members.
