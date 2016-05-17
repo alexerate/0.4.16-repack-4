@@ -2,6 +2,7 @@
 Description=Minetest multiplayer server minetest.conf server config
 Documentation=man:minetestserver(6)
 After=network.target
+RequiresMountsFor=/var/games/minetest-server
 
 [Service]
 Restart=on-failure
