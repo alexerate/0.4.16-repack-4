@@ -31,7 +31,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "mesh.h"
 #include "log.h"
 #include "gamedef.h"
-#include "strfnd.h"
+#include "util/strfnd.h"
 #include "util/string.h" // for parseColorString()
 #include "imagefilters.h"
 #include "guiscalingfilter.h"
@@ -194,7 +194,7 @@ class SourceImageCache
 public:
 	~SourceImageCache() {
 		for (std::map<std::string, video::IImage*>::iterator iter = m_images.begin();
-				iter != m_images.end(); iter++) {
+				iter != m_images.end(); ++iter) {
 			iter->second->drop();
 		}
 		m_images.clear();
@@ -414,7 +414,7 @@ private:
 	// Maps a texture name to an index in the former.
 	std::map<std::string, u32> m_name_to_id;
 	// The two former containers are behind this mutex
-	JMutex m_textureinfo_cache_mutex;
+	Mutex m_textureinfo_cache_mutex;
 
 	// Queued texture fetches (to be processed by the main thread)
 	RequestQueue<std::string, u32, u8, u8> m_get_texture_queue;
@@ -439,7 +439,7 @@ TextureSource::TextureSource(IrrlichtDevice *device):
 {
 	assert(m_device); // Pre-condition
 
-	m_main_thread = get_current_thread_id();
+	m_main_thread = thr_get_current_thread_id();
 
 	// Add a NULL TextureInfo as the first index, named ""
 	m_textureinfo_cache.push_back(TextureInfo(""));
@@ -461,7 +461,7 @@ TextureSource::~TextureSource()
 
 	for (std::vector<TextureInfo>::iterator iter =
 			m_textureinfo_cache.begin();
-			iter != m_textureinfo_cache.end(); iter++)
+			iter != m_textureinfo_cache.end(); ++iter)
 	{
 		//cleanup texture
 		if (iter->texture)
@@ -471,7 +471,7 @@ TextureSource::~TextureSource()
 
 	for (std::vector<video::ITexture*>::iterator iter =
 			m_texture_trash.begin(); iter != m_texture_trash.end();
-			iter++) {
+			++iter) {
 		video::ITexture *t = *iter;
 
 		//cleanup trashed texture
@@ -490,7 +490,7 @@ u32 TextureSource::getTextureId(const std::string &name)
 		/*
 			See if texture already exists
 		*/
-		JMutexAutoLock lock(m_textureinfo_cache_mutex);
+		MutexAutoLock lock(m_textureinfo_cache_mutex);
 		std::map<std::string, u32>::iterator n;
 		n = m_name_to_id.find(name);
 		if (n != m_name_to_id.end())
@@ -502,7 +502,7 @@ u32 TextureSource::getTextureId(const std::string &name)
 	/*
 		Get texture
 	*/
-	if (get_current_thread_id() == m_main_thread)
+	if (thr_is_current_thread(m_main_thread))
 	{
 		return generateTexture(name);
 	}
@@ -553,10 +553,12 @@ static void blit_with_alpha(video::IImage *src, video::IImage *dst,
 static void blit_with_alpha_overlay(video::IImage *src, video::IImage *dst,
 		v2s32 src_pos, v2s32 dst_pos, v2u32 size);
 
-// Like blit_with_alpha overlay, but uses an int to calculate the ratio
-// and modifies any destination pixels that are not fully transparent
-static void blit_with_interpolate_overlay(video::IImage *src, video::IImage *dst,
-		v2s32 src_pos, v2s32 dst_pos, v2u32 size, int ratio);
+// Apply a color to an image.  Uses an int (0-255) to calculate the ratio.
+// If the ratio is 255 or -1 and keep_alpha is true, then it multiples the
+// color alpha with the destination alpha.
+// Otherwise, any pixels that are not fully transparent get the color alpha.
+static void apply_colorize(video::IImage *dst, v2u32 dst_pos, v2u32 size,
+		video::SColor color, int ratio, bool keep_alpha);
 
 // Apply a mask to an image
 static void apply_mask(video::IImage *mask, video::IImage *dst,
@@ -593,7 +595,7 @@ u32 TextureSource::generateTexture(const std::string &name)
 		/*
 			See if texture already exists
 		*/
-		JMutexAutoLock lock(m_textureinfo_cache_mutex);
+		MutexAutoLock lock(m_textureinfo_cache_mutex);
 		std::map<std::string, u32>::iterator n;
 		n = m_name_to_id.find(name);
 		if (n != m_name_to_id.end()) {
@@ -604,7 +606,7 @@ u32 TextureSource::generateTexture(const std::string &name)
 	/*
 		Calling only allowed from main thread
 	*/
-	if (get_current_thread_id() != m_main_thread) {
+	if (!thr_is_current_thread(m_main_thread)) {
 		errorstream<<"TextureSource::generateTexture() "
 				"called not from main thread"<<std::endl;
 		return 0;
@@ -631,7 +633,7 @@ u32 TextureSource::generateTexture(const std::string &name)
 		Add texture to caches (add NULL textures too)
 	*/
 
-	JMutexAutoLock lock(m_textureinfo_cache_mutex);
+	MutexAutoLock lock(m_textureinfo_cache_mutex);
 
 	u32 id = m_textureinfo_cache.size();
 	TextureInfo ti(name, tex);
@@ -643,7 +645,7 @@ u32 TextureSource::generateTexture(const std::string &name)
 
 std::string TextureSource::getTextureName(u32 id)
 {
-	JMutexAutoLock lock(m_textureinfo_cache_mutex);
+	MutexAutoLock lock(m_textureinfo_cache_mutex);
 
 	if (id >= m_textureinfo_cache.size())
 	{
@@ -658,7 +660,7 @@ std::string TextureSource::getTextureName(u32 id)
 
 video::ITexture* TextureSource::getTexture(u32 id)
 {
-	JMutexAutoLock lock(m_textureinfo_cache_mutex);
+	MutexAutoLock lock(m_textureinfo_cache_mutex);
 
 	if (id >= m_textureinfo_cache.size())
 		return NULL;
@@ -704,7 +706,7 @@ void TextureSource::insertSourceImage(const std::string &name, video::IImage *im
 {
 	//infostream<<"TextureSource::insertSourceImage(): name="<<name<<std::endl;
 
-	sanity_check(get_current_thread_id() == m_main_thread);
+	sanity_check(thr_is_current_thread(m_main_thread));
 
 	m_sourcecache.insert(name, img, true, m_device->getVideoDriver());
 	m_source_image_existence.set(name, true);
@@ -712,7 +714,7 @@ void TextureSource::insertSourceImage(const std::string &name, video::IImage *im
 
 void TextureSource::rebuildImagesAndTextures()
 {
-	JMutexAutoLock lock(m_textureinfo_cache_mutex);
+	MutexAutoLock lock(m_textureinfo_cache_mutex);
 
 	video::IVideoDriver* driver = m_device->getVideoDriver();
 	sanity_check(driver);
@@ -1173,7 +1175,28 @@ bool TextureSource::generateImagePart(std::string part_of_name,
 					core::rect<s32>(pos_from, dim),
 					video::SColor(255,255,255,255),
 					NULL);*/
-			blit_with_alpha(image, baseimg, pos_from, pos_to, dim);
+
+			core::dimension2d<u32> dim_dst = baseimg->getDimension();
+			if (dim == dim_dst) {
+				blit_with_alpha(image, baseimg, pos_from, pos_to, dim);
+			} else if (dim.Width * dim.Height < dim_dst.Width * dim_dst.Height) {
+				// Upscale overlying image
+				video::IImage* scaled_image = m_device->getVideoDriver()->
+					createImage(video::ECF_A8R8G8B8, dim_dst);
+				image->copyToScaling(scaled_image);
+
+				blit_with_alpha(scaled_image, baseimg, pos_from, pos_to, dim_dst);
+				scaled_image->drop();
+			} else {
+				// Upscale base image
+				video::IImage* scaled_base = m_device->getVideoDriver()->
+					createImage(video::ECF_A8R8G8B8, dim);
+				baseimg->copyToScaling(scaled_base);
+				baseimg->drop();
+				baseimg = scaled_base;
+
+				blit_with_alpha(image, baseimg, pos_from, pos_to, dim);
+			}
 		}
 		//cleanup
 		image->drop();
@@ -1242,7 +1265,7 @@ bool TextureSource::generateImagePart(std::string part_of_name,
 				baseimg = driver->createImage(video::ECF_A8R8G8B8, dim);
 				baseimg->fill(video::SColor(0,0,0,0));
 			}
-			while (sf.atend() == false) {
+			while (sf.at_end() == false) {
 				u32 x = stoi(sf.next(","));
 				u32 y = stoi(sf.next("="));
 				std::string filename = sf.next(":");
@@ -1329,7 +1352,6 @@ bool TextureSource::generateImagePart(std::string part_of_name,
 			u32 r1 = stoi(sf.next(","));
 			u32 g1 = stoi(sf.next(","));
 			u32 b1 = stoi(sf.next(""));
-			std::string filename = sf.next("");
 
 			core::dimension2d<u32> dim = baseimg->getDimension();
 
@@ -1639,27 +1661,17 @@ bool TextureSource::generateImagePart(std::string part_of_name,
 
 			video::SColor color;
 			int ratio = -1;
+			bool keep_alpha = false;
 
 			if (!parseColorString(color_str, color, false))
 				return false;
 
 			if (is_number(ratio_str))
 				ratio = mystoi(ratio_str, 0, 255);
+			else if (ratio_str == "alpha")
+				keep_alpha = true;
 
-			core::dimension2d<u32> dim = baseimg->getDimension();
-			video::IImage *img = driver->createImage(video::ECF_A8R8G8B8, dim);
-
-			if (!img) {
-				errorstream << "generateImagePart(): Could not create image "
-						<< "for part_of_name=\"" << part_of_name
-						<< "\", cancelling." << std::endl;
-				return false;
-			}
-
-			img->fill(video::SColor(color));
-			// Overlay the colored image
-			blit_with_interpolate_overlay(img, baseimg, v2s32(0,0), v2s32(0,0), dim, ratio);
-			img->drop();
+			apply_colorize(baseimg, v2u32(0, 0), baseimg->getDimension(), color, ratio, keep_alpha);
 		}
 		else if (str_starts_with(part_of_name, "[applyfiltersformesh"))
 		{
@@ -1697,6 +1709,31 @@ bool TextureSource::generateImagePart(std::string part_of_name,
 					baseimg = newimg;
 				}
 			}
+		}
+		/*
+			[resize:WxH
+			Resizes the base image to the given dimensions
+		*/
+		else if (str_starts_with(part_of_name, "[resize"))
+		{
+			if (baseimg == NULL) {
+				errorstream << "generateImagePart(): baseimg == NULL "
+						<< "for part_of_name=\""<< part_of_name
+						<< "\", cancelling." << std::endl;
+				return false;
+			}
+
+			Strfnd sf(part_of_name);
+			sf.next(":");
+			u32 width = stoi(sf.next("x"));
+			u32 height = stoi(sf.next(""));
+			core::dimension2d<u32> dim(width, height);
+
+			video::IImage* image = m_device->getVideoDriver()->
+				createImage(video::ECF_A8R8G8B8, dim);
+			baseimg->copyToScaling(image);
+			baseimg->drop();
+			baseimg = image;
 		}
 		else
 		{
@@ -1756,6 +1793,9 @@ static void blit_with_alpha_overlay(video::IImage *src, video::IImage *dst,
 	}
 }
 
+// This function has been disabled because it is currently unused.
+// Feel free to re-enable if you find it handy.
+#if 0
 /*
 	Draw an image on top of an another one, using the specified ratio
 	modify all partially-opaque pixels in the destination.
@@ -1779,6 +1819,45 @@ static void blit_with_interpolate_overlay(video::IImage *src, video::IImage *dst
 			else
 				dst_c = src_c.getInterpolated(dst_c, (float)ratio/255.0f);
 			dst->setPixel(dst_x, dst_y, dst_c);
+		}
+	}
+}
+#endif
+
+/*
+	Apply color to destination
+*/
+static void apply_colorize(video::IImage *dst, v2u32 dst_pos, v2u32 size,
+		video::SColor color, int ratio, bool keep_alpha)
+{
+	u32 alpha = color.getAlpha();
+	video::SColor dst_c;
+	if ((ratio == -1 && alpha == 255) || ratio == 255) { // full replacement of color
+		if (keep_alpha) { // replace the color with alpha = dest alpha * color alpha
+			dst_c = color;
+			for (u32 y = dst_pos.Y; y < dst_pos.Y + size.Y; y++)
+			for (u32 x = dst_pos.X; x < dst_pos.X + size.X; x++) {
+				u32 dst_alpha = dst->getPixel(x, y).getAlpha();
+				if (dst_alpha > 0) {
+					dst_c.setAlpha(dst_alpha * alpha / 255);
+					dst->setPixel(x, y, dst_c);
+				}
+			}
+		} else { // replace the color including the alpha
+			for (u32 y = dst_pos.Y; y < dst_pos.Y + size.Y; y++)
+			for (u32 x = dst_pos.X; x < dst_pos.X + size.X; x++)
+				if (dst->getPixel(x, y).getAlpha() > 0)
+					dst->setPixel(x, y, color);
+		}
+	} else {  // interpolate between the color and destination
+		float interp = (ratio == -1 ? color.getAlpha() / 255.0f : ratio / 255.0f);
+		for (u32 y = dst_pos.Y; y < dst_pos.Y + size.Y; y++)
+		for (u32 x = dst_pos.X; x < dst_pos.X + size.X; x++) {
+			dst_c = dst->getPixel(x, y);
+			if (dst_c.getAlpha() > 0) {
+				dst_c = color.getInterpolated(dst_c, interp);
+				dst->setPixel(x, y, dst_c);
+			}
 		}
 	}
 }
@@ -2057,7 +2136,7 @@ video::ITexture *TextureSource::getShaderFlagsTexture(bool normalmap_present)
 {
 	std::string tname = "__shaderFlagsTexture";
 	tname += normalmap_present ? "1" : "0";
-	
+
 	if (isKnownSourceImage(tname)) {
 		return getTexture(tname);
 	} else {

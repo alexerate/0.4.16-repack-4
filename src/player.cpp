@@ -20,7 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "player.h"
 
 #include <fstream>
-#include "jthread/jmutexautolock.h"
+#include "threading/mutex_auto_lock.h"
 #include "util/numeric.h"
 #include "hud.h"
 #include "constants.h"
@@ -33,6 +33,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 
 Player::Player(IGameDef *gamedef, const char *name):
+	got_teleported(false),
 	touching_ground(false),
 	in_liquid(false),
 	in_liquid_stable(false),
@@ -111,41 +112,6 @@ Player::~Player()
 	clearHud();
 }
 
-// Horizontal acceleration (X and Z), Y direction is ignored
-void Player::accelerateHorizontal(v3f target_speed, f32 max_increase)
-{
-	if(max_increase == 0)
-		return;
-
-	v3f d_wanted = target_speed - m_speed;
-	d_wanted.Y = 0;
-	f32 dl = d_wanted.getLength();
-	if(dl > max_increase)
-		dl = max_increase;
-
-	v3f d = d_wanted.normalize() * dl;
-
-	m_speed.X += d.X;
-	m_speed.Z += d.Z;
-
-}
-
-// Vertical acceleration (Y), X and Z directions are ignored
-void Player::accelerateVertical(v3f target_speed, f32 max_increase)
-{
-	if(max_increase == 0)
-		return;
-
-	f32 d_wanted = target_speed.Y - m_speed.Y;
-	if(d_wanted > max_increase)
-		d_wanted = max_increase;
-	else if(d_wanted < -max_increase)
-		d_wanted = -max_increase;
-
-	m_speed.Y += d_wanted;
-
-}
-
 v3s16 Player::getLightPosition() const
 {
 	return floatToInt(m_position + v3f(0,BS+BS/2,0), BS);
@@ -217,7 +183,7 @@ void Player::deSerialize(std::istream &is, std::string playername)
 
 u32 Player::addHud(HudElement *toadd)
 {
-	JMutexAutoLock lock(m_mutex);
+	MutexAutoLock lock(m_mutex);
 
 	u32 id = getFreeHudID();
 
@@ -231,7 +197,7 @@ u32 Player::addHud(HudElement *toadd)
 
 HudElement* Player::getHud(u32 id)
 {
-	JMutexAutoLock lock(m_mutex);
+	MutexAutoLock lock(m_mutex);
 
 	if (id < hud.size())
 		return hud[id];
@@ -241,7 +207,7 @@ HudElement* Player::getHud(u32 id)
 
 HudElement* Player::removeHud(u32 id)
 {
-	JMutexAutoLock lock(m_mutex);
+	MutexAutoLock lock(m_mutex);
 
 	HudElement* retval = NULL;
 	if (id < hud.size()) {
@@ -253,7 +219,7 @@ HudElement* Player::removeHud(u32 id)
 
 void Player::clearHud()
 {
-	JMutexAutoLock lock(m_mutex);
+	MutexAutoLock lock(m_mutex);
 
 	while(!hud.empty()) {
 		delete hud.back();
@@ -261,6 +227,23 @@ void Player::clearHud()
 	}
 }
 
+RemotePlayer::RemotePlayer(IGameDef *gamedef, const char *name):
+	Player(gamedef, name),
+	m_sao(NULL)
+{
+	movement_acceleration_default   = g_settings->getFloat("movement_acceleration_default")   * BS;
+	movement_acceleration_air       = g_settings->getFloat("movement_acceleration_air")       * BS;
+	movement_acceleration_fast      = g_settings->getFloat("movement_acceleration_fast")      * BS;
+	movement_speed_walk             = g_settings->getFloat("movement_speed_walk")             * BS;
+	movement_speed_crouch           = g_settings->getFloat("movement_speed_crouch")           * BS;
+	movement_speed_fast             = g_settings->getFloat("movement_speed_fast")             * BS;
+	movement_speed_climb            = g_settings->getFloat("movement_speed_climb")            * BS;
+	movement_speed_jump             = g_settings->getFloat("movement_speed_jump")             * BS;
+	movement_liquid_fluidity        = g_settings->getFloat("movement_liquid_fluidity")        * BS;
+	movement_liquid_fluidity_smooth = g_settings->getFloat("movement_liquid_fluidity_smooth") * BS;
+	movement_liquid_sink            = g_settings->getFloat("movement_liquid_sink")            * BS;
+	movement_gravity                = g_settings->getFloat("movement_gravity")                * BS;
+}
 
 void RemotePlayer::save(std::string savedir)
 {

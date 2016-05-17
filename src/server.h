@@ -32,6 +32,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "util/numeric.h"
 #include "util/thread.h"
 #include "environment.h"
+#include "chat_interface.h"
 #include "clientiface.h"
 #include "network/networkpacket.h"
 #include <string>
@@ -171,7 +172,8 @@ public:
 		const std::string &path_world,
 		const SubgameSpec &gamespec,
 		bool simple_singleplayer_mode,
-		bool ipv6
+		bool ipv6,
+		ChatInterface *iface = NULL
 	);
 	~Server();
 	void start(Address bind_addr);
@@ -220,7 +222,8 @@ public:
 
 	void Send(NetworkPacket* pkt);
 
-	// Environment must be locked when called
+	// Both setter and getter need no envlock,
+	// can be called freely from threads
 	void setTimeOfDay(u32 time);
 
 	/*
@@ -284,6 +287,7 @@ public:
 		const std::string &playername);
 
 	void deleteParticleSpawner(const std::string &playername, u32 id);
+	void deleteParticleSpawnerAll(u32 id);
 
 	// Creates or resets inventory
 	Inventory* createDetachedInventory(const std::string &name);
@@ -368,6 +372,8 @@ public:
 			u8* ser_vers, u16* prot_vers, u8* major, u8* minor, u8* patch,
 			std::string* vers_string);
 
+	void printToConsoleOnly(const std::string &text);
+
 	void SendPlayerHPOrDie(PlayerSAO *player);
 	void SendPlayerBreath(u16 peer_id);
 	void SendInventory(PlayerSAO* playerSAO);
@@ -375,6 +381,9 @@ public:
 
 	// Bind address
 	Address m_bind_addr;
+
+	// Environment mutex (envlock)
+	Mutex m_env_mutex;
 
 private:
 
@@ -468,6 +477,15 @@ private:
 	void DeleteClient(u16 peer_id, ClientDeletionReason reason);
 	void UpdateCrafting(Player *player);
 
+	void handleChatInterfaceEvent(ChatEvent *evt);
+
+	// This returns the answer to the sender of wmessage, or "" if there is none
+	std::wstring handleChat(const std::string &name, const std::wstring &wname,
+		const std::wstring &wmessage,
+		bool check_shout_priv = false,
+		u16 peer_id_to_avoid_sending = PEER_ID_INEXISTENT);
+	void handleAdminChat(const ChatEventChat *evt);
+
 	v3f findSpawnPos();
 
 	// When called, connection mutex should be locked
@@ -516,7 +534,6 @@ private:
 
 	// Environment
 	ServerEnvironment *m_env;
-	JMutex m_env_mutex;
 
 	// server connection
 	con::Connection m_con;
@@ -557,7 +574,7 @@ private:
 	// A buffer for time steps
 	// step() increments and AsyncRunStep() run by m_thread reads it.
 	float m_step_dtime;
-	JMutex m_step_dtime_mutex;
+	Mutex m_step_dtime_mutex;
 
 	// current server step lag counter
 	float m_lag;
@@ -593,6 +610,9 @@ private:
 	bool m_shutdown_requested;
 	std::string m_shutdown_msg;
 	bool m_shutdown_ask_reconnect;
+
+	ChatInterface *m_admin_chat;
+	std::string m_admin_nick;
 
 	/*
 		Map edit event queue. Automatically receives all map edits.
@@ -643,10 +663,7 @@ private:
 	// key = name
 	std::map<std::string, Inventory*> m_detached_inventories;
 
-	/*
-		Particles
-	*/
-	std::vector<u32> m_particlespawner_ids;
+	DISABLE_CLASS_COPY(Server);
 };
 
 /*

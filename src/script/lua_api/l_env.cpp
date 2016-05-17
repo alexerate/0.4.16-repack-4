@@ -33,11 +33,15 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "util/pointedthing.h"
 #include "content_sao.h"
 #include "treegen.h"
+#include "emerge.h"
 #include "pathfinder.h"
 
-#define GET_ENV_PTR ServerEnvironment* env =                                   \
-				dynamic_cast<ServerEnvironment*>(getEnv(L));                   \
-				if (env == NULL) return 0
+struct EnumString ModApiEnvMod::es_ClearObjectsMode[] =
+{
+	{CLEAR_OBJECTS_MODE_FULL,  "full"},
+	{CLEAR_OBJECTS_MODE_QUICK, "quick"},
+	{0, NULL},
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -52,8 +56,7 @@ void LuaABM::trigger(ServerEnvironment *env, v3s16 p, MapNode n,
 	sanity_check(lua_checkstack(L, 20));
 	StackUnroller stack_unroller(L);
 
-	lua_pushcfunction(L, script_error_handler);
-	int errorhandler = lua_gettop(L);
+	int error_handler = PUSH_ERROR_HANDLER(L);
 
 	// Get registered_abms
 	lua_getglobal(L, "core");
@@ -80,11 +83,66 @@ void LuaABM::trigger(ServerEnvironment *env, v3s16 p, MapNode n,
 	lua_pushnumber(L, active_object_count);
 	lua_pushnumber(L, active_object_count_wider);
 
-	int result = lua_pcall(L, 4, 0, errorhandler);
+	int result = lua_pcall(L, 4, 0, error_handler);
 	if (result)
 		scriptIface->scriptError(result, "LuaABM::trigger");
 
 	lua_pop(L, 1); // Pop error handler
+}
+
+void LuaLBM::trigger(ServerEnvironment *env, v3s16 p, MapNode n)
+{
+	GameScripting *scriptIface = env->getScriptIface();
+	scriptIface->realityCheck();
+
+	lua_State *L = scriptIface->getStack();
+	sanity_check(lua_checkstack(L, 20));
+	StackUnroller stack_unroller(L);
+
+	int error_handler = PUSH_ERROR_HANDLER(L);
+
+	// Get registered_lbms
+	lua_getglobal(L, "core");
+	lua_getfield(L, -1, "registered_lbms");
+	luaL_checktype(L, -1, LUA_TTABLE);
+	lua_remove(L, -2); // Remove core
+
+	// Get registered_lbms[m_id]
+	lua_pushnumber(L, m_id);
+	lua_gettable(L, -2);
+	FATAL_ERROR_IF(lua_isnil(L, -1), "Entry with given id not found in registered_lbms table");
+	lua_remove(L, -2); // Remove registered_lbms
+
+	scriptIface->setOriginFromTable(-1);
+
+	// Call action
+	luaL_checktype(L, -1, LUA_TTABLE);
+	lua_getfield(L, -1, "action");
+	luaL_checktype(L, -1, LUA_TFUNCTION);
+	lua_remove(L, -2); // Remove registered_lbms[m_id]
+	push_v3s16(L, p);
+	pushnode(L, n, env->getGameDef()->ndef());
+
+	int result = lua_pcall(L, 2, 0, error_handler);
+	if (result)
+		scriptIface->scriptError(result, "LuaLBM::trigger");
+
+	lua_pop(L, 1); // Pop error handler
+}
+
+void LuaEmergeAreaCallback(v3s16 blockpos, EmergeAction action, void *param)
+{
+	ScriptCallbackState *state = (ScriptCallbackState *)param;
+	assert(state != NULL);
+	assert(state->script != NULL);
+	assert(state->refcount > 0);
+
+	state->refcount--;
+
+	state->script->on_emerge_area_completion(blockpos, action, state);
+
+	if (state->refcount == 0)
+		delete state;
 }
 
 // Exported functions
@@ -412,8 +470,7 @@ int ModApiEnvMod::l_add_item(lua_State *L)
 	if(item.empty() || !item.isKnown(getServer(L)->idef()))
 		return 0;
 
-	lua_pushcfunction(L, script_error_handler);
-	int errorhandler = lua_gettop(L);
+	int error_handler = PUSH_ERROR_HANDLER(L);
 
 	// Use spawn_item to spawn a __builtin:item
 	lua_getglobal(L, "core");
@@ -424,9 +481,9 @@ int ModApiEnvMod::l_add_item(lua_State *L)
 	lua_pushvalue(L, 1);
 	lua_pushstring(L, item.getItemString().c_str());
 
-	PCALL_RESL(L, lua_pcall(L, 2, 1, errorhandler));
+	PCALL_RESL(L, lua_pcall(L, 2, 1, error_handler));
 
-	lua_remove(L, errorhandler); // Remove error handler
+	lua_remove(L, error_handler);
 	return 1;
 }
 
@@ -501,6 +558,15 @@ int ModApiEnvMod::l_get_timeofday(lua_State *L)
 	int timeofday_mh = env->getTimeOfDay();
 	float timeofday_f = (float)timeofday_mh / 24000.0;
 	lua_pushnumber(L, timeofday_f);
+	return 1;
+}
+
+// get_day_count() -> int
+int ModApiEnvMod::l_get_day_count(lua_State *L)
+{
+	GET_ENV_PTR;
+
+	lua_pushnumber(L, env->getDayCount());
 	return 1;
 }
 
@@ -659,7 +725,7 @@ int ModApiEnvMod::l_find_nodes_in_area_under_air(lua_State *L)
 // returns world-specific PerlinNoise
 int ModApiEnvMod::l_get_perlin(lua_State *L)
 {
-	GET_ENV_PTR;
+	GET_ENV_PTR_NO_MAP_LOCK;
 
 	NoiseParams params;
 
@@ -685,7 +751,7 @@ int ModApiEnvMod::l_get_perlin(lua_State *L)
 // returns world-specific PerlinNoiseMap
 int ModApiEnvMod::l_get_perlin_map(lua_State *L)
 {
-	GET_ENV_PTR;
+	GET_ENV_PTR_NO_MAP_LOCK;
 
 	NoiseParams np;
 	if (!read_noiseparams(L, 1, &np))
@@ -717,13 +783,20 @@ int ModApiEnvMod::l_get_voxel_manip(lua_State *L)
 	return 1;
 }
 
-// clear_objects()
+// clear_objects([options])
 // clear all objects in the environment
+// where options = {mode = "full" or "quick"}
 int ModApiEnvMod::l_clear_objects(lua_State *L)
 {
 	GET_ENV_PTR;
 
-	env->clearAllObjects();
+	ClearObjectsMode mode = CLEAR_OBJECTS_MODE_FULL;
+	if (lua_istable(L, 1)) {
+		mode = (ClearObjectsMode)getenumfield(L, 1, "mode",
+			ModApiEnvMod::es_ClearObjectsMode, mode);
+	}
+
+	env->clearObjects(mode);
 	return 0;
 }
 
@@ -751,6 +824,51 @@ int ModApiEnvMod::l_line_of_sight(lua_State *L)
 		return 2;
 	}
 	return 1;
+}
+
+// emerge_area(p1, p2, [callback, context])
+// emerge mapblocks in area p1..p2, calls callback with context upon completion
+int ModApiEnvMod::l_emerge_area(lua_State *L)
+{
+	GET_ENV_PTR;
+
+	EmergeCompletionCallback callback = NULL;
+	ScriptCallbackState *state = NULL;
+
+	EmergeManager *emerge = getServer(L)->getEmergeManager();
+
+	v3s16 bpmin = getNodeBlockPos(read_v3s16(L, 1));
+	v3s16 bpmax = getNodeBlockPos(read_v3s16(L, 2));
+	sortBoxVerticies(bpmin, bpmax);
+
+	size_t num_blocks = VoxelArea(bpmin, bpmax).getVolume();
+	assert(num_blocks != 0);
+
+	if (lua_isfunction(L, 3)) {
+		callback = LuaEmergeAreaCallback;
+
+		lua_pushvalue(L, 3);
+		int callback_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+		lua_pushvalue(L, 4);
+		int args_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+		state = new ScriptCallbackState;
+		state->script       = getServer(L)->getScriptIface();
+		state->callback_ref = callback_ref;
+		state->args_ref     = args_ref;
+		state->refcount     = num_blocks;
+		state->origin       = getScriptApiBase(L)->getOrigin();
+	}
+
+	for (s16 z = bpmin.Z; z <= bpmax.Z; z++)
+	for (s16 y = bpmin.Y; y <= bpmax.Y; y++)
+	for (s16 x = bpmin.X; x <= bpmax.X; x++) {
+		emerge->enqueueBlockEmergeEx(v3s16(x, y, z), PEER_ID_INEXISTENT,
+			BLOCK_EMERGE_ALLOW_GEN | BLOCK_EMERGE_FORCE_QUEUE, callback, state);
+	}
+
+	return 0;
 }
 
 // delete_area(p1, p2)
@@ -797,19 +915,19 @@ int ModApiEnvMod::l_find_path(lua_State *L)
 	unsigned int searchdistance = luaL_checkint(L, 3);
 	unsigned int max_jump       = luaL_checkint(L, 4);
 	unsigned int max_drop       = luaL_checkint(L, 5);
-	algorithm algo              = A_PLAIN_NP;
+	PathAlgorithm algo          = PA_PLAIN_NP;
 	if (!lua_isnil(L, 6)) {
 		std::string algorithm = luaL_checkstring(L,6);
 
 		if (algorithm == "A*")
-			algo = A_PLAIN;
+			algo = PA_PLAIN;
 
 		if (algorithm == "Dijkstra")
-			algo = DIJKSTRA;
+			algo = PA_DIJKSTRA;
 	}
 
-	std::vector<v3s16> path =
-			get_Path(env,pos1,pos2,searchdistance,max_jump,max_drop,algo);
+	std::vector<v3s16> path = get_path(env, pos1, pos2,
+		searchdistance, max_jump, max_drop, algo);
 
 	if (path.size() > 0)
 	{
@@ -920,13 +1038,6 @@ int ModApiEnvMod::l_forceload_free_block(lua_State *L)
 	return 0;
 }
 
-// get_us_time()
-int ModApiEnvMod::l_get_us_time(lua_State *L)
-{
-	lua_pushnumber(L, porting::getTimeUs());
-	return 1;
-}
-
 void ModApiEnvMod::Initialize(lua_State *L, int top)
 {
 	API_FCT(set_node);
@@ -953,9 +1064,11 @@ void ModApiEnvMod::Initialize(lua_State *L, int top)
 	API_FCT(set_timeofday);
 	API_FCT(get_timeofday);
 	API_FCT(get_gametime);
+	API_FCT(get_day_count);
 	API_FCT(find_node_near);
 	API_FCT(find_nodes_in_area);
 	API_FCT(find_nodes_in_area_under_air);
+	API_FCT(emerge_area);
 	API_FCT(delete_area);
 	API_FCT(get_perlin);
 	API_FCT(get_perlin_map);
@@ -967,5 +1080,4 @@ void ModApiEnvMod::Initialize(lua_State *L, int top)
 	API_FCT(transforming_liquid_add);
 	API_FCT(forceload_block);
 	API_FCT(forceload_free_block);
-	API_FCT(get_us_time);
 }

@@ -23,12 +23,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "irrlichttypes_bloated.h"
 #include "inventory.h"
 #include "constants.h" // BS
-#include "jthread/jmutex.h"
+#include "threading/mutex.h"
 #include <list>
 
 #define PLAYERNAME_SIZE 20
 
 #define PLAYERNAME_ALLOWED_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+#define PLAYERNAME_ALLOWED_CHARS_USER_EXPL "'a' to 'z', 'A' to 'Z', '0' to '9', '-', '_'"
 
 struct PlayerControl
 {
@@ -118,9 +119,6 @@ public:
 		m_speed = speed;
 	}
 
-	void accelerateHorizontal(v3f target_speed, f32 max_increase);
-	void accelerateVertical(v3f target_speed, f32 max_increase);
-
 	v3f getPosition()
 	{
 		return m_position;
@@ -197,7 +195,7 @@ public:
 		return m_name;
 	}
 
-	core::aabbox3d<f32> getCollisionbox()
+	aabb3f getCollisionbox()
 	{
 		return m_collisionbox;
 	}
@@ -320,6 +318,7 @@ public:
 	// Use a function, if isDead can be defined by other conditions
 	bool isDead() { return hp == 0; }
 
+	bool got_teleported;
 	bool touching_ground;
 	// This oscillates so that the player jumps a bit above the surface
 	bool in_liquid;
@@ -397,7 +396,7 @@ protected:
 	f32 m_yaw;
 	v3f m_speed;
 	v3f m_position;
-	core::aabbox3d<f32> m_collisionbox;
+	aabb3f m_collisionbox;
 
 	bool m_dirty;
 
@@ -413,7 +412,7 @@ private:
 	// Protect some critical areas
 	// hud for example can be modified by EmergeThread
 	// and ServerThread
-	JMutex m_mutex;
+	Mutex m_mutex;
 };
 
 
@@ -423,10 +422,7 @@ private:
 class RemotePlayer : public Player
 {
 public:
-	RemotePlayer(IGameDef *gamedef, const char *name):
-		Player(gamedef, name),
-		m_sao(NULL)
-	{}
+	RemotePlayer(IGameDef *gamedef, const char *name);
 	virtual ~RemotePlayer() {}
 
 	void save(std::string savedir);

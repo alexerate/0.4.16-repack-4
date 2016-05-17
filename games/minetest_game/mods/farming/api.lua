@@ -38,6 +38,16 @@ farming.hoe_on_use = function(itemstack, user, pointed_thing, uses)
 		return
 	end
 	
+	if minetest.is_protected(pt.under, user:get_player_name()) then
+		minetest.record_protection_violation(pt.under, user:get_player_name())
+		return
+	end
+	if minetest.is_protected(pt.above, user:get_player_name()) then
+		minetest.record_protection_violation(pt.above, user:get_player_name())
+		return
+	end
+
+	
 	-- turn the node into soil, wear out item and play sound
 	minetest.set_node(pt.under, {name = regN[under.name].soil.dry})
 	minetest.sound_play("default_dig_crumbly", {
@@ -123,6 +133,16 @@ farming.place_seed = function(itemstack, placer, pointed_thing, plantname)
 	local under = minetest.get_node(pt.under)
 	local above = minetest.get_node(pt.above)
 	
+	if minetest.is_protected(pt.under, placer:get_player_name()) then
+		minetest.record_protection_violation(pt.under, placer:get_player_name())
+		return
+	end
+	if minetest.is_protected(pt.above, placer:get_player_name()) then
+		minetest.record_protection_violation(pt.above, placer:get_player_name())
+		return
+	end
+
+	
 	-- return if any of the nodes is not registered
 	if not minetest.registered_nodes[under.name] then
 		return
@@ -200,9 +220,14 @@ farming.register_plant = function(name, def)
 			fixed = {-0.5, -0.5, -0.5, 0.5, -5/16, 0.5},
 		},
 		fertility = def.fertility,
+		sounds = default.node_sound_dirt_defaults({
+			dug = {name = "default_grass_footstep", gain = 0.2},
+			place = {name = "default_place_node", gain = 0.25},
+		}),
+
 		on_place = function(itemstack, placer, pointed_thing)
 			return farming.place_seed(itemstack, placer, pointed_thing, mname .. ":seed_" .. pname)
-		end
+		end,
 	})
 
 	-- Register harvest
@@ -244,8 +269,8 @@ farming.register_plant = function(name, def)
 	minetest.register_abm({
 		nodenames = {"group:" .. pname, "group:seed"},
 		neighbors = {"group:soil"},
-		interval = 90,
-		chance = 2,
+		interval = 9,
+		chance = 20,
 		action = function(pos, node)
 			local plant_height = minetest.get_item_group(node.name, pname)
 

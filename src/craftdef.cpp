@@ -29,7 +29,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "util/serialize.h"
 #include "util/string.h"
 #include "util/numeric.h"
-#include "strfnd.h"
+#include "util/strfnd.h"
 #include "exceptions.h"
 
 inline bool isGroupRecipeStr(const std::string &rec_name)
@@ -90,7 +90,7 @@ static bool inputItemMatchesRecipe(const std::string &inp_name,
 				all_groups_match = false;
 				break;
 			}
-		} while (!f.atend());
+		} while (!f.at_end());
 		if (all_groups_match)
 			return true;
 	}
@@ -214,7 +214,7 @@ static void craftDecrementOrReplaceInput(CraftInput &input,
 		for (std::vector<std::pair<std::string, std::string> >::iterator
 				j = pairs.begin();
 				j != pairs.end(); ++j) {
-			if (item.name == craftGetItemName(j->first, gamedef)) {
+			if (inputItemMatchesRecipe(item.name, j->first, gamedef->idef())) {
 				if (item.count == 1) {
 					item.deSerialize(j->second, gamedef->idef());
 					found_replacement = true;
@@ -964,10 +964,10 @@ public:
 	{
 		std::ostringstream os(std::ios::binary);
 		os << "Crafting definitions:\n";
-		for (int type = 0; type <= craft_hash_type_max; type++) {
+		for (int type = 0; type <= craft_hash_type_max; ++type) {
 			for (std::map<u64, std::vector<CraftDefinition*> >::const_iterator
 					it = (m_craft_defs[type]).begin();
-					it != (m_craft_defs[type]).end(); it++) {
+					it != (m_craft_defs[type]).end(); ++it) {
 				for (std::vector<CraftDefinition*>::size_type i = 0;
 						i < it->second.size(); i++) {
 					os << "type " << type
@@ -992,10 +992,10 @@ public:
 	}
 	virtual void clear()
 	{
-		for (int type = 0; type <= craft_hash_type_max; type++) {
+		for (int type = 0; type <= craft_hash_type_max; ++type) {
 			for (std::map<u64, std::vector<CraftDefinition*> >::iterator
 					it = m_craft_defs[type].begin();
-					it != m_craft_defs[type].end(); it++) {
+					it != m_craft_defs[type].end(); ++it) {
 				for (std::vector<CraftDefinition*>::iterator
 						iit = it->second.begin();
 						iit != it->second.end(); ++iit) {

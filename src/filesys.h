@@ -28,10 +28,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define DIR_DELIM "\\"
 #define DIR_DELIM_CHAR '\\'
 #define FILESYS_CASE_INSENSITIVE 1
+#define PATH_DELIM ";"
 #else // POSIX
 #define DIR_DELIM "/"
 #define DIR_DELIM_CHAR '/'
 #define FILESYS_CASE_INSENSITIVE 0
+#define PATH_DELIM ":"
 #endif
 
 namespace fs
@@ -112,6 +114,8 @@ std::string AbsolutePath(const std::string &path);
 const char *GetFilenameFromPath(const char *path);
 
 bool safeWriteToFile(const std::string &path, const std::string &content);
+
+bool Rename(const std::string &from, const std::string &to);
 
 } // namespace fs
 
