@@ -4,7 +4,6 @@
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
 # upstream version
-version=$(shell uscan --report-status | head -2 | tail -1 | cut -d' ' -f7 | cut -d, -f1)
 tmpdir:=$(shell mktemp -d)
 wrkdir:=$(shell pwd)
 
@@ -14,17 +13,6 @@ export DEB_BUILD_MAINT_OPTIONS="hardening=+all"
 # file names
 sources=$(shell find . -name *.cpp)
 headers=$(shell find . -name *.h)
-dfsgremovals=Makefile.bak \
-	     .gitattributes \
-	     .hg_archival \
-	     .hg_archival.txt \
-	     .hgignore \
-	     .hgtags \
-	     fontlucida.png \
-	     sqlite \
-	     json \
-	     lua
-#	     jthread # upstream patched that lib, which seem dead upstream itself, so use minetest's version even if I don't like it.
 cleanremovals= bin \
 	       CMakeFiles \
 	       src/CMakeFiles \
@@ -102,23 +90,7 @@ override_dh_strip:
 	dh_strip --dbg-package=minetest-dbg
 
 get-orig-source:
-	rm -f ${wrkdir}/../minetest_${version}+repack.orig.tar.gz
-	uscan --verbose --force-download && mv ../${version}.tar.gz ${tmpdir} || true
-	set +ex; cd ${tmpdir} && \
-	    tar xf ${version}.tar.gz && rm -f ${version}.tar.gz && \
-	    cd minetest-${version}/games && \
-	    for game in minetest_game ; do \
-	       wget --no-verbose https://github.com/minetest/$${game}/archive/${version}.tar.gz -O - | tar xfz - ; \
-	       mv $${game}-${version} $${game} ; \
-	       done && \
-	    cd .. ; \
-	    for file in ${dfsgremovals}; do \
-	        find . -name $$file -execdir rm -rf {} \; 2>/dev/null || true; \
-		done && \
-	    tar cf ${wrkdir}/../minetest_${version}+repack.orig.tar * ; \
-	    gzip --best ${wrkdir}/../minetest_${version}+repack.orig.tar
-	rm -rf ${tmpdir}
-	@echo "successfully created new tarball: ${wrkdir}/../minetest_${version}+repack.orig.tar.gz"
+	uscan --verbose --force-download
 
 %:
 	dh ${@} --parallel --with systemd
