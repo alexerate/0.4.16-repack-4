@@ -23,7 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "constants.h"
 #include "serialization.h"             // for SER_FMT_VER_INVALID
-#include "jthread/jmutex.h"
+#include "threading/mutex.h"
 #include "network/networkpacket.h"
 
 #include <list>
@@ -166,6 +166,9 @@ namespace con {
 }
 
 #define CI_ARRAYSIZE(a) (sizeof(a) / sizeof((a)[0]))
+
+// Also make sure to update the ClientInterface::statenames
+// array when modifying these enums
 
 enum ClientState
 {
@@ -319,7 +322,6 @@ public:
 
 	/*
 		List of active objects that the client knows of.
-		Value is dummy.
 	*/
 	std::set<u16> m_known_objects;
 
@@ -374,7 +376,7 @@ private:
 		- A block is cleared from here when client says it has
 		  deleted it from it's memory
 
-		Key is position, value is dummy.
+		List of block positions.
 		No MapBlock* is stored here because the blocks can get deleted.
 	*/
 	std::set<v3s16> m_blocks_sent;
@@ -391,6 +393,16 @@ private:
 		Value is time from sending. (not used at the moment)
 	*/
 	std::map<v3s16, float> m_blocks_sending;
+
+	/*
+		Blocks that have been modified since last sending them.
+		These blocks will not be marked as sent, even if the
+		client reports it has received them to account for blocks
+		that are being modified while on the line.
+
+		List of block positions.
+	*/
+	std::set<v3s16> m_blocks_modified;
 
 	/*
 		Count of excess GotBlocks().
@@ -487,10 +499,8 @@ public:
 
 protected:
 	//TODO find way to avoid this functions
-	void Lock()
-		{ m_clients_mutex.Lock(); }
-	void Unlock()
-		{ m_clients_mutex.Unlock(); }
+	void lock() { m_clients_mutex.lock(); }
+	void unlock() { m_clients_mutex.unlock(); }
 
 	std::map<u16, RemoteClient*>& getClientList()
 		{ return m_clients; }
@@ -501,14 +511,14 @@ private:
 
 	// Connection
 	con::Connection* m_con;
-	JMutex m_clients_mutex;
+	Mutex m_clients_mutex;
 	// Connected clients (behind the con mutex)
 	std::map<u16, RemoteClient*> m_clients;
 	std::vector<std::string> m_clients_names; //for announcing masterserver
 
 	// Environment
 	ServerEnvironment *m_env;
-	JMutex m_env_mutex;
+	Mutex m_env_mutex;
 
 	float m_print_info_timer;
 

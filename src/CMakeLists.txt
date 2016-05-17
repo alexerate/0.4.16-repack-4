@@ -27,6 +27,12 @@ set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
 mark_as_advanced(EXECUTABLE_OUTPUT_PATH LIBRARY_OUTPUT_PATH)
 
 
+if(NOT (BUILD_CLIENT OR BUILD_SERVER))
+	message(WARNING "Neither BUILD_CLIENT nor BUILD_SERVER is set! Setting BUILD_SERVER=true")
+	set(BUILD_SERVER TRUE)
+endif()
+
+
 option(ENABLE_CURL "Enable cURL support for fetching media" TRUE)
 set(USE_CURL FALSE)
 
@@ -38,6 +44,15 @@ if(ENABLE_CURL)
 	endif()
 else()
 	mark_as_advanced(CLEAR CURL_LIBRARY CURL_INCLUDE_DIR)
+endif()
+
+if(NOT USE_CURL)
+	if(BUILD_CLIENT)
+		message(WARNING "cURL is required to load the server list")
+	endif()
+	if(BUILD_SERVER)
+		message(WARNING "cURL is required to announce to the server list")
+	endif()
 endif()
 
 
@@ -140,10 +155,39 @@ if(ENABLE_FREETYPE)
 	endif()
 endif(ENABLE_FREETYPE)
 
-
-find_package(Lua REQUIRED)
+# LuaJIT
+option(ENABLE_LUAJIT "Enable LuaJIT support" TRUE)
+set(USE_LUAJIT FALSE)
+if(ENABLE_LUAJIT)
+	find_package(LuaJIT)
+	if(LUAJIT_FOUND)
+		set(USE_LUAJIT TRUE)
+	endif(LUAJIT_FOUND)
+else()
+	message (STATUS "LuaJIT detection disabled! (ENABLE_LUAJIT=0)")
+endif()
+if(NOT USE_LUAJIT)
+	message(STATUS "LuaJIT not found, using bundled Lua.")
+	set(LUA_LIBRARY "lua")
+	set(LUA_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lua/src")
+	add_subdirectory(lua)
+endif()
 
 find_package(GMP REQUIRED)
+
+option(ENABLE_CURSES "Enable ncurses console" TRUE)
+set(USE_CURSES FALSE)
+
+if(ENABLE_CURSES)
+	find_package(Ncursesw)
+	if(CURSES_FOUND)
+		set(USE_CURSES TRUE)
+		message(STATUS "ncurses console enabled.")
+		include_directories(${CURSES_INCLUDE_DIRS})
+	else()
+		message(STATUS "ncurses not found!")
+	endif()
+endif(ENABLE_CURSES)
 
 option(ENABLE_LEVELDB "Enable LevelDB backend" TRUE)
 set(USE_LEVELDB FALSE)
@@ -297,16 +341,16 @@ add_custom_target(GenerateVersion
 	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
 
-add_subdirectory(jthread)
+add_subdirectory(threading)
 add_subdirectory(network)
 add_subdirectory(script)
 add_subdirectory(unittest)
 add_subdirectory(util)
 
 set(common_SRCS
-	areastore.cpp
 	ban.cpp
 	cavegen.cpp
+	chat.cpp
 	clientiface.cpp
 	collision.cpp
 	content_abm.cpp
@@ -337,10 +381,13 @@ set(common_SRCS
 	map.cpp
 	mapblock.cpp
 	mapgen.cpp
+	mapgen_flat.cpp
+	mapgen_fractal.cpp
 	mapgen_singlenode.cpp
 	mapgen_v5.cpp
 	mapgen_v6.cpp
 	mapgen_v7.cpp
+	mapgen_valleys.cpp
 	mapnode.cpp
 	mapsector.cpp
 	mg_biome.cpp
@@ -371,6 +418,7 @@ set(common_SRCS
 	sound.cpp
 	staticobject.cpp
 	subgame.cpp
+	terminal_chat_console.cpp
 	tool.cpp
 	treegen.cpp
 	version.cpp
@@ -415,7 +463,6 @@ set(client_SRCS
 	${sound_SRCS}
 	${client_network_SRCS}
 	camera.cpp
-	chat.cpp
 	client.cpp
 	clientmap.cpp
 	clientmedia.cpp
@@ -542,6 +589,9 @@ if(BUILD_CLIENT)
 			${CGUITTFONT_LIBRARY}
 		)
 	endif()
+	if (USE_CURSES)
+		target_link_libraries(${PROJECT_NAME} ${CURSES_LIBRARIES})
+	endif()
 	if (USE_LEVELDB)
 		target_link_libraries(${PROJECT_NAME} ${LEVELDB_LIBRARY})
 	endif()
@@ -569,6 +619,9 @@ if(BUILD_SERVER)
 	)
 	set_target_properties(${PROJECT_NAME}server PROPERTIES
 			COMPILE_DEFINITIONS "SERVER")
+	if (USE_CURSES)
+		target_link_libraries(${PROJECT_NAME}server ${CURSES_LIBRARIES})
+	endif()
 	if (USE_LEVELDB)
 		target_link_libraries(${PROJECT_NAME}server ${LEVELDB_LIBRARY})
 	endif()

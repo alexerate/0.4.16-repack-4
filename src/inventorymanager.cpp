@@ -25,7 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "settings.h"
 #include "craftdef.h"
 #include "rollback_interface.h"
-#include "strfnd.h"
+#include "util/strfnd.h"
 
 #define PP(x) "("<<(x).X<<","<<(x).Y<<","<<(x).Z<<")"
 
@@ -818,9 +818,9 @@ void ICraftAction::apply(InventoryManager *mgr,
 		// Add the new replacements to the list
 		IItemDefManager *itemdef = gamedef->getItemDefManager();
 		for (std::vector<ItemStack>::iterator it = temp.begin();
-				it != temp.end(); it++) {
+				it != temp.end(); ++it) {
 			for (std::vector<ItemStack>::iterator jt = output_replacements.begin();
-					jt != output_replacements.end(); jt++) {
+					jt != output_replacements.end(); ++jt) {
 				if (it->name == jt->name) {
 					*it = jt->addItem(*it, itemdef);
 					if (it->empty())
@@ -850,7 +850,7 @@ void ICraftAction::apply(InventoryManager *mgr,
 	// Put the replacements in the inventory or drop them on the floor, if
 	// the invenotry is full
 	for (std::vector<ItemStack>::iterator it = output_replacements.begin();
-			it != output_replacements.end(); it++) {
+			it != output_replacements.end(); ++it) {
 		if (list_main)
 			*it = list_main->addItem(*it);
 		if (it->empty())
@@ -886,7 +886,7 @@ bool getCraftingResult(Inventory *inv, ItemStack& result,
 		std::vector<ItemStack> &output_replacements,
 		bool decrementInput, IGameDef *gamedef)
 {
-	DSTACK(__FUNCTION_NAME);
+	DSTACK(FUNCTION_NAME);
 
 	result.clear();
 

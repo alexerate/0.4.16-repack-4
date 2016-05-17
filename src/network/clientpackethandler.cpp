@@ -24,10 +24,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "log.h"
 #include "map.h"
 #include "mapsector.h"
+#include "minimap.h"
 #include "nodedef.h"
 #include "serialization.h"
 #include "server.h"
-#include "strfnd.h"
+#include "util/strfnd.h"
 #include "network/clientopcodes.h"
 #include "util/serialize.h"
 #include "util/srp.h"
@@ -551,6 +552,7 @@ void Client::handleCommand_MovePlayer(NetworkPacket* pkt)
 
 	*pkt >> pos >> pitch >> yaw;
 
+	player->got_teleported = true;
 	player->setPosition(pos);
 
 	infostream << "Client got TOCLIENT_MOVE_PLAYER"
@@ -578,7 +580,7 @@ void Client::handleCommand_MovePlayer(NetworkPacket* pkt)
 
 void Client::handleCommand_PlayerItem(NetworkPacket* pkt)
 {
-	infostream << "Client: WARNING: Ignoring TOCLIENT_PLAYERITEM" << std::endl;
+	warningstream << "Client: Ignoring TOCLIENT_PLAYERITEM" << std::endl;
 }
 
 void Client::handleCommand_DeathScreen(NetworkPacket* pkt)
@@ -621,7 +623,7 @@ void Client::handleCommand_AnnounceMedia(NetworkPacket* pkt)
 
 	// Mesh update thread must be stopped while
 	// updating content definitions
-	sanity_check(!m_mesh_update_thread.IsRunning());
+	sanity_check(!m_mesh_update_thread.isRunning());
 
 	for (u16 i = 0; i < num_files; i++) {
 		std::string name, sha1_base64;
@@ -639,7 +641,7 @@ void Client::handleCommand_AnnounceMedia(NetworkPacket* pkt)
 		*pkt >> str;
 
 		Strfnd sf(str);
-		while(!sf.atend()) {
+		while(!sf.at_end()) {
 			std::string baseurl = trim(sf.next(","));
 			if (baseurl != "")
 				m_media_downloader->addRemoteServer(baseurl);
@@ -694,7 +696,7 @@ void Client::handleCommand_Media(NetworkPacket* pkt)
 
 	// Mesh update thread must be stopped while
 	// updating content definitions
-	sanity_check(!m_mesh_update_thread.IsRunning());
+	sanity_check(!m_mesh_update_thread.isRunning());
 
 	for (u32 i=0; i < num_files; i++) {
 		std::string name;
@@ -710,7 +712,7 @@ void Client::handleCommand_Media(NetworkPacket* pkt)
 
 void Client::handleCommand_ToolDef(NetworkPacket* pkt)
 {
-	infostream << "Client: WARNING: Ignoring TOCLIENT_TOOLDEF" << std::endl;
+	warningstream << "Client: Ignoring TOCLIENT_TOOLDEF" << std::endl;
 }
 
 void Client::handleCommand_NodeDef(NetworkPacket* pkt)
@@ -720,7 +722,7 @@ void Client::handleCommand_NodeDef(NetworkPacket* pkt)
 
 	// Mesh update thread must be stopped while
 	// updating content definitions
-	sanity_check(!m_mesh_update_thread.IsRunning());
+	sanity_check(!m_mesh_update_thread.isRunning());
 
 	// Decompress node definitions
 	std::string datastring(pkt->getString(0), pkt->getSize());
@@ -737,7 +739,7 @@ void Client::handleCommand_NodeDef(NetworkPacket* pkt)
 
 void Client::handleCommand_CraftItemDef(NetworkPacket* pkt)
 {
-	infostream << "Client: WARNING: Ignoring TOCLIENT_CRAFTITEMDEF" << std::endl;
+	warningstream << "Client: Ignoring TOCLIENT_CRAFTITEMDEF" << std::endl;
 }
 
 void Client::handleCommand_ItemDef(NetworkPacket* pkt)
@@ -747,7 +749,7 @@ void Client::handleCommand_ItemDef(NetworkPacket* pkt)
 
 	// Mesh update thread must be stopped while
 	// updating content definitions
-	sanity_check(!m_mesh_update_thread.IsRunning());
+	sanity_check(!m_mesh_update_thread.isRunning());
 
 	// Decompress item definitions
 	std::string datastring(pkt->getString(0), pkt->getSize());
@@ -1094,8 +1096,19 @@ void Client::handleCommand_HudSetFlags(NetworkPacket* pkt)
 	Player *player = m_env.getLocalPlayer();
 	assert(player != NULL);
 
+	bool was_minimap_visible = player->hud_flags & HUD_FLAG_MINIMAP_VISIBLE;
+
 	player->hud_flags &= ~mask;
 	player->hud_flags |= flags;
+
+	m_minimap_disabled_by_server = !(player->hud_flags & HUD_FLAG_MINIMAP_VISIBLE);
+
+	// Hide minimap if it has been disabled by the server
+	if (m_minimap_disabled_by_server && was_minimap_visible) {
+		// defers a minimap update, therefore only call it if really
+		// needed, by checking that minimap was visible before
+		m_mapper->setMinimapMode(MINIMAP_MODE_OFF);
+	}
 }
 
 void Client::handleCommand_HudSetParam(NetworkPacket* pkt)

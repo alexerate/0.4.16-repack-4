@@ -105,10 +105,16 @@ Compiling on GNU/Linux:
 Install dependencies. Here's an example for Debian/Ubuntu:
 $ sudo apt-get install build-essential libirrlicht-dev cmake libbz2-dev libpng12-dev libjpeg-dev libxxf86vm-dev libgl1-mesa-dev libsqlite3-dev libogg-dev libvorbis-dev libopenal-dev libcurl4-gnutls-dev libfreetype6-dev zlib1g-dev libgmp-dev libjsoncpp-dev
 
+For Fedora users:
+$ sudo dnf install make automake gcc gcc-c++ kernel-devel cmake libcurl* openal* libvorbis* libXxf86vm-devel libogg-devel freetype-devel mesa-libGL-devel zlib-devel jsoncpp-devel irrlicht-devel bzip2-libs gmp-devel sqlite-devel luajit-devel leveldb-devel ncurses-devel doxygen spatialindex-devel bzip2-devel
+
 You can install git for easily keeping your copy up to date.
 If you dont want git, read below on how to get the source without git.
 This is an example for installing git on Debian/Ubuntu:
 $ sudo apt-get install git-core
+
+For Fedora users:
+$ sudo dnf install git-core
 
 Download source (this is the URL to the latest of source repository, which might not work at all times) using git:
 $ git clone --depth 1 https://github.com/minetest/minetest.git
@@ -159,6 +165,7 @@ CMAKE_BUILD_TYPE    - Type of build (Release vs. Debug)
     RelWithDebInfo  - Release build with Debug information
     MinSizeRel      - Release build with -Os passed to compiler to make executable as small as possible
 ENABLE_CURL         - Build with cURL; Enables use of online mod repo, public serverlist and remote media fetching via http
+ENABLE_CURSES       - Build with (n)curses; Enables a server side terminal (command line option: --terminal)
 ENABLE_FREETYPE     - Build with FreeType2; Allows using TTF fonts
 ENABLE_GETTEXT      - Build with Gettext; Allows using translations
 ENABLE_GLES         - Search for Open GLES headers & libraries and use them
@@ -375,13 +382,13 @@ Authors of media files
 Everything not listed in here:
 Copyright (C) 2010-2012 celeron55, Perttu Ahola <celeron55@gmail.com>
 
-BlockMen:
-  textures/base/pack/menuheader.png
+Paramat:
+  textures/base/pack/menu_header.png
 
 erlehmann:
   misc/minetest-icon-24x24.png
   misc/minetest-icon.ico
-  misc/minetest-icon.svg
+  misc/minetest.svg
   textures/base/pack/logo.png
 
 License of Minetest source code

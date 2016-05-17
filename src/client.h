@@ -23,7 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "network/connection.h"
 #include "environment.h"
 #include "irrlichttypes_extrabloated.h"
-#include "jthread/jmutex.h"
+#include "threading/mutex.h"
 #include <ostream>
 #include <map>
 #include <set>
@@ -50,6 +50,7 @@ struct PointedThing;
 class Database;
 class Mapper;
 struct MinimapMapblock;
+class Camera;
 
 struct QueuedMeshUpdate
 {
@@ -89,14 +90,14 @@ public:
 
 	u32 size()
 	{
-		JMutexAutoLock lock(m_mutex);
+		MutexAutoLock lock(m_mutex);
 		return m_queue.size();
 	}
 
 private:
 	std::vector<QueuedMeshUpdate*> m_queue;
 	std::set<v3s16> m_urgents;
-	JMutex m_mutex;
+	Mutex m_mutex;
 };
 
 struct MeshUpdateResult
@@ -119,19 +120,14 @@ private:
 	MeshUpdateQueue m_queue_in;
 
 protected:
-	const char *getName()
-	{ return "MeshUpdateThread"; }
 	virtual void doUpdate();
 
 public:
 
-	MeshUpdateThread()
-	{
-	}
+	MeshUpdateThread() : UpdateThread("Mesh") {}
 
 	void enqueueUpdate(v3s16 p, MeshMakeData *data,
 			bool ack_block_to_server, bool urgent);
-
 	MutexedQueue<MeshUpdateResult> m_queue_out;
 
 	v3s16 m_camera_offset;
@@ -461,9 +457,6 @@ public:
 	int getCrackLevel();
 	void setCrack(int level, v3s16 pos);
 
-	void setHighlighted(v3s16 pos, bool show_higlighted);
-	v3s16 getHighlighted(){ return m_highlighted_pos; }
-
 	u16 getHP();
 	u16 getBreath();
 
@@ -514,6 +507,15 @@ public:
 
 	Mapper* getMapper ()
 	{ return m_mapper; }
+
+	void setCamera(Camera* camera)
+	{ m_camera = camera; }
+
+	Camera* getCamera ()
+	{ return m_camera; }
+
+	bool isMinimapDisabledByServer()
+	{ return m_minimap_disabled_by_server; }
 
 	// IGameDef interface
 	virtual IItemDefManager* getItemDefManager();
@@ -594,7 +596,9 @@ private:
 	ParticleManager m_particle_manager;
 	con::Connection m_con;
 	IrrlichtDevice *m_device;
+	Camera *m_camera;
 	Mapper *m_mapper;
+	bool m_minimap_disabled_by_server;
 	// Server serialization version
 	u8 m_server_ser_ver;
 
@@ -610,12 +614,10 @@ private:
 	Inventory *m_inventory_from_server;
 	float m_inventory_from_server_age;
 	PacketCounter m_packetcounter;
-	bool m_show_highlighted;
 	// Block mesh animation parameters
 	float m_animation_time;
 	int m_crack_level;
 	v3s16 m_crack_pos;
-	v3s16 m_highlighted_pos;
 	// 0 <= m_daynight_i < DAYNIGHT_CACHE_COUNT
 	//s32 m_daynight_i;
 	//u32 m_daynight_ratio;
@@ -683,6 +685,9 @@ private:
 	// TODO: Add callback to update these when g_settings changes
 	bool m_cache_smooth_lighting;
 	bool m_cache_enable_shaders;
+	bool m_cache_use_tangent_vertices;
+
+	DISABLE_CLASS_COPY(Client);
 };
 
 #endif // !CLIENT_HEADER

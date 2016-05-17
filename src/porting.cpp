@@ -29,6 +29,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 	#include <sys/types.h>
 	#include <sys/sysctl.h>
 #elif defined(_WIN32)
+	#include <windows.h>
+	#include <wincrypt.h>
 	#include <algorithm>
 #endif
 #if !defined(_WIN32)
@@ -75,13 +77,13 @@ bool * signal_handler_killstatus(void)
 
 void sigint_handler(int sig)
 {
-	if(!g_killed) {
-		dstream<<DTIME<<"INFO: sigint_handler(): "
-				<<"Ctrl-C pressed, shutting down."<<std::endl;
+	if (!g_killed) {
+		dstream << "INFO: sigint_handler(): "
+			<< "Ctrl-C pressed, shutting down." << std::endl;
 
 		// Comment out for less clutter when testing scripts
-		/*dstream<<DTIME<<"INFO: sigint_handler(): "
-				<<"Printing debug stacks"<<std::endl;
+		/*dstream << "INFO: sigint_handler(): "
+				<< "Printing debug stacks" << std::endl;
 		debug_stacks_print();*/
 
 		g_killed = true;
@@ -105,8 +107,8 @@ BOOL WINAPI event_handler(DWORD sig)
 	case CTRL_CLOSE_EVENT:
 	case CTRL_LOGOFF_EVENT:
 	case CTRL_SHUTDOWN_EVENT:
-		if (g_killed == false) {
-			dstream << DTIME << "INFO: event_handler(): "
+		if (!g_killed) {
+			dstream << "INFO: event_handler(): "
 				<< "Ctrl+C, Close Event, Logoff Event or Shutdown Event,"
 				" shutting down." << std::endl;
 			g_killed = true;
@@ -130,136 +132,15 @@ void signal_handler_init(void)
 
 
 /*
-	Multithreading support
-*/
-int getNumberOfProcessors()
-{
-#if defined(_SC_NPROCESSORS_ONLN)
-
-	return sysconf(_SC_NPROCESSORS_ONLN);
-
-#elif defined(__FreeBSD__) || defined(__APPLE__)
-
-	unsigned int len, count;
-	len = sizeof(count);
-	return sysctlbyname("hw.ncpu", &count, &len, NULL, 0);
-
-#elif defined(_GNU_SOURCE)
-
-	return get_nprocs();
-
-#elif defined(_WIN32)
-
-	SYSTEM_INFO sysinfo;
-	GetSystemInfo(&sysinfo);
-	return sysinfo.dwNumberOfProcessors;
-
-#elif defined(PTW32_VERSION) || defined(__hpux)
-
-	return pthread_num_processors_np();
-
-#else
-
-	return 1;
-
-#endif
-}
-
-
-#ifndef __ANDROID__
-bool threadBindToProcessor(threadid_t tid, int pnumber)
-{
-#if defined(_WIN32)
-
-	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, 0, tid);
-	if (!hThread)
-		return false;
-
-	bool success = SetThreadAffinityMask(hThread, 1 << pnumber) != 0;
-
-	CloseHandle(hThread);
-	return success;
-
-#elif (defined(__FreeBSD__) && (__FreeBSD_version >= 702106)) \
-	|| defined(__linux) || defined(linux)
-
-	cpu_set_t cpuset;
-
-	CPU_ZERO(&cpuset);
-	CPU_SET(pnumber, &cpuset);
-	return pthread_setaffinity_np(tid, sizeof(cpuset), &cpuset) == 0;
-
-#elif defined(__sun) || defined(sun)
-
-	return processor_bind(P_LWPID, MAKE_LWPID_PTHREAD(tid),
-		pnumber, NULL) == 0;
-
-#elif defined(_AIX)
-
-	return bindprocessor(BINDTHREAD, (tid_t)tid, pnumber) == 0;
-
-#elif defined(__hpux) || defined(hpux)
-
-	pthread_spu_t answer;
-
-	return pthread_processor_bind_np(PTHREAD_BIND_ADVISORY_NP,
-		&answer, pnumber, tid) == 0;
-
-#elif defined(__APPLE__)
-
-	struct thread_affinity_policy tapol;
-
-	thread_port_t threadport = pthread_mach_thread_np(tid);
-	tapol.affinity_tag = pnumber + 1;
-	return thread_policy_set(threadport, THREAD_AFFINITY_POLICY,
-		(thread_policy_t)&tapol, THREAD_AFFINITY_POLICY_COUNT) == KERN_SUCCESS;
-
-#else
-
-	return false;
-
-#endif
-}
-#endif
-
-bool threadSetPriority(threadid_t tid, int prio)
-{
-#if defined(_WIN32)
-
-	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, 0, tid);
-	if (!hThread)
-		return false;
-
-	bool success = SetThreadPriority(hThread, prio) != 0;
-
-	CloseHandle(hThread);
-	return success;
-
-#else
-
-	struct sched_param sparam;
-	int policy;
-
-	if (pthread_getschedparam(tid, &policy, &sparam) != 0)
-		return false;
-
-	int min = sched_get_priority_min(policy);
-	int max = sched_get_priority_max(policy);
-
-	sparam.sched_priority = min + prio * (max - min) / THREAD_PRIORITY_HIGHEST;
-	return pthread_setschedparam(tid, policy, &sparam) == 0;
-
-#endif
-}
-
-
-/*
 	Path mangler
 */
 
 // Default to RUN_IN_PLACE style relative paths
 std::string path_share = "..";
 std::string path_user = "..";
+std::string path_locale = path_share + DIR_DELIM + "locale";
+std::string path_cache = path_user + DIR_DELIM + "cache";
+
 
 std::string getDataPath(const char *subpath)
 {
@@ -282,6 +163,8 @@ bool detectMSVCBuildDir(const std::string &path)
 {
 	const char *ends[] = {
 		"bin\\Release",
+		"bin\\MinSizeRel",
+		"bin\\RelWithDebInfo",
 		"bin\\Debug",
 		"bin\\Build",
 		NULL
@@ -523,14 +406,14 @@ bool setSystemPaths()
 		const std::string &trypath = *i;
 		if (!fs::PathExists(trypath) ||
 			!fs::PathExists(trypath + DIR_DELIM + "builtin")) {
-			dstream << "WARNING: system-wide share not found at \""
+			warningstream << "system-wide share not found at \""
 					<< trypath << "\""<< std::endl;
 			continue;
 		}
 
 		// Warn if was not the first alternative
 		if (i != trylist.begin()) {
-			dstream << "WARNING: system-wide share found at \""
+			warningstream << "system-wide share found at \""
 					<< trypath << "\"" << std::endl;
 		}
 
@@ -559,7 +442,7 @@ bool setSystemPaths()
 			TRUE, (UInt8 *)path, PATH_MAX)) {
 		path_share = std::string(path);
 	} else {
-		dstream << "WARNING: Could not determine bundle resource path" << std::endl;
+		warningstream << "Could not determine bundle resource path" << std::endl;
 	}
 	CFRelease(resources_url);
 
@@ -583,6 +466,25 @@ bool setSystemPaths()
 
 #endif
 
+void migrateCachePath()
+{
+	const std::string local_cache_path = path_user + DIR_DELIM + "cache";
+
+	// Delete tmp folder if it exists (it only ever contained
+	// a temporary ogg file, which is no longer used).
+	if (fs::PathExists(local_cache_path + DIR_DELIM + "tmp"))
+		fs::RecursiveDelete(local_cache_path + DIR_DELIM + "tmp");
+
+	// Bail if migration impossible
+	if (path_cache == local_cache_path || !fs::PathExists(local_cache_path)
+			|| fs::PathExists(path_cache)) {
+		return;
+	}
+	if (!fs::Rename(local_cache_path, path_cache)) {
+		errorstream << "Failed to migrate local cache path "
+			"to system path!" << std::endl;
+	}
+}
 
 void initializePaths()
 {
@@ -627,17 +529,61 @@ void initializePaths()
 		path_share = execpath;
 		path_user  = execpath;
 	}
-
+	path_cache = path_user + DIR_DELIM + "cache";
 #else
 	infostream << "Using system-wide paths (NOT RUN_IN_PLACE)" << std::endl;
 
 	if (!setSystemPaths())
 		errorstream << "Failed to get one or more system-wide path" << std::endl;
 
+	// Initialize path_cache
+	// First try $XDG_CACHE_HOME/PROJECT_NAME
+	const char *cache_dir = getenv("XDG_CACHE_HOME");
+	const char *home_dir = getenv("HOME");
+	if (cache_dir) {
+		path_cache = std::string(cache_dir) + DIR_DELIM + PROJECT_NAME;
+	} else if (home_dir) {
+		// Then try $HOME/.cache/PROJECT_NAME
+		path_cache = std::string(home_dir) + DIR_DELIM + ".cache"
+			+ DIR_DELIM + PROJECT_NAME;
+	} else {
+		// If neither works, use $PATH_USER/cache
+		path_cache = path_user + DIR_DELIM + "cache";
+	}
+	// Migrate cache folder to new location if possible
+	migrateCachePath();
 #endif
 
 	infostream << "Detected share path: " << path_share << std::endl;
 	infostream << "Detected user path: " << path_user << std::endl;
+	infostream << "Detected cache path: " << path_cache << std::endl;
+
+#ifdef USE_GETTEXT
+	bool found_localedir = false;
+#  ifdef STATIC_LOCALEDIR
+	if (STATIC_LOCALEDIR[0] && fs::PathExists(STATIC_LOCALEDIR)) {
+		found_localedir = true;
+		path_locale = STATIC_LOCALEDIR;
+		infostream << "Using locale directory " << STATIC_LOCALEDIR << std::endl;
+	} else {
+		path_locale = getDataPath("locale");
+		if (fs::PathExists(path_locale)) {
+			found_localedir = true;
+			infostream << "Using in-place locale directory " << path_locale
+				<< " even though a static one was provided "
+				<< "(RUN_IN_PLACE or CUSTOM_LOCALEDIR)." << std::endl;
+		}
+	}
+#  else
+	path_locale = getDataPath("locale");
+	if (fs::PathExists(path_locale)) {
+		found_localedir = true;
+	}
+#  endif
+	if (!found_localedir) {
+		warningstream << "Couldn't find a locale directory!" << std::endl;
+	}
+#endif  // USE_GETTEXT
 }
 
 
@@ -798,5 +744,44 @@ v2u32 getDisplaySize()
 #	endif // __ANDROID__
 #endif // SERVER
 
-} //namespace porting
 
+////
+//// OS-specific Secure Random
+////
+
+#ifdef WIN32
+
+bool secure_rand_fill_buf(void *buf, size_t len)
+{
+	HCRYPTPROV wctx;
+
+	if (!CryptAcquireContext(&wctx, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+		return false;
+
+	CryptGenRandom(wctx, len, (BYTE *)buf);
+	CryptReleaseContext(wctx, 0);
+	return true;
+}
+
+#else
+
+bool secure_rand_fill_buf(void *buf, size_t len)
+{
+	// N.B.  This function checks *only* for /dev/urandom, because on most
+	// common OSes it is non-blocking, whereas /dev/random is blocking, and it
+	// is exceptionally uncommon for there to be a situation where /dev/random
+	// exists but /dev/urandom does not.  This guesswork is necessary since
+	// random devices are not covered by any POSIX standard...
+	FILE *fp = fopen("/dev/urandom", "rb");
+	if (!fp)
+		return false;
+
+	bool success = fread(buf, len, 1, fp) == 1;
+
+	fclose(fp);
+	return success;
+}
+
+#endif
+
+} //namespace porting
