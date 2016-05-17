@@ -1,23 +1,19 @@
-From: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
-Date: Sun, 4 Jan 2015 22:05:51 +0100
-Subject: i18n
-
 Search for translation in the default path
 Forwarded: not-needed
 ---
- src/main.cpp |    2 +-
+ CMakeLists.txt |    2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-Index: b/src/main.cpp
+Index: b/CMakeLists.txt
 ===================================================================
---- a/src/main.cpp
-+++ b/src/main.cpp
-@@ -475,7 +475,7 @@ static bool init_common(int *log_level,
- 	init_gettext((porting::path_share + DIR_DELIM + "locale").c_str(),
- 		g_settings->get("language"), argc, argv);
- #else
--	init_gettext((porting::path_share + DIR_DELIM + "locale").c_str(),
-+	init_gettext("/usr/share/locale",
- 		g_settings->get("language"));
- #endif
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -94,7 +94,7 @@ elseif(UNIX) # Linux, BSD etc
+ 		set(XDG_APPS_DIR "${CMAKE_INSTALL_PREFIX}/share/applications")
+ 		set(APPDATADIR "${CMAKE_INSTALL_PREFIX}/share/appdata")
+ 		set(ICONDIR "${CMAKE_INSTALL_PREFIX}/share/icons")
+-		set(LOCALEDIR "${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/locale")
++		set(LOCALEDIR "${CMAKE_INSTALL_PREFIX}/share/locale")
+ 	endif()
+ endif()
  
