@@ -1,8 +1,8 @@
-minetest (0.4.14+repack-3) UNRELEASED; urgency=medium
+minetest (0.4.14+repack-3) unstable; urgency=medium
 
-  * Fix this FTBFS that does not occure in my pbuilder -- sorry
+  * Fix this FTBFS that does not occure in my pbuilder -- sorry.
 
- -- Martin Quinson <mquinson@debian.org>  Wed, 18 May 2016 08:51:00 +0200
+ -- Martin Quinson <mquinson@debian.org>  Wed, 18 May 2016 09:45:33 +0200
 
 minetest (0.4.14+repack-2) unstable; urgency=medium
 
