@@ -72,10 +72,10 @@ override_dh_install:
 		debian/minetest/usr/share/pixmaps/minetest.xpm
 
 	# Don't include ttf files, but links to the system ones
-	rm debian/minetest-data/usr/share/games/minetest/fonts/liberationmono.ttf
+	rm -f debian/minetest-data/usr/share/games/minetest/fonts/liberationmono.ttf
 	ln -s /usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf \
 	      debian/minetest-data/usr/share/games/minetest/fonts/liberationmono.ttf
-	rm debian/minetest-data/usr/share/games/minetest/fonts/liberationsans.ttf
+	rm -f debian/minetest-data/usr/share/games/minetest/fonts/liberationsans.ttf
 	ln -s /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf \
 	      debian/minetest-data/usr/share/games/minetest/fonts/liberationsans.ttf
 
