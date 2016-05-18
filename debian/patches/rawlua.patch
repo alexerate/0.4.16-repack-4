@@ -3,16 +3,16 @@ Date: Fri, 20 Feb 2015 22:46:25 +0100
 Subject: rawlua
 
 ---
- cmake/Modules/FindLua.cmake |    7 +++----
+ src/CMakeLists.txt |    7 +++----
  1 file changed, 3 insertions(+), 4 deletions(-)
 
-Index: b/cmake/Modules/FindLua.cmake
+Index: b/src/CMakeLists.txt
 ===================================================================
---- a/cmake/Modules/FindLua.cmake
-+++ b/cmake/Modules/FindLua.cmake
-@@ -17,9 +17,8 @@ else()
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -167,10 +167,9 @@ else()
+ 	message (STATUS "LuaJIT detection disabled! (ENABLE_LUAJIT=0)")
  endif()
- 
  if(NOT USE_LUAJIT)
 -	message(STATUS "LuaJIT not found, using bundled Lua.")
 -	set(LUA_LIBRARY "lua")
@@ -23,3 +23,4 @@ Index: b/cmake/Modules/FindLua.cmake
 +	set(LUA_LIBRARY "lua5.1")
  endif()
  
+ find_package(GMP REQUIRED)

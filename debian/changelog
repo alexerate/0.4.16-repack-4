@@ -1,6 +1,8 @@
 minetest (0.4.14+repack-2) UNRELEASED; urgency=medium
 
-  * FTBFS: sometimes, the fonts are not generated, so don't erase them.
+  * FTBFS: sometimes, the fonts are not generated. Don't erase then.
+  * Adapt the patch for non-LuaJIT platforms. I dropped it before
+    because it seemed integrated upstream, but was not.
 
  -- Martin Quinson <mquinson@debian.org>  Wed, 18 May 2016 07:49:54 +0200
 
