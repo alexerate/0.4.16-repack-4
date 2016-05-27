@@ -8,7 +8,7 @@ tmpdir:=$(shell mktemp -d)
 wrkdir:=$(shell pwd)
 
 # build-hardening flags
-export DEB_BUILD_MAINT_OPTIONS="hardening=+all"
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 # file names
 sources=$(shell find . -name *.cpp)
