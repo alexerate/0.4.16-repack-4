@@ -52,20 +52,6 @@ Description: Multiplayer infinite-world block sandbox
  modes along with multiplayer support, dynamic lighting, and an "infinite" map
  generator.
 
-Package: minetest-dbg
-Architecture: any
-Section: debug
-Depends:
- minetest (= ${binary:Version}) | minetest-server (= ${binary:Version}),
- ${misc:Depends}
-Description: Multiplayer infinite-world block sandbox (debugging symbols)
- Minetest is a minecraft-inspired game written from scratch and licensed
- under the LGPL (version 2.1 or later). It supports both survival and creative
- modes along with multiplayer support, dynamic lighting, and an "infinite" map
- generator.
- .
- These are the debugging symbols in case something goes wrong.
-
 Package: minetest-server
 Architecture: any
 Depends:
