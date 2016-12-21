@@ -1,0 +1,30 @@
+.TH OPTION "1" "December 2016" "minetest-mapper" "Games"
+.SH NAME
+minetest-mapper \- creates 2D maps of your world
+.SH DESCRIPTION
+[OPTIONS]
+.HP
+\fB\-i\fR/\-\-input <world_path>
+.HP
+\fB\-o\fR/\-\-output <output_image.png>
+.HP
+\fB\-\-bgcolor\fR <color>
+.HP
+\fB\-\-scalecolor\fR <color>
+.HP
+\fB\-\-playercolor\fR <color>
+.HP
+\fB\-\-origincolor\fR <color>
+.HP
+\fB\-\-drawscale\fR
+.HP
+\fB\-\-drawplayers\fR
+.HP
+\fB\-\-draworigin\fR
+.HP
+\fB\-\-drawunderground\fR
+.PP
+Color format: '#000000'
+.SH EXAMPLE
+.HP
+minetest-mapper -i /home/user/.minetest/worlds/my_world -o /home/user/map.png
