@@ -1,3 +1,9 @@
+minetest (0.4.14+repack-7) unstable; urgency=medium
+
+  * d/rules: Create /usr/share/games/minetest to prevent a FTBFS.
+
+ -- Markus Koschany <apo@debian.org>  Thu, 22 Dec 2016 00:37:37 +0100
+
 minetest (0.4.14+repack-6) unstable; urgency=medium
 
   * Switch to compat level 10.
