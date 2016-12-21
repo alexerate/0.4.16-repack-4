@@ -92,4 +92,4 @@ clean:
 	dh ${@} # Without systemd as it may not be there yet
 
 %:
-	dh ${@} --parallel --with systemd
+	dh ${@} --with systemd
