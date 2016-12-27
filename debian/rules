@@ -62,6 +62,7 @@ override_dh_installchangelogs:
 	dh_installchangelogs debian/changelog.upstream
 
 override_dh_install:
+	find . -name "license.txt" -delete
 	dh_install --list-missing
 	# copy the logo
 	mkdir -p  debian/minetest/usr/share/icons/hicolor/24x24/apps/ \
