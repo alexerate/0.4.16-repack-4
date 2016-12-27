@@ -142,10 +142,6 @@ License: BSD-2-clause
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Files: src/jthread/*
-Copyright: 2000-2006, Jori Liesenborgs (jori.liesenborgs@gmail.com)
-License: Expat
-
 Files: src/util/sha2.h
 Copyright: 1995-1998 Eric Young (eay@cryptsoft.com)
 License: cryptsoft-License
