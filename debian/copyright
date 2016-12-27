@@ -29,7 +29,6 @@ Files: games/minetest_game/mods/boats/*
        games/minetest_game/mods/bones/*.lua
        games/minetest_game/mods/vessels/textures/*
        games/minetest_game/mods/doors/textures/doors_trapdoor.png
-       games/minetest_game/mods/doors/textures/doors_obsidian_glass_side.png
 Copyright: PilzAdam
            Zeg9
            thetoon
@@ -56,9 +55,7 @@ Copyright: BlockMen
            bennstir
 License: CC-BY-3.0
 
-Files: games/minetest_game/mods/doors/textures/doors_glass.png
-       games/minetest_game/mods/doors/textures/doors_obsidian_glass.png
-       games/minetest_game/mods/default/textures/default_desert_cobble.png
+Files: games/minetest_game/mods/default/textures/default_desert_cobble.png
 Copyright: PenguinDad
 License: CC-BY-SA-4.0
 
