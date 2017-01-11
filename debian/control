@@ -8,7 +8,7 @@ Uploaders:
  Markus Koschany <apo@debian.org>
 Build-Depends:
  cmake,
- debhelper (>= 9),
+ debhelper (>= 10),
  dh-systemd (>= 1.5),
  gettext,
  imagemagick,
@@ -28,7 +28,7 @@ Build-Depends:
  libvorbis-dev,
  libx11-dev,
  zlib1g-dev
-Standards-Version: 3.9.7
+Standards-Version: 3.9.8
 Homepage: http://minetest.net/
 Vcs-Git: https://anonscm.debian.org/git/pkg-games/minetest-v04x.git
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-games/minetest-v04x.git
@@ -52,24 +52,11 @@ Description: Multiplayer infinite-world block sandbox
  modes along with multiplayer support, dynamic lighting, and an "infinite" map
  generator.
 
-Package: minetest-dbg
-Architecture: any
-Section: debug
-Depends:
- minetest (= ${binary:Version}) | minetest-server (= ${binary:Version}),
- ${misc:Depends}
-Description: Multiplayer infinite-world block sandbox (debugging symbols)
- Minetest is a minecraft-inspired game written from scratch and licensed
- under the LGPL (version 2.1 or later). It supports both survival and creative
- modes along with multiplayer support, dynamic lighting, and an "infinite" map
- generator.
- .
- These are the debugging symbols in case something goes wrong.
-
 Package: minetest-server
 Architecture: any
 Depends:
  adduser,
+ lsb-base (>= 3.0-6),
  minetest-data (= ${source:Version}),
  ${misc:Depends},
  ${shlibs:Depends}
@@ -84,16 +71,18 @@ Description: Multiplayer infinite-world block sandbox (server)
 Package: minetest-data
 Architecture: all
 Depends:
+ fonts-droid-fallback,
  fonts-liberation,
  python,
  python-imaging,
  ${misc:Depends}
 Breaks:
- minetest (<< 0.3.1+dfsg-3),
+ minetest (<< 0.4.14+repack-1),
  minetest-common
 Conflicts:
  minetest-common
 Replaces:
+ minetest (<< 0.4.14+repack-1),
  minetest-common
 Description: Multiplayer infinite-world block sandbox (data files)
  Minetest is a minecraft-inspired game written from scratch and licensed

@@ -62,6 +62,7 @@ override_dh_installchangelogs:
 	dh_installchangelogs debian/changelog.upstream
 
 override_dh_install:
+	find . -name "license.txt" -delete
 	dh_install --list-missing
 	# copy the logo
 	mkdir -p  debian/minetest/usr/share/icons/hicolor/24x24/apps/ \
@@ -71,22 +72,11 @@ override_dh_install:
 	convert debian/minetest/usr/share/icons/hicolor/24x24/apps/minetest-icon.png \
 		debian/minetest/usr/share/pixmaps/minetest.xpm
 
-	# Don't include ttf files, but links to the system ones
-	mkdir -p debian/minetest-data/usr/share/games/minetest/fonts # Not sure why/when they exist or not
-	rm -f debian/minetest-data/usr/share/games/minetest/fonts/liberationmono.ttf
-	ln -s /usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf \
-	      debian/minetest-data/usr/share/games/minetest/fonts/liberationmono.ttf
-	rm -f debian/minetest-data/usr/share/games/minetest/fonts/liberationsans.ttf
-	ln -s /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf \
-	      debian/minetest-data/usr/share/games/minetest/fonts/liberationsans.ttf
-
 	# Install the mapper script
 	mkdir -p debian/minetest-data/usr/games
+	mkdir -p debian/minetest-data/usr/share/games/minetest
 	cp util/minetestmapper.py debian/minetest-data/usr/games/minetest-mapper
 	cp util/colors.txt        debian/minetest-data/usr/share/games/minetest/minetestmapper-colors.txt
-
-override_dh_strip:
-	dh_strip --dbg-package=minetest-dbg
 
 get-orig-source:
 	uscan --verbose --force-download
@@ -95,4 +85,4 @@ clean:
 	dh ${@} # Without systemd as it may not be there yet
 
 %:
-	dh ${@} --parallel --with systemd
+	dh ${@} --with systemd

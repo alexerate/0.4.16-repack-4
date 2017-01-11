@@ -9,27 +9,42 @@ License: LGPL-2.1+
 
 Files: *.ogg
        *.png
+       games/minetest_game/mods/beds/*
+       games/minetest_game/mods/boats/*
+       games/minetest_game/mods/bones/*
+       games/minetest_game/mods/bucket/*
+       games/minetest_game/mods/creative/*
+       games/minetest_game/mods/default/*
+       games/minetest_game/mods/nyancat/*
+       games/minetest_game/mods/screwdriver/*
+       games/minetest_game/mods/stairs/*
+       games/minetest_game/mods/tnt/*
+       games/minetest_game/mods/vessels/*
+       games/minetest_game/mods/wool/*
+       games/minetest_game/mods/xpanes/*
 Copyright: 2010-2012, celeron55, Perttu Ahola <celeron55@gmail.com>
            2011-2012, Kahrl <kahrl@gmx.net>
                       BlockMen,
                       erlehmann
+           2012-2016, PilzAdam,
+                      Zeg9,
+                      thetoon,
+                      PavelS(SokolovPavel),
+                      sofar (sofar@foo-projects.org),
+                      paramat
+           2015-2016 Jean-Patrick G. (kilbith) <jeanpatrick.guerrero@gmail.com>
 License: CC-BY-SA-3.0
 Comment:
  According to the main README file all Minetest textures and sounds are
  licensed under CC-BY-SA-3.0 with the notable exceptions below.
 
-Files: games/minetest_game/mods/boats/*
-       games/minetest_game/mods/flowers/*
-       games/minetest_game/mods/creative/*
-       games/minetest_game/mods/beds/*
+Files: games/minetest_game/mods/flowers/*
        games/minetest_game/mods/tnt/*
        games/minetest_game/mods/farming/*
        games/minetest_game/mods/xpanes/*
        games/minetest_game/mods/dye/*
-       games/minetest_game/mods/bones/*.lua
        games/minetest_game/mods/vessels/textures/*
        games/minetest_game/mods/doors/textures/doors_trapdoor.png
-       games/minetest_game/mods/doors/textures/doors_obsidian_glass_side.png
 Copyright: PilzAdam
            Zeg9
            thetoon
@@ -56,9 +71,7 @@ Copyright: BlockMen
            bennstir
 License: CC-BY-3.0
 
-Files: games/minetest_game/mods/doors/textures/doors_glass.png
-       games/minetest_game/mods/doors/textures/doors_obsidian_glass.png
-       games/minetest_game/mods/default/textures/default_desert_cobble.png
+Files: games/minetest_game/mods/default/textures/default_desert_cobble.png
 Copyright: PenguinDad
 License: CC-BY-SA-4.0
 
@@ -80,7 +93,16 @@ License: GPL-2+
 
 Files: src/util/sha1.cpp
        src/util/sha1.h
+       games/minetest_game/mods/carts/*
+       games/minetest_game/mods/give_initial_stuff/*
+       games/minetest_game/mods/sethome/*
+       games/minetest_game/mods/sfinv/*
 Copyright: Copyright (c) 2005 Michael D. Leonhard (http://tamale.net)
+           Copyright (C) 2012-2016 PilzAdam
+           Copyright (C) 2014-2016 SmallJoker
+           Copyright (C) 2012-2016 Various Minetest developers and contributors
+           Copyright (C) 2012-2016 Perttu Ahola (celeron55) <celeron55@gmail.com>
+           Copyright (C) 2012-2016 Various Minetest developers and contributors
 License: Expat
 
 Files: src/util/base64.*
@@ -144,10 +166,6 @@ License: BSD-2-clause
  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-Files: src/jthread/*
-Copyright: 2000-2006, Jori Liesenborgs (jori.liesenborgs@gmail.com)
-License: Expat
 
 Files: src/util/sha2.h
 Copyright: 1995-1998 Eric Young (eay@cryptsoft.com)

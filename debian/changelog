@@ -1,8 +1,47 @@
-minetest (0.4.14+repack-3~bpo8+1) jessie-backports; urgency=medium
+minetest (0.4.15+repack-1) unstable; urgency=medium
 
-  * Rebuild for jessie-backports.
+  * New upstream version 0.4.15+repack.
+  * Use DroidSansFallbackFull.ttf instead of just DroidSansFallback.ttf.
+    (Closes: #849360)
+  * Delete all license.txt files before installing them into the Debian
+    packages. Debian has its own copyright file.
+  * Update debian/copyright for new release.
 
- -- Markus Koschany <apo@debian.org>  Fri, 27 May 2016 20:03:28 +0200
+ -- Markus Koschany <apo@debian.org>  Wed, 28 Dec 2016 02:13:28 +0100
+
+minetest (0.4.14+repack-7) unstable; urgency=medium
+
+  * d/rules: Create /usr/share/games/minetest to prevent a FTBFS.
+
+ -- Markus Koschany <apo@debian.org>  Thu, 22 Dec 2016 00:37:37 +0100
+
+minetest (0.4.14+repack-6) unstable; urgency=medium
+
+  * Switch to compat level 10.
+  * minetest-server: Depend on lsb-base (>= 3.0-6).
+  * minetest-data: Depend on fonts-droid-fallback.
+  * Replace DroidSansFallback.ttf with Debian's system font and use
+    minetest-data.links instead of debian/rules for this.
+  * Provide a manpage for minetest-mapper.
+
+ -- Markus Koschany <apo@debian.org>  Wed, 21 Dec 2016 23:22:47 +0100
+
+minetest (0.4.14+repack-5) unstable; urgency=medium
+
+  * Set correct Breaks and Replaces relationship for minetest-data.
+    Thanks to Andreas Beckmann for the report. (Closes: #829150)
+
+ -- Markus Koschany <apo@debian.org>  Wed, 13 Jul 2016 17:15:58 +0200
+
+minetest (0.4.14+repack-4) unstable; urgency=medium
+
+  * Drop minetest-dbg because it was replaced by the automatic -dbgsym package.
+  * Declare compliance with Debian Policy 3.9.8.
+  * service files: Change the KillSignal from SIGTERM to SIGINT.
+    Thanks to dr4ke for the report and patch. (Closes: #828018)
+
+ -- Markus Koschany <apo@debian.org>  Sat, 25 Jun 2016 16:19:11 +0200
+>>>>>>> master
 
 minetest (0.4.14+repack-3) unstable; urgency=medium
 
