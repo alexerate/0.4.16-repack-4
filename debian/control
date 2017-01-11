@@ -71,7 +71,6 @@ Description: Multiplayer infinite-world block sandbox (server)
 Package: minetest-data
 Architecture: all
 Depends:
- fonts-droid-fallback,
  fonts-liberation,
  python,
  python-imaging,
