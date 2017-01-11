@@ -1,3 +1,11 @@
+minetest (0.4.15+repack-1~bpo8+1) jessie-backports; urgency=medium
+
+  * Rebuild for jessie-backports.
+  * Switch back to compat level 9.
+  * Remove the dependency on fonts-droid-fallback.
+
+ -- Markus Koschany <apo@debian.org>  Wed, 11 Jan 2017 22:58:45 +0100
+
 minetest (0.4.15+repack-1) unstable; urgency=medium
 
   * New upstream version 0.4.15+repack.
@@ -41,7 +49,6 @@ minetest (0.4.14+repack-4) unstable; urgency=medium
     Thanks to dr4ke for the report and patch. (Closes: #828018)
 
  -- Markus Koschany <apo@debian.org>  Sat, 25 Jun 2016 16:19:11 +0200
->>>>>>> master
 
 minetest (0.4.14+repack-3) unstable; urgency=medium
 
