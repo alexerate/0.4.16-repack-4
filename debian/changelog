@@ -1,3 +1,12 @@
+minetest (0.4.15+repack2-1) unstable; urgency=medium
+
+  * New upstream version 0.4.15+repack2.
+  * Update repack.sh. Remove liberation fonts as well since we use Debian's
+    system fonts anyway. (Closes: #851114)
+  * d/copyright: Remove paragraph about liberation fonts.
+
+ -- Markus Koschany <apo@debian.org>  Fri, 13 Jan 2017 22:07:54 +0100
+
 minetest (0.4.15+repack-1) unstable; urgency=medium
 
   * New upstream version 0.4.15+repack.
