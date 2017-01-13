@@ -8,17 +8,19 @@
 
 repacksuffix="+repack"
 dfsgremovals="Makefile.bak \
-	     .gitattributes \
-	     .gitignore \
-	     .hg_archival \
-	     .hg_archival.txt \
-	     .hgignore \
-	     .hgtags \
-	     fontlucida.png \
-	     sqlite \
-	     json \
-	     lua"
-#	     jthread # upstream patched that lib, which seem dead upstream itself, so use minetest's version even if I don't like it.
+     .gitattributes \
+     .gitignore \
+     .hg_archival \
+     .hg_archival.txt \
+     .hgignore \
+     .hgtags \
+     fontlucida.png \
+     sqlite \
+     json \
+     lua \
+     liberationmono.ttf \
+     liberationsans.ttf"
+#jthread # upstream patched that lib, which seem dead upstream itself, so use minetest's version even if I don't like it.
 
 included_games="minetest_game"
 
