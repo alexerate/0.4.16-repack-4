@@ -1,2 +1,3 @@
 usr/bin/minetest        /usr/games
-usr/share/applications/minetest.desktop /usr/share/applications
+usr/share/applications/net.minetest.minetest.desktop /usr/share/applications
+usr/share/man/man6/minetest.6

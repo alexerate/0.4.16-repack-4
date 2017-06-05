@@ -36,6 +36,14 @@ cleanremovals= bin \
 
 override_dh_clean:
 	dh_clean --exclude old/Makefile.old
+	# Delete binary files which are not automatically cleaned when building
+	# minetest twice in a row
+	# There are more issues and this should be fixed by upstream
+	find . -name "*.o" -delete
+	find . -name "*.mo" -delete
+	find . -name "*.a" -delete
+	find . -name "*.bin" -delete
+	find . -name "a.out" -delete
 
 override_dh_auto_clean:
 	dh_clean --exclude old/Makefile.old
@@ -62,16 +70,8 @@ override_dh_installchangelogs:
 	dh_installchangelogs debian/changelog.upstream
 
 override_dh_install:
-	find . -name "license.txt" -delete
+	find . -iname "license.txt" -delete
 	dh_install --list-missing
-	# copy the logo
-	mkdir -p  debian/minetest/usr/share/icons/hicolor/24x24/apps/ \
-		  debian/minetest/usr/share/pixmaps/
-	cp 	misc/minetest-icon-24x24.png \
-		debian/minetest/usr/share/icons/hicolor/24x24/apps/minetest-icon.png
-	convert debian/minetest/usr/share/icons/hicolor/24x24/apps/minetest-icon.png \
-		debian/minetest/usr/share/pixmaps/minetest.xpm
-
 	# Install the mapper script
 	mkdir -p debian/minetest-data/usr/games
 	mkdir -p debian/minetest-data/usr/share/games/minetest

@@ -1,10 +1,11 @@
-
-usr/share/doc/minetest/*             usr/share/doc/minetest/
-usr/share/games/minetest/builtin/*   usr/share/games/minetest/builtin
-usr/share/games/minetest/client/*    usr/share/games/minetest/client
-usr/share/games/minetest/games/*     usr/share/games/minetest/games
-usr/share/games/minetest/textures/*  usr/share/games/minetest/textures
-usr/share/games/minetest/fonts/*     usr/share/games/minetest/fonts
-usr/share/locale/*                   usr/share/locale
-usr/share/icons/hicolor/scalable/apps/minetest.svg   usr/share/icons/hicolor/scalable/apps
-usr/share/appdata/minetest.appdata.xml               usr/share/appdata
+usr/share/doc/minetest
+usr/share/games/minetest/builtin
+usr/share/games/minetest/client
+usr/share/games/minetest/games
+usr/share/games/minetest/textures
+usr/share/games/minetest/fonts
+usr/share/games/minetest/clientmods/preview/init.lua
+usr/share/locale
+usr/share/icons/hicolor/scalable/apps/minetest.svg
+usr/share/metainfo/net.minetest.minetest.appdata.xml usr/share/appdata/
+usr/share/icons/hicolor/128x128/apps/minetest.png

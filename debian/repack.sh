@@ -19,7 +19,8 @@ dfsgremovals="Makefile.bak \
      json \
      lua \
      liberationmono.ttf \
-     liberationsans.ttf"
+     liberationsans.ttf \
+     *.jar"
 #jthread # upstream patched that lib, which seem dead upstream itself, so use minetest's version even if I don't like it.
 
 included_games="minetest_game"

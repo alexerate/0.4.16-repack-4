@@ -1,3 +1,28 @@
+minetest (0.4.16+repack-1) experimental; urgency=medium
+
+  * New upstream version 0.4.16+repack. (Closes: #864060)
+  * Drop i18n.patch. Fixed upstream.
+  * Refresh rawlua.patch.
+  * service files: Use the default KillSignal SIGTERM again which
+    is supported by upstream now.
+  * service files: Pipe all log messages to /dev/null to reduce the noise.
+    Log messages are already logged to /var/log/minetest by default.
+  * Drop deprecated minetest.menu file.
+  * Install missing files and simplify the install files.
+  * Drop the manpages files in favor of install files.
+    Otherwise the dh_install --list-missing option will cause a build failure
+    despite the fact that the manpages are installed via manpages files.
+  * repack.sh: Also remove all jar files.
+  * Don't convert the lowres minetest icon to xpm anymore and remove imagemagick
+    from Build-Depends.
+  * Add an lintian-override for duplicate font files because fonts-croscore was
+    removed from Debian.
+  * Update debian/copyright for new release.
+  * Remove binary files in clean target which are not automatically cleaned
+    when building minetest twice in a row.
+
+ -- Markus Koschany <apo@debian.org>  Mon, 05 Jun 2017 14:42:59 +0200
+
 minetest (0.4.15+repack2-1) unstable; urgency=medium
 
   * New upstream version 0.4.15+repack2.
