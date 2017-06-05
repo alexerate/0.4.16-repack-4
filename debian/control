@@ -23,9 +23,11 @@ Build-Depends:
  libogg-dev,
  libopenal-dev,
  libpng-dev,
+ libpq-dev,
  libsqlite3-dev,
  libvorbis-dev,
  libx11-dev,
+ postgresql-server-dev-all,
  zlib1g-dev
 Standards-Version: 3.9.8
 Homepage: http://minetest.net/
