@@ -36,6 +36,10 @@ override_dh_install:
 	cp util/minetestmapper.py debian/minetest-data/usr/games/minetest-mapper
 	cp util/colors.txt        debian/minetest-data/usr/share/games/minetest/minetestmapper-colors.txt
 
+override_dh_clean:
+	dh_clean
+	$(RM) -r bin
+
 get-orig-source:
 	uscan --verbose --force-download
 
