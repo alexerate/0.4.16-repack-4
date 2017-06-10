@@ -3,51 +3,8 @@
 # avoid useless dependencies
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
-# upstream version
-tmpdir:=$(shell mktemp -d)
-wrkdir:=$(shell pwd)
-
 # build-hardening flags
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
-
-# file names
-sources=$(shell find . -name *.cpp)
-headers=$(shell find . -name *.h)
-cleanremovals= bin \
-	       CMakeFiles \
-	       src/CMakeFiles \
-	       CMakeCache.txt \
-	       CPackConfig.cmake \
-	       CPackSourceConfig.cmake \
-	       Makefile \
-	       cmake_install.cmake \
-	       src/Makefile \
-	       src/cmake_config.h \
-	       src/cmake_install.cmake \
-	       locale \
-	       install_manifest.txt \
-	       minetest.xpm \
-	       minetest.svg \
-	       minetest.png \
-	       src/cguittfont/CMakeFiles/ \
-	       src/cguittfont/Makefile \
-	       src/cguittfont/cmake_install.cmake \
-	       src/cguittfont/libcguittfont.a
-
-override_dh_clean:
-	dh_clean --exclude old/Makefile.old
-	# Delete binary files which are not automatically cleaned when building
-	# minetest twice in a row
-	# There are more issues and this should be fixed by upstream
-	find . -name "*.o" -delete
-	find . -name "*.mo" -delete
-	find . -name "*.a" -delete
-	find . -name "*.bin" -delete
-	find . -name "a.out" -delete
-
-override_dh_auto_clean:
-	dh_clean --exclude old/Makefile.old
-	rm -rf ${cleanremovals}
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
