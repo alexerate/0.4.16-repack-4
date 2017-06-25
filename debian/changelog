@@ -8,6 +8,7 @@ minetest (0.4.16+repack-2) unstable; urgency=medium
     generated files took place.
   * Remove minetest-data.lintian-overrides and depend on fonts-croscore instead.
     Replace embedded croscore fonts with system fonts.
+  * Declare compliance with Debian Policy 4.0.0.
 
  -- Markus Koschany <apo@debian.org>  Sun, 25 Jun 2017 18:52:38 +0200
 
