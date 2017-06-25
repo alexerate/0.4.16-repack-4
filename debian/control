@@ -29,7 +29,7 @@ Build-Depends:
  libx11-dev,
  postgresql-server-dev-all,
  zlib1g-dev
-Standards-Version: 3.9.8
+Standards-Version: 4.0.0
 Homepage: http://minetest.net/
 Vcs-Git: https://anonscm.debian.org/git/pkg-games/minetest-v04x.git
 Vcs-Browser: https://anonscm.debian.org/cgit/pkg-games/minetest-v04x.git
