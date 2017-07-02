@@ -1,3 +1,9 @@
+minetest (0.4.16+repack-2~bpo9+1) stretch-backports; urgency=medium
+
+  * Rebuild for jessie-backports.
+
+ -- Markus Koschany <apo@debian.org>  Sun, 02 Jul 2017 21:13:20 +0200
+
 minetest (0.4.16+repack-2) unstable; urgency=medium
 
   * Upload to unstable.
