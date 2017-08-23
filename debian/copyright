@@ -93,7 +93,7 @@ License: GPL-2+
 Files: debian/patches/*
 Copyright: 2011-2012, Michael Gilbert <michael.s.gilbert@gmail.com>
            2013-2015, Martin Quinson <mquinson@debian.org>
-           2014-2017, Markus Koschany <apo@gambaru.de>
+           2014-2017, Markus Koschany <apo@debian.org>
 License: LGPL-2.1+
 
 Files: util/wireshark/minetest.lua
