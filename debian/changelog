@@ -1,3 +1,18 @@
+minetest (0.4.16+repack-3) unstable; urgency=medium
+
+  * Declare compliance with Debian Policy 4.1.0.
+  * minetest-data: Switch from python-imaging to python-pil. (Closes: #866441)
+  * Build with ENABLE_SYSTEM_GMP=1 and use Debian's system library of GMP.
+    - Build-depend on libgmp-dev.
+  * Make sure that we really use system libraries of jsoncpp and gmp.
+    Remove embedded libs in dh_clean override.
+  * Update minetest.conf and add all available configuration options for
+    dedicated servers.
+  * Install minetest-mapper.6 with minetest-data.manpages.
+  * Install appdata file into canonical directory /usr/share/metainfo.
+
+ -- Markus Koschany <apo@debian.org>  Wed, 23 Aug 2017 19:01:11 +0200
+
 minetest (0.4.16+repack-2) unstable; urgency=medium
 
   * Upload to unstable.
