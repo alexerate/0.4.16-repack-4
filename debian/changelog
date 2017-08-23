@@ -10,6 +10,7 @@ minetest (0.4.16+repack-3) unstable; urgency=medium
     dedicated servers.
   * Install minetest-mapper.6 with minetest-data.manpages.
   * Install appdata file into canonical directory /usr/share/metainfo.
+  * Switch priority from extra to optional.
 
  -- Markus Koschany <apo@debian.org>  Wed, 23 Aug 2017 19:01:11 +0200
 
