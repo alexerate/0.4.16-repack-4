@@ -75,7 +75,7 @@ Depends:
  fonts-croscore,
  fonts-droid-fallback,
  python,
- python-imaging,
+ python-pil,
  ${misc:Depends}
 Breaks:
  minetest (<< 0.4.14+repack-1),
