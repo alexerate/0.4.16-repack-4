@@ -40,6 +40,7 @@ override_dh_install:
 override_dh_clean:
 	dh_clean
 	$(RM) -r bin
+	$(RM) -r lib/jsoncpp lib/gmp
 
 get-orig-source:
 	uscan --verbose --force-download
