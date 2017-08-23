@@ -7,5 +7,5 @@ usr/share/games/minetest/fonts
 usr/share/games/minetest/clientmods/preview/init.lua
 usr/share/locale
 usr/share/icons/hicolor/scalable/apps/minetest.svg
-usr/share/metainfo/net.minetest.minetest.appdata.xml usr/share/appdata/
+usr/share/metainfo/net.minetest.minetest.appdata.xml usr/share/metainfo/
 usr/share/icons/hicolor/128x128/apps/minetest.png
