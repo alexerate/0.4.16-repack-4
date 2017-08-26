@@ -2,3 +2,4 @@ kfreebsd-gettext.patch
 mapper.patch
 shared_mods.patch
 rawlua.patch
+luajit-2.1.patch

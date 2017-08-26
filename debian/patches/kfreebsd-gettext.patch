@@ -4,14 +4,14 @@ Subject: kfreebsd-gettext
 
 Fix the build on kFreeBSD as it uses glibc
 ---
- cmake/Modules/FindGettextLib.cmake |    7 ++++---
+ cmake/Modules/FindGettextLib.cmake | 7 ++++---
  1 file changed, 4 insertions(+), 3 deletions(-)
 
-Index: b/cmake/Modules/FindGettextLib.cmake
-===================================================================
+diff --git a/cmake/Modules/FindGettextLib.cmake b/cmake/Modules/FindGettextLib.cmake
+index cb1ce7b..7d479e8 100644
 --- a/cmake/Modules/FindGettextLib.cmake
 +++ b/cmake/Modules/FindGettextLib.cmake
-@@ -60,9 +60,10 @@ find_package_handle_standard_args(GetTex
+@@ -60,9 +60,10 @@ find_package_handle_standard_args(GetText DEFAULT_MSG ${GETTEXT_REQUIRED_VARS})
  
  if(GETTEXT_FOUND)
  	# BSD variants require special linkage as they don't use glibc
