@@ -8,7 +8,7 @@ Debian-Bug: https://bugs.debian.org/873324
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/cmake/Modules/FindLuaJIT.cmake b/cmake/Modules/FindLuaJIT.cmake
-index e4335d8..dd6fd04 100644
+index e4335d8..273a3b2 100644
 --- a/cmake/Modules/FindLuaJIT.cmake
 +++ b/cmake/Modules/FindLuaJIT.cmake
 @@ -9,7 +9,7 @@
@@ -16,7 +16,7 @@ index e4335d8..dd6fd04 100644
  	HINTS
  	$ENV{LUA_DIR}
 -	PATH_SUFFIXES include/luajit-2.0 include/luajit-5_1-2.0 include
-+	PATH_SUFFIXES include/luajit-2.1 include/luajit-5_1-2.0 include
++	PATH_SUFFIXES include/luajit-2.0 include/luajit-2.1 include/luajit-5_1-2.0 include
  	PATHS
  	~/Library/Frameworks
  	/Library/Frameworks
